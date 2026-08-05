@@ -93,16 +93,18 @@ class StatisticsService
     }
 
     public function enrollmentsByMonth(): array
-    {
-        return $this->remember('enrollments_by_month', function () {
-            return StudentSchoolYear::whereHas('student',
-                fn ($q) => $q->where('school_id', $this->schoolId)
-            )->where('academic_year_id', $this->year?->id)
-             ->selectRaw('MONTH(enrolled_at) as month, COUNT(*) as total')
-             ->groupBy('month')->orderBy('month')
-             ->pluck('total', 'month')->toArray();
-        });
-    }
+{
+    return $this->remember('enrollments_by_month', function () {
+        return StudentSchoolYear::whereHas('student',
+            fn ($q) => $q->where('school_id', $this->schoolId)
+        )->where('student_school_years.academic_year_id', $this->year?->id)
+         ->selectRaw('EXTRACT(MONTH FROM enrolled_at)::int as month, COUNT(*) as total')
+         ->groupBy('month')
+         ->orderBy('month')
+         ->pluck('total', 'month')
+         ->toArray();
+    });
+}
 
     public function studentsByLevel(): array
     {
@@ -120,17 +122,19 @@ class StatisticsService
     }
 
     public function revenueByMonth(): array
-    {
-        return $this->remember('revenue_by_month', function () {
-            return StudentInvoice::whereHas('studentSchoolYear.student',
-                fn ($q) => $q->where('school_id', $this->schoolId)
-            )->where('status', 'paid')
-             ->whereYear('updated_at', now()->year)
-             ->selectRaw('MONTH(updated_at) as month, SUM(amount_paid) as total')
-             ->groupBy('month')->orderBy('month')
-             ->pluck('total', 'month')->toArray();
-        });
-    }
+{
+    return $this->remember('revenue_by_month', function () {
+        return StudentInvoice::whereHas('studentSchoolYear.student',
+            fn ($q) => $q->where('school_id', $this->schoolId)
+        )->where('status', 'paid')
+         ->whereYear('updated_at', now()->year)
+         ->selectRaw('EXTRACT(MONTH FROM updated_at)::int as month, SUM(amount_paid) as total')
+         ->groupBy('month')
+         ->orderBy('month')
+         ->pluck('total', 'month')
+         ->toArray();
+    });
+}
 
     public function presenceByDay(): array
     {
@@ -164,9 +168,11 @@ class StatisticsService
                 fn ($q) => $q->where('school_id', $this->schoolId)
             );
 
-            $today  = $base()->whereDate('updated_at', today())->where('status','paid')->sum('amount_paid');
-            $month  = $base()->whereMonth('updated_at', now()->month)->where('status','paid')->sum('amount_paid');
-            $year   = $base()->whereYear('updated_at', now()->year)->where('status','paid')->sum('amount_paid');
+            $today = $base()->whereDate('updated_at', today())->where('status','paid')->sum('amount_paid');
+            $month = $base()->whereRaw('EXTRACT(MONTH FROM updated_at) = ?', [now()->month])
+                ->where('status','paid')->sum('amount_paid');
+            $year  = $base()->whereRaw('EXTRACT(YEAR FROM updated_at) = ?', [now()->year])
+                ->where('status','paid')->sum('amount_paid');
 
             $unpaidCount   = $base()->where('status','unpaid')->count();
             $unpaidAmount  = $base()->where('status','unpaid')->sum('amount_due');
