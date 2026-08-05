@@ -170,7 +170,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Volt::route('timetable', 'timetable.index')->name('timetable.index');
     });
 
-    Route::middleware('can:calender.view')->group(function () {
+    Route::middleware('can:calander.view')->group(function () {
         Volt::route('calendar', 'calendar.index')->name('calendar.index');
     });
 });
