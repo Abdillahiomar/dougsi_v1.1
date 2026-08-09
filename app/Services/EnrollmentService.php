@@ -108,7 +108,8 @@ class EnrollmentService
         if ($registrationFee > 0) {
             StudentInvoice::create([
                 'student_school_year_id' => $ssy->id,
-                'fee_structure_id'       => null,
+                'academic_year_id' => $studentSchoolYear->academic_year_id,
+                'fee_structure_id'       => $feeStructure->id ?? null,
                 'invoice_number'         => $this->generateInvoiceNumber($schoolId, 'INS'),
                 'amount_due'             => $registrationFee,
                 'amount_paid'            => 0,
