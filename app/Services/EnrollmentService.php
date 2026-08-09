@@ -140,6 +140,7 @@ class EnrollmentService
 
                 StudentInvoice::create([
                     'student_school_year_id' => $ssy->id,
+                    'academic_year_id'       => $studentSchoolYear->academic_year_id,
                     'fee_structure_id'       => $feeStructure?->id,
                     'invoice_number'         => $this->generateInvoiceNumber($schoolId, 'SCO'),
                     'amount_due'             => $amount,
