@@ -44,7 +44,7 @@ new class extends Component
                 COUNT(*) AS nb_echeances,
                 SUM(student_invoices.amount_due - student_invoices.amount_paid) AS reste,
                 MIN(student_invoices.due_at) AS plus_ancienne,
-                DATEDIFF(CURDATE(), MIN(student_invoices.due_at)) AS anciennete
+                EXTRACT(DAY FROM CURRENT_DATE - MIN(student_invoices.due_at))::int AS anciennete
             ')
             ->havingRaw('reste > 0');
 

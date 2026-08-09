@@ -67,14 +67,14 @@ new class extends Component
         // ── Balance âgée : où se concentre le retard ─────────────
         $aging = $this->invoiceBase($schoolId, $year->id)
             ->whereRaw('amount_paid < amount_due')
-            ->selectRaw("
-                SUM(CASE WHEN due_at IS NULL OR due_at >= CURDATE()
+           ->selectRaw("
+                SUM(CASE WHEN due_at IS NULL OR due_at >= CURRENT_DATE
                     THEN amount_due - amount_paid ELSE 0 END) AS non_echu,
-                SUM(CASE WHEN due_at < CURDATE() AND due_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                SUM(CASE WHEN due_at < CURRENT_DATE AND due_at >= CURRENT_DATE - INTERVAL '30 days'
                     THEN amount_due - amount_paid ELSE 0 END) AS b30,
-                SUM(CASE WHEN due_at < DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND due_at >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
+                SUM(CASE WHEN due_at < CURRENT_DATE - INTERVAL '30 days' AND due_at >= CURRENT_DATE - INTERVAL '60 days'
                     THEN amount_due - amount_paid ELSE 0 END) AS b60,
-                SUM(CASE WHEN due_at < DATE_SUB(CURDATE(), INTERVAL 60 DAY)
+                SUM(CASE WHEN due_at < CURRENT_DATE - INTERVAL '60 days'
                     THEN amount_due - amount_paid ELSE 0 END) AS b90
             ")->first();
 
