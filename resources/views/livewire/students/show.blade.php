@@ -65,20 +65,41 @@ new class extends Component
     public function savePayment(): void
     {
         $this->validate([
-            'payAmount'    => 'required|integer|min:1',
-            'payMethod'    => 'required|string',
+            'payAmount' => 'required|integer|min:1',
+            'payMethod' => 'required|string',
         ]);
 
         $invoice = StudentInvoice::find($this->payingInvoiceId);
         if (! $invoice) return;
 
-        StudentPayment::create([
+        $ssy     = $invoice->studentSchoolYear;
+        $student = $ssy->student;
+        $year    = $ssy->academicYear;
+
+        // ── Créer le reçu d'abord ──
+        $receipt = \App\Models\PaymentReceipt::create([
+            'school_id'        => $student->school_id,
+            'academic_year_id' => $year->id,
+            'student_id'       => $student->id,
+            'cash_session_id'  => null, // pas de session caisse dans cette vue
+            'receipt_number'   => 'PAY-' . strtoupper(uniqid()),
+            'amount'           => $this->payAmount,
+            'method'           => $this->payMethod,
+            'reference'        => $this->payReference ?: null,
+            'paid_at'          => now(),
+            'received_by'      => auth()->id(),
+        ]);
+
+        // ── Créer le paiement lié au reçu ──
+        \App\Models\StudentPayment::create([
             'student_invoice_id' => $invoice->id,
+            'payment_receipt_id' => $receipt->id,
             'amount'             => $this->payAmount,
             'method'             => $this->payMethod,
             'reference'          => $this->payReference ?: null,
             'paid_at'            => now(),
-            'received_by'        => auth()->user()->staff?->id,
+            'school_id'          => $student->school_id,
+            'received_by'        => auth()->id(),
         ]);
 
         $newPaid = $invoice->amount_paid + $this->payAmount;
