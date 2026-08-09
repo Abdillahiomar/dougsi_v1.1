@@ -40,6 +40,6 @@ class StudentInvoice extends Model
 
     public function scopeOpen($q)
     {
-        return $q->whereIn('status', ['pending', 'partial', 'overdue']);
+         return $q->whereIn('status', ['unpaid', 'partially_paid']);
     }
 }
