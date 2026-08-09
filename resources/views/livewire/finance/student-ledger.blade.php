@@ -50,7 +50,7 @@ new class extends Component
     }
 }; ?>
 
-@include('partials.finance-styles')
+@include('layouts.partials.finance-styles')
 
 <div>
     @if ($oldDebt > 0)

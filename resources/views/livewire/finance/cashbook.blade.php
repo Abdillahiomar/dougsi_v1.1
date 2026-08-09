@@ -211,7 +211,7 @@ new class extends Component
     }
 }; ?>
 
-@include('partials.finance-styles')
+@include('layouts.partials.finance-styles')
 
 <style>
     .method-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:.6rem; margin-bottom:1.5rem; }

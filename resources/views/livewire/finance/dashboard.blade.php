@@ -504,7 +504,7 @@ new class extends Component
 }; ?>
 
 
-@include('partials.finance-styles')
+@include('layouts.partials.finance-styles')
 
 <style>
     .split-2 { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; align-items:start; }
