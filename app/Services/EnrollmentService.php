@@ -115,6 +115,8 @@ class EnrollmentService
                 'issued_at'              => now(),
                 'due_at'                 => now()->addDays(15),
                 'status'                 => 'unpaid',
+                'school_id'              => $schoolId,              // ← ajouter
+                'academic_year_id'       => $ssy->academic_year_id, // ← ajouter
                 'label'                  => $isReinscription
                     ? 'Frais de réinscription'
                     : 'Frais d\'inscription',
@@ -140,7 +142,7 @@ class EnrollmentService
 
                 StudentInvoice::create([
                     'student_school_year_id' => $ssy->id,
-                    'academic_year_id'       => $studentSchoolYear->academic_year_id,
+                    'academic_year_id'       => $ssy->academic_year_id,
                     'fee_structure_id'       => $feeStructure?->id,
                     'invoice_number'         => $this->generateInvoiceNumber($schoolId, 'SCO'),
                     'amount_due'             => $amount,
@@ -155,7 +157,7 @@ class EnrollmentService
             // Aucun plan configuré → une seule facture pour la totalité
             StudentInvoice::create([
                 'student_school_year_id' => $ssy->id,
-                'academic_year_id'       => $studentSchoolYear->academic_year_id,
+                'academic_year_id'       => $ssy->academic_year_id,
                 'fee_structure_id'       => $feeStructure?->id,
                 'invoice_number'         => $this->generateInvoiceNumber($schoolId, 'SCO'),
                 'amount_due'             => $tuitionAmount,
