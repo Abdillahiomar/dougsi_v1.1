@@ -344,7 +344,7 @@ new class extends Component
 @if ($session)
     @can('finance.close')
         <div style="margin-bottom:1rem;text-align:right;">
-            <button wire:click="openCloseModal" class="btn btn-primary">
+            <button type="button" wire:click="openCloseModal" class="btn btn-primary">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                 </svg>
@@ -499,10 +499,34 @@ new class extends Component
         </div>
     @endif
 
-    {{-- ══ Modal clôture ══ --}}
-    @if ($closing && $session)
-        <div class="modal-back" wire:click.self="$set('closing', false)">
-            <div class="modal">
+    @if ($closing)
+    <div
+        class="modal-back"
+        wire:click.self="$set('closing', false)"
+        style="
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.55);
+        "
+    >
+        <div
+            class="modal"
+            style="
+                position: relative;
+                z-index: 100000;
+                width: min(520px, 100%);
+                max-height: 90vh;
+                overflow-y: auto;
+                background: #fff;
+                border-radius: 12px;
+                box-shadow: 0 25px 60px rgba(0,0,0,.25);
+            "
+        >
                 <div class="modal-head">Clôture de caisse</div>
                 <div class="modal-body">
                     <div style="display:flex;justify-content:space-between;padding:.4rem 0;font-size:.875rem;">
@@ -553,8 +577,21 @@ new class extends Component
                 </div>
                 <div class="modal-foot">
                     <button wire:click="$set('closing', false)" class="btn">Annuler</button>
-                    <button wire:click="closeSession" class="btn btn-primary"
-                            @if ($countedCash === '') disabled @endif>Confirmer la clôture</button>
+                    <button
+                        type="button"
+                        wire:click="closeSession"
+                        wire:loading.attr="disabled"
+                        class="btn btn-primary"
+                        @disabled($countedCash === '')
+                    >
+                        <span wire:loading.remove wire:target="closeSession">
+                            Confirmer la clôture
+                        </span>
+
+                        <span wire:loading wire:target="closeSession">
+                            Clôture en cours...
+                        </span>
+                    </button>
                 </div>
             </div>
         </div>
