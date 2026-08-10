@@ -1,4 +1,3 @@
-```php
 <?php
 
 use App\Models\CashSession;
@@ -1833,4 +1832,4 @@ new class extends Component
     @endif
 
 </div>
-```
+
