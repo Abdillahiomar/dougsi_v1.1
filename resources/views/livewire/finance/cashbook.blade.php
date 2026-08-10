@@ -214,19 +214,37 @@ new class extends Component
 @include('layouts.partials.finance-styles')
 
 <style>
-    .method-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:.6rem; margin-bottom:1.5rem; }
-    @media (max-width:900px) { .method-grid { grid-template-columns:repeat(2,1fr); } }
-    .m-box { padding:.8rem 1rem; border-radius:10px; border:1px solid var(--line); background:var(--paper-raised); }
-    .m-val { font-family:'JetBrains Mono',monospace; font-size:1rem; font-weight:700; color:var(--ink); margin-top:3px; }
-    .m-n { font-size:.7rem; opacity:.45; margin-top:1px; }
-    .m-box.total { background:var(--sidebar); border-color:var(--sidebar); }
-    .m-box.total .lbl { color:rgba(255,255,255,.55); opacity:1; }
-    .m-box.total .m-val, .m-box.total .m-n { color:#FFFFFF; }
-    .m-box.total .m-n { opacity:.6; }
+   
 
-    .session-panel { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.9rem 1.25rem; border-radius:11px; background:rgba(30,120,80,.06); border:1px solid rgba(30,120,80,.18); margin-bottom:1.25rem; flex-wrap:wrap; }
-    .session-panel.none { background:rgba(232,168,56,.08); border-color:rgba(232,168,56,.25); }
-    .session-stats { display:flex; gap:1.75rem; flex-wrap:wrap; }
+    /* ── Bande horizontale session + méthodes ── */
+    .cashbook-bar {
+        display:grid;
+        grid-template-columns: auto auto auto 1fr 1fr 1fr 1fr 1fr;
+        gap:.6rem;
+        align-items:stretch;
+        margin-bottom:1.5rem;
+        flex-wrap:wrap;
+    }
+    @media(max-width:1100px) { .cashbook-bar { grid-template-columns:repeat(4,1fr); } }
+    @media(max-width:700px)  { .cashbook-bar { grid-template-columns:repeat(2,1fr); } }
+
+    .m-box {
+        padding:.8rem 1rem; border-radius:10px;
+        border:1px solid var(--line); background:var(--paper-raised);
+    }
+    .m-box.session { background:rgba(30,120,80,.06); border-color:rgba(30,120,80,.18); }
+    .m-box.total   { background:var(--sidebar); border-color:var(--sidebar); }
+    .m-box.total .lbl   { color:rgba(255,255,255,.55); opacity:1; }
+    .m-box.total .m-val { color:#FFFFFF; }
+    .m-box.total .m-n   { color:rgba(255,255,255,.6); }
+
+    /* Anciens — garder pour compat */
+    .session-panel { display:none; }
+    .method-grid   { display:none; }
+
+    
+
+    
     .preset-btns { display:flex; gap:.35rem; }
     .preset-btn { padding:.35rem .7rem; border-radius:7px; border:1px solid var(--line); background:var(--paper); font-size:.75rem; font-family:'Inter',sans-serif; color:var(--ink); cursor:pointer; }
     .preset-btn:hover { border-color:var(--sidebar-soft); color:var(--sidebar-soft); }
@@ -265,58 +283,76 @@ new class extends Component
         </div>
     @endif
 
-    {{-- ══ Ma caisse ══ --}}
+    {{-- ══ Barre horizontale : session + méthodes ══ --}}
+<div class="cashbook-bar">
+
+    {{-- Caisse ouverte --}}
     @if ($session)
-        <div class="session-panel">
-            <div class="session-stats">
-                <div>
-                    <div class="lbl">Caisse ouverte</div>
-                    <div style="font-size:.875rem;font-weight:600;margin-top:2px;">{{ $session->opened_at->format('d/m/Y à H:i') }}</div>
-                </div>
-                <div>
-                    <div class="lbl">Fond de caisse</div>
-                    <div class="mono" style="margin-top:2px;">{{ number_format($session->opening_float, 0, ',', ' ') }} DJF</div>
-                </div>
-                <div>
-                    <div class="lbl">Espèces théoriques</div>
-                    <div class="mono" style="margin-top:2px;color:#166534;">{{ number_format($expectedCash, 0, ',', ' ') }} DJF</div>
-                </div>
+        <div class="m-box session">
+            <div class="lbl">Caisse ouverte</div>
+            <div style="font-size:.8125rem;font-weight:600;margin-top:2px;">
+                {{ $session->opened_at->format('d/m/Y à H:i') }}
             </div>
-            @can('finance.close')
-                <button wire:click="openCloseModal" class="btn btn-primary">
-                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                    Clôturer la caisse
-                </button>
-            @endcan
+        </div>
+        <div class="m-box session">
+            <div class="lbl">Fond de caisse</div>
+            <div class="mono" style="margin-top:2px;">
+                {{ number_format($session->opening_float, 0, ',', ' ') }} DJF
+            </div>
+        </div>
+        <div class="m-box session">
+            <div class="lbl">Espèces théoriques</div>
+            <div class="mono" style="margin-top:2px;color:#166534;">
+                {{ number_format($expectedCash, 0, ',', ' ') }} DJF
+            </div>
         </div>
     @else
-        <div class="session-panel none">
-            <div style="font-size:.875rem;">Vous n'avez pas de caisse ouverte.</div>
+        <div class="m-box session" style="grid-column:span 3;">
+            <div style="font-size:.875rem;color:#92400E;">Aucune caisse ouverte.</div>
             @can('finance.collect')
-                <a href="{{ route('finances.collect') }}" class="btn" wire:navigate>Ouvrir depuis le guichet</a>
+                <a href="{{ route('finances.collect') }}" class="btn" wire:navigate
+                   style="font-size:.8rem;margin-top:.4rem;display:inline-block;">
+                   Ouvrir depuis le guichet
+                </a>
             @endcan
         </div>
     @endif
 
-    {{-- ══ Totaux par mode ══ --}}
-    <div class="method-grid">
-        @foreach (\App\Models\PaymentReceipt::METHODS as $key => $label)
-            @php $row = $byMethod[$key] ?? null; @endphp
-            <div class="m-box">
-                <div class="lbl">{{ $label }}</div>
-                <div class="m-val">{{ number_format((int)($row->total ?? 0), 0, ',', ' ') }}</div>
-                <div class="m-n">{{ (int)($row->n ?? 0) }} reçu(s)</div>
-            </div>
-        @endforeach
-        <div class="m-box total">
-            <div class="lbl">Total période</div>
-            <div class="m-val">{{ number_format($grandTotal, 0, ',', ' ') }}</div>
-            <div class="m-n">
-                {{ $countTotal }} reçu(s)
-                @if ($voidedTotal > 0) · {{ number_format($voidedTotal, 0, ',', ' ') }} annulés @endif
-            </div>
+    {{-- Méthodes de paiement --}}
+    @foreach (\App\Models\PaymentReceipt::METHODS as $key => $label)
+        @php $row = $byMethod[$key] ?? null; @endphp
+        <div class="m-box">
+            <div class="lbl">{{ $label }}</div>
+            <div class="m-val">{{ number_format((int)($row->total ?? 0), 0, ',', ' ') }}</div>
+            <div class="m-n">{{ (int)($row->n ?? 0) }} reçu(s)</div>
+        </div>
+    @endforeach
+
+    {{-- Total --}}
+    <div class="m-box total">
+        <div class="lbl">Total période</div>
+        <div class="m-val">{{ number_format($grandTotal, 0, ',', ' ') }}</div>
+        <div class="m-n">
+            {{ $countTotal }} reçu(s)
+            @if ($voidedTotal > 0) · {{ number_format($voidedTotal, 0, ',', ' ') }} annulés @endif
         </div>
     </div>
+
+</div>
+
+{{-- Bouton clôture séparé --}}
+@if ($session)
+    @can('finance.close')
+        <div style="margin-bottom:1rem;text-align:right;">
+            <button wire:click="openCloseModal" class="btn btn-primary">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                Clôturer la caisse
+            </button>
+        </div>
+    @endcan
+@endif
 
     {{-- ══ Filtres ══ --}}
     <div class="filters">
