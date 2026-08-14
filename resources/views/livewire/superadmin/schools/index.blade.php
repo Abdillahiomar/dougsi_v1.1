@@ -1,6 +1,6 @@
 <?php
 // resources/views/livewire/superadmin/schools/index.blade.php
-use function Livewire\Volt\{state, computed};
+use function Livewire\Volt\{state, computed, usesPagination};
 use App\Models\School;
 use function Livewire\Volt\{layout};
 layout('layouts.superadmin');
