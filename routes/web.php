@@ -7,6 +7,21 @@ use App\Http\Controllers\ReceiptController;
 //use Livewire\Livewire;
 
 
+// routes/web.php
+Route::prefix('superadmin')->name('superadmin.')->group(function () {
+    // Login (invité superadmin)
+    Volt::route('/login', 'superadmin.login')
+        ->middleware('guest:superadmin')
+        ->name('login');
+
+    // Zone protégée
+    Route::middleware('auth:superadmin')->group(function () {
+        Volt::route('/dashboard', 'superadmin.dashboard')->name('dashboard');
+        Volt::route('/schools', 'superadmin.schools.index')->name('schools.index');
+        Volt::route('/schools/{school}', 'superadmin.schools.show')->name('schools.show');
+    });
+});
+
 Route::get('/favicon.ico', function () {
     $school = auth()->user()?->school;
 
