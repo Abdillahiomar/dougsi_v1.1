@@ -568,7 +568,7 @@ html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--p
 }
 
 /* ============================================================
-   RESPONSIVE — mobile sidebar cachée
+   RESPONSIVE — mobile sidebar coulissante
    ============================================================ */
 @media (max-width: 768px) {
     .app-shell {
@@ -581,112 +581,42 @@ html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--p
 
     .sidebar {
         position: fixed;
-        left: -var(--sidebar-w);
         top: 0;
+        left: 0;
         bottom: 0;
+        width: var(--sidebar-w);
         transform: translateX(-100%);
         transition: transform .25s ease;
         z-index: 100;
     }
 
-    .sidebar.open {
+    /* Ouverte quand .app-shell porte la classe .sidebar-open */
+    .app-shell.sidebar-open .sidebar {
         transform: translateX(0);
     }
+
+    /* Overlay sombre derrière la sidebar ouverte */
+    .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .5);
+        z-index: 90;
+    }
+
+    .sidebar-toggle { display: inline-flex; }
 
     .user-menu-name { max-width: 100px; }
     .header-school-name { display: none; }
 }
 
-
-/* ── Bouton dark mode ── */
-.theme-toggle-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    border: 1px solid var(--line);
-    background: var(--paper);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* Hamburger masqué en desktop */
+.sidebar-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
     cursor: pointer;
-    transition: background .12s, border-color .12s;
-    color: var(--ink);
-    flex-shrink: 0;
+    color: var(--sidebar-soft);
+    padding: .25rem .5rem;
 }
-
-.theme-toggle-btn:hover {
-    background: var(--paper-raised);
-    border-color: var(--sidebar-soft);
-}
-
-.theme-toggle-btn svg {
-    width: 17px;
-    height: 17px;
-    opacity: .65;
-    transition: opacity .12s;
-}
-
-.theme-toggle-btn:hover svg {
-    opacity: 1;
-}
-
-[data-theme="dark"] .theme-toggle-btn svg {
-    color: var(--accent);
-    opacity: .85;
-}
-
-
-/* ── Light mode (défaut) ── */
-:root {
-    --sidebar     : #1E2D5A;
-    --sidebar-soft: #2A3F7E;
-    --accent      : #E8A838;
-    --accent-red  : #E05C3A;
-    --ink         : #1A1E35;
-    --paper       : #F5F3EE;
-    --paper-raised: #FFFFFF;
-    --line        : #E0DBD0;
-}
-
-/* ── Dark mode ── */
-[data-theme="dark"] {
-    --sidebar     : #111827;
-    --sidebar-soft: #1F2937;
-    --accent      : #E8A838;
-    --accent-red  : #EF6B50;
-    --ink         : #F1F0EC;
-    --paper       : #0F172A;
-    --paper-raised: #1E293B;
-    --line        : #2D3748;
-}
-
-[data-theme="dark"] .top-bar {
-    background: #1E293B;
-}
-
-[data-theme="dark"] .user-menu-trigger {
-    background: #2D3748;
-    border-color: #374151;
-}
-
-[data-theme="dark"] .user-menu-dropdown {
-    background: #1E293B;
-    border-color: #2D3748;
-    box-shadow: 0 8px 32px rgba(0,0,0,.4);
-}
-
-[data-theme="dark"] .dropdown-header {
-    background: #0F172A;
-}
-
-[data-theme="dark"] .dropdown-item:hover {
-    background: #2D3748;
-}
-
-[data-theme="dark"] canvas {
-    filter: brightness(.9);
-}
-
-/* \[:where(&)\]:size-4 {
-    @apply size-4;
-} */

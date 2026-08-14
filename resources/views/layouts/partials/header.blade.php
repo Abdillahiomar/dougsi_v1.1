@@ -20,7 +20,7 @@
             <span class="header-date" id="hdr-date"></span>
             <span class="header-time" id="hdr-time"></span>
         </div>
-       <button id="sidebarToggle" class="sidebar-toggle">
+     <button type="button" class="sidebar-toggle" @click="$dispatch('toggle-sidebar')">
     ☰
 </button>
     </div>

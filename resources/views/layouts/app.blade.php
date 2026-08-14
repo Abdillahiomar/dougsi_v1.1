@@ -71,13 +71,22 @@
     </div>
 @endif
 
-<div class="app-shell">
+<div class="app-shell"
+     x-data="{ sidebarOpen: false }"
+     :class="{ 'sidebar-open': sidebarOpen }"
+     @toggle-sidebar.window="sidebarOpen = !sidebarOpen"
+     x-init="document.addEventListener('livewire:navigated', () => sidebarOpen = false)">
 
     {{-- ── Sidebar fixe ── --}}
     @include('layouts.partials.sidebar')
 
     {{-- ── Header fixe ── --}}
     @include('layouts.partials.header')
+    <div class="sidebar-overlay"
+         x-show="sidebarOpen"
+         @click="sidebarOpen = false"
+         x-transition.opacity
+         style="display:none;"></div>
 
     {{-- ── Contenu scrollable ── --}}
     <main class="app-main" id="app-main">
