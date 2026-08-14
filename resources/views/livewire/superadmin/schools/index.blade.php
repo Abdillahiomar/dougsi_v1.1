@@ -2,6 +2,8 @@
 // resources/views/livewire/superadmin/schools/index.blade.php
 use function Livewire\Volt\{state, computed};
 use App\Models\School;
+use function Livewire\Volt\{layout};
+layout('layouts.superadmin');
 
 $search = state('');
 

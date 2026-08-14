@@ -3,6 +3,9 @@
 use function Livewire\Volt\{state, layout};
 use Illuminate\Support\Facades\Auth;
 
+
+layout('layouts.superadmin');
+
 //layout('layouts.guest'); // ou ton layout minimal
 
 state(['email' => '', 'password' => '']);

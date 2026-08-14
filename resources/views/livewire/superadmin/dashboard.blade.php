@@ -3,6 +3,8 @@
 use function Livewire\Volt\{computed};
 use App\Models\School;
 use App\Models\User;
+use function Livewire\Volt\{layout};
+layout('layouts.superadmin');
 
 $stats = computed(fn () => [
     'schools'       => School::count(),
