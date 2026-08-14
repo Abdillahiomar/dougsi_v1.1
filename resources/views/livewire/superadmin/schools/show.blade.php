@@ -13,6 +13,8 @@ mount(function (School $school) {
 ?>
 
 <div class="p-6 max-w-3xl">
+
+
     <div class="flex items-center gap-3 mb-6">
         <a href="{{ route('superadmin.schools.index') }}" class="text-slate-500 hover:text-slate-800">← Retour</a>
         <h1 class="text-2xl font-bold">{{ $school->name }}</h1>
@@ -23,6 +25,14 @@ mount(function (School $school) {
         ])>
             {{ $school->is_active ? 'Active' : 'Inactive' }}
         </span>
+
+        <form method="POST" action="{{ route('superadmin.schools.impersonate', $school) }}" class="mt-4">
+    @csrf
+    <button type="submit"
+            class="bg-amber-600 hover:bg-amber-500 text-white rounded px-4 py-2">
+        🔑 Se connecter en tant que cette école
+    </button>
+</form>
     </div>
 
     <div class="bg-white rounded-lg border p-6 space-y-3">

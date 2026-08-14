@@ -29,6 +29,38 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
         session()->regenerateToken();
         return redirect()->route('superadmin.login');
     })->name('logout');
+
+
+    Route::post('/schools/{school}/impersonate', function (\App\Models\School $school) {
+        // On prend le premier admin de l'école
+        $target = $school->users()
+            ->whereHas('roles', fn ($q) => $q->where('name', 'admin'))
+            ->first();
+
+        abort_if(! $target, 404, "Cette école n'a pas d'administrateur.");
+
+        // On mémorise qui impersonne (le superadmin) pour pouvoir revenir
+        session()->put('impersonator_id', auth('superadmin')->id());
+
+        // On connecte le superadmin en tant que l'admin de l'école, sur le guard web
+        auth('web')->login($target);
+
+        return redirect('/dashboard'); // route d'accueil d'un admin d'école
+    })->name('schools.impersonate')->whereNumber('school');
+
+
+    Route::post('/superadmin/stop-impersonating', function () {
+    abort_unless(session()->has('impersonator_id'), 403);
+
+    // On déconnecte l'utilisateur d'école
+    auth('web')->logout();
+
+    // On nettoie la trace
+    session()->forget('impersonator_id');
+
+    // Le superadmin est toujours connecté sur son guard → retour au dashboard
+    return redirect()->route('superadmin.schools.index');
+})->name('superadmin.stop-impersonating');
 });
 
 Route::get('/favicon.ico', function () {

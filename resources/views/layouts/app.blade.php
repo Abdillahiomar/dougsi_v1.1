@@ -56,6 +56,20 @@
 
     {{-- ── Header fixe ── --}}
     @include('layouts.partials.header')
+    @if (session()->has('impersonator_id'))
+    <div class="bg-amber-500 text-white px-4 py-2 flex items-center justify-between text-sm">
+        <span>
+            ⚠️ Vous êtes connecté en tant que <strong>{{ auth()->user()->name }}</strong>
+            ({{ auth()->user()->school?->name }}) — mode support superadmin.
+        </span>
+        <form method="POST" action="{{ route('superadmin.stop-impersonating') }}">
+            @csrf
+            <button type="submit" class="underline font-medium hover:text-amber-100">
+                ← Revenir à mon compte superadmin
+            </button>
+        </form>
+    </div>
+@endif
 
     {{-- ── Contenu scrollable ── --}}
     <main class="app-main" id="app-main">
