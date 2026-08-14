@@ -35,7 +35,7 @@ $toggleActive = function (School $school) {
                     class="border rounded px-3 py-2">
                 <a href="{{ route('superadmin.schools.create') }}"
                 class="bg-sky-600 hover:bg-sky-500 text-white rounded px-4 py-2 whitespace-nowrap">
-                    + Nouvelle école
+                    Nouvelle école
                 </a>
             </div>
     </div>
