@@ -28,17 +28,17 @@ $toggleActive = function (School $school) {
     </div>
 @endif
     <div class="flex justify-between items-center mb-4">
-    <h1 class="text-2xl font-bold">Écoles</h1>
-    <div class="flex items-center gap-3">
-        <input wire:model.live.debounce.300ms="search"
-               placeholder="Rechercher..."
-               class="border rounded px-3 py-2">
-        <a href="{{ route('superadmin.schools.create') }}"
-           class="bg-sky-600 hover:bg-sky-500 text-white rounded px-4 py-2 whitespace-nowrap">
-            + Nouvelle école
-        </a>
+            <h1 class="text-2xl font-bold">Écoles</h1>
+            <div class="flex items-center gap-3">
+                <input wire:model.live.debounce.300ms="search"
+                    placeholder="Rechercher..."
+                    class="border rounded px-3 py-2">
+                <a href="{{ route('superadmin.schools.create') }}"
+                class="bg-sky-600 hover:bg-sky-500 text-white rounded px-4 py-2 whitespace-nowrap">
+                    + Nouvelle école
+                </a>
+            </div>
     </div>
-</div>
     <table class="w-full">
         <thead>
             <tr class="border-b text-left">
