@@ -4,18 +4,20 @@ use function Livewire\Volt\{state, computed};
 use App\Models\School;
 use function Livewire\Volt\{layout};
 layout('layouts.superadmin');
+usesPagination();
 
-$search = state('');
+state(['search' => '']);
 
-$schools = computed(fn () =>
-    School::withCount('users')
+$schools = computed(function () {
+    return School::withCount('users')
         ->when($this->search, fn ($q) =>
-            $q->where('name', 'ilike', "%{$this->search}%"))
+            $q->where('name', 'ilike', '%' . $this->search . '%'))
         ->orderBy('name')
-        ->paginate(15)
-);
+        ->paginate(15);
+});
 
-$toggleActive = function (School $school) {
+$toggleActive = function ($id) {
+    $school = School::findOrFail($id);
     $school->update(['is_active' => ! $school->is_active]);
 };
 
