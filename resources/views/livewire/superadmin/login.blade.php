@@ -3,7 +3,7 @@
 use function Livewire\Volt\{state, layout};
 use Illuminate\Support\Facades\Auth;
 
-layout('layouts.guest'); // ou ton layout minimal
+//layout('layouts.guest'); // ou ton layout minimal
 
 state(['email' => '', 'password' => '']);
 
