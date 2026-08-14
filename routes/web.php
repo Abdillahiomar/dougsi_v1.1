@@ -52,32 +52,27 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
     
 });
 
+// ── Sortie d'impersonation (hors groupe auth:superadmin) ──────────
+Route::post('/superadmin/stop-impersonating', function () {
+    abort_unless(session()->has('impersonator_id'), 403);
+
+    auth('web')->logout();
+    session()->forget('impersonator_id');
+
+    return redirect()->route('superadmin.schools.index');
+})->name('superadmin.stop-impersonating');
+
 Route::get('/favicon.ico', function () {
     $school = auth()->user()?->school;
 
     if ($school?->logo_path) {
         $path = public_path('storage/schools/logos/' . basename($school->logo_path));
-
         if (file_exists($path)) {
             return response(file_get_contents($path), 200)
                 ->header('Content-Type', mime_content_type($path));
         }
     }
 
-    Route::post('/superadmin/stop-impersonating', function () {
-        abort_unless(session()->has('impersonator_id'), 403);
-
-        // On déconnecte l'utilisateur d'école
-        auth('web')->logout();
-
-        // On nettoie la trace
-        session()->forget('impersonator_id');
-
-        // Le superadmin est toujours connecté sur son guard → retour au dashboard
-        return redirect()->route('superadmin.schools.index');
-    })->name('superadmin.stop-impersonating');
-
-    // Fallback
     $default = public_path('favicon-default.ico');
     if (file_exists($default)) {
         return response(file_get_contents($default), 200)
