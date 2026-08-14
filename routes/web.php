@@ -18,8 +18,8 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
     Route::middleware('auth:superadmin')->group(function () {
         Volt::route('/dashboard', 'superadmin.dashboard')->name('dashboard');
         Volt::route('/schools', 'superadmin.schools.index')->name('schools.index');
-        Volt::route('/schools/{school}', 'superadmin.schools.show')->name('schools.show');
         Volt::route('/schools/create', 'superadmin.schools.create')->name('schools.create');
+        Volt::route('/schools/{school}', 'superadmin.schools.show')->name('schools.show');
     });
 
     // routes/web.php, dans le groupe auth:superadmin
