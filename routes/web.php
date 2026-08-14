@@ -49,18 +49,7 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
     })->name('schools.impersonate')->whereNumber('school');
 
 
-    Route::post('/superadmin/stop-impersonating', function () {
-    abort_unless(session()->has('impersonator_id'), 403);
-
-    // On déconnecte l'utilisateur d'école
-    auth('web')->logout();
-
-    // On nettoie la trace
-    session()->forget('impersonator_id');
-
-    // Le superadmin est toujours connecté sur son guard → retour au dashboard
-    return redirect()->route('superadmin.schools.index');
-})->name('superadmin.stop-impersonating');
+    
 });
 
 Route::get('/favicon.ico', function () {
@@ -74,6 +63,19 @@ Route::get('/favicon.ico', function () {
                 ->header('Content-Type', mime_content_type($path));
         }
     }
+
+    Route::post('/superadmin/stop-impersonating', function () {
+        abort_unless(session()->has('impersonator_id'), 403);
+
+        // On déconnecte l'utilisateur d'école
+        auth('web')->logout();
+
+        // On nettoie la trace
+        session()->forget('impersonator_id');
+
+        // Le superadmin est toujours connecté sur son guard → retour au dashboard
+        return redirect()->route('superadmin.schools.index');
+    })->name('superadmin.stop-impersonating');
 
     // Fallback
     $default = public_path('favicon-default.ico');
