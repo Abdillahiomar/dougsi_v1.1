@@ -19,15 +19,16 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
         Volt::route('/dashboard', 'superadmin.dashboard')->name('dashboard');
         Volt::route('/schools', 'superadmin.schools.index')->name('schools.index');
         Volt::route('/schools/{school}', 'superadmin.schools.show')->name('schools.show');
+        Volt::route('/schools/create', 'superadmin.schools.create')->name('schools.create');
     });
 
     // routes/web.php, dans le groupe auth:superadmin
-Route::post('/logout', function () {
-    Auth::guard('superadmin')->logout();
-    session()->invalidate();
-    session()->regenerateToken();
-    return redirect()->route('superadmin.login');
-})->name('logout');
+    Route::post('/logout', function () {
+        Auth::guard('superadmin')->logout();
+        session()->invalidate();
+        session()->regenerateToken();
+        return redirect()->route('superadmin.login');
+    })->name('logout');
 });
 
 Route::get('/favicon.ico', function () {
