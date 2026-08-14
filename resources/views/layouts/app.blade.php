@@ -24,8 +24,6 @@
     {{-- Livewire --}}
     @livewireStyles
 
-    
-    
     {{-- Favicon dynamique selon l'école --}}
     @auth
         @php
@@ -44,10 +42,34 @@
     @else
         <link rel="icon" href="/favicon.ico">
     @endauth
-   
-
 </head>
-<body>
+{{-- pt-10 pousse le contenu vers le bas uniquement quand la bannière est visible --}}
+<body class="{{ session()->has('impersonator_id') ? 'pt-10' : '' }}">
+
+{{-- ============================================================
+     Bannière d'impersonation — fixée tout en haut, au-dessus de tout.
+     Placée HORS de .app-shell pour ne pas être masquée par la sidebar
+     ou le header en position fixed.
+     ============================================================ --}}
+@if (session()->has('impersonator_id'))
+    <div class="fixed top-0 inset-x-0 z-[9999] bg-amber-500 text-white px-4 py-2 flex items-center justify-between gap-4 text-sm shadow-lg">
+        <span>
+            ⚠️ Vous êtes connecté en tant que
+            <strong>{{ auth()->user()?->name }}</strong>
+            @if (auth()->user()?->school?->name)
+                ({{ auth()->user()->school->name }})
+            @endif
+            — mode support superadmin.
+        </span>
+        <form method="POST" action="{{ route('superadmin.stop-impersonating') }}">
+            @csrf
+            <button type="submit"
+                    class="underline font-medium hover:text-amber-100 whitespace-nowrap">
+                ← Revenir à mon compte superadmin
+            </button>
+        </form>
+    </div>
+@endif
 
 <div class="app-shell">
 
@@ -56,20 +78,6 @@
 
     {{-- ── Header fixe ── --}}
     @include('layouts.partials.header')
-    @if (session()->has('impersonator_id'))
-    <div class="bg-amber-500 text-white px-4 py-2 flex items-center justify-between text-sm">
-        <span>
-            ⚠️ Vous êtes connecté en tant que <strong>{{ auth()->user()->name }}</strong>
-            ({{ auth()->user()->school?->name }}) — mode support superadmin.
-        </span>
-        <form method="POST" action="{{ route('superadmin.stop-impersonating') }}">
-            @csrf
-            <button type="submit" class="underline font-medium hover:text-amber-100">
-                ← Revenir à mon compte superadmin
-            </button>
-        </form>
-    </div>
-@endif
 
     {{-- ── Contenu scrollable ── --}}
     <main class="app-main" id="app-main">
