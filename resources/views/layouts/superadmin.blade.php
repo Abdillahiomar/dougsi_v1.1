@@ -36,11 +36,12 @@
                 </a>
 
                 {{-- Décommente au fur et à mesure que tu crées les pages --}}
-                {{--
+                
                 <a href="{{ route('superadmin.users.index') }}"
                    class="{{ $link }} {{ request()->routeIs('superadmin.users.*') ? $active : $idle }}">
                     <span>👥</span> Utilisateurs
                 </a>
+                {{--
                 <a href="{{ route('superadmin.subscriptions.index') }}"
                    class="{{ $link }} {{ request()->routeIs('superadmin.subscriptions.*') ? $active : $idle }}">
                     <span>💳</span> Abonnements

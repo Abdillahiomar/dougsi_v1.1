@@ -49,6 +49,9 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
     })->name('schools.impersonate')->whereNumber('school');
 
 
+    Volt::route('/users', 'superadmin.users.index')->name('users.index');
+
+
     
 });
 
