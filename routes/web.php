@@ -56,6 +56,8 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
     ->name('subscriptions.edit')
     ->whereNumber('subscription');
 
+    Volt::route('/invoices', 'superadmin.invoices.index')->name('invoices.index');
+
     
 });
 

@@ -116,6 +116,13 @@ $subscriptions = computed(function () {
                                     Générer facture
                                 </button>
                         </td>
+
+                        <td>
+                            <a href="{{ route('superadmin.invoices.index') }}"
+                                class="{{ $link }} {{ request()->routeIs('superadmin.invoices.*') ? $active : $idle }}">
+                                    <span>🧾</span> Factures
+                            </a>
+                        </td>
                     </tr>
                 @empty
                     <tr>
