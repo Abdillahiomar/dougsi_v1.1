@@ -1,85 +1,100 @@
 <?php
-use function Livewire\Volt\{state, mount, computed, layout, rules};
+
 use App\Models\{Subscription, Plan};
+use Livewire\Volt\Component;
+use Livewire\Attributes\Computed;
 
-layout('layouts.superadmin');
+new class extends Component
+{
+    public ?Subscription $subscription = null;
+    public $plan_id = null;
+    public $custom_monthly_amount = null;
+    public $discount_percent = 0;
+    public string $billing_cycle = 'monthly';
+    public string $status = 'active';
+    public $starts_at = null;
+    public $ends_at = null;
+    public bool $auto_renew = false;
 
-state([
-    'subscription'          => null,
-    'plan_id'               => null,
-    'custom_monthly_amount' => null,
-    'discount_percent'      => 0,
-    'billing_cycle'         => 'monthly',
-    'status'                => 'active',
-    'starts_at'             => null,
-    'ends_at'               => null,
-    'auto_renew'            => false,
-]);
-
-mount(function (Subscription $subscription) {
-    $this->subscription          = $subscription;
-    $this->plan_id               = $subscription->plan_id;
-    $this->custom_monthly_amount = $subscription->custom_monthly_amount;
-    $this->discount_percent      = $subscription->discount_percent ?? 0;
-    $this->billing_cycle         = $subscription->billing_cycle ?? 'monthly';
-    $this->status                = $subscription->status;
-    $this->starts_at             = $subscription->starts_at?->format('Y-m-d');
-    $this->ends_at               = $subscription->ends_at?->format('Y-m-d');
-    $this->auto_renew            = (bool) $subscription->auto_renew;
-});
-
-$plans = computed(fn () => Plan::orderBy('price')->get());
-
-// Montant mensuel effectif (négocié sinon prix du plan)
-$monthly = computed(function () {
-    if ($this->custom_monthly_amount) {
-        return (float) $this->custom_monthly_amount;
+    public function mount(Subscription $subscription): void
+    {
+        $this->subscription          = $subscription;
+        $this->plan_id               = $subscription->plan_id;
+        $this->custom_monthly_amount = $subscription->custom_monthly_amount;
+        $this->discount_percent      = $subscription->discount_percent ?? 0;
+        $this->billing_cycle         = $subscription->billing_cycle ?? 'monthly';
+        $this->status                = $subscription->status;
+        $this->starts_at             = $subscription->starts_at?->format('Y-m-d');
+        $this->ends_at               = $subscription->ends_at?->format('Y-m-d');
+        $this->auto_renew            = (bool) $subscription->auto_renew;
     }
-    return (float) ($this->plans->firstWhere('id', $this->plan_id)?->price ?? 0);
-});
 
-// Nombre de mois selon périodicité
-$months = computed(fn () => match ($this->billing_cycle) {
-    'quarterly'  => 3,
-    'semiannual' => 6,
-    'annual'     => 12,
-    default      => 1,
-});
+    #[Computed]
+    public function plans()
+    {
+        return Plan::orderBy('price')->get();
+    }
 
-// Aperçu du montant par cycle (calcul live)
-$cyclePreview = computed(function () {
-    $base = $this->monthly * $this->months;
-    $discount = $base * (((float) $this->discount_percent) / 100);
-    return round($base - $discount, 2);
-});
+    #[Computed]
+    public function monthly(): float
+    {
+        if ($this->custom_monthly_amount) {
+            return (float) $this->custom_monthly_amount;
+        }
+        return (float) ($this->plans->firstWhere('id', $this->plan_id)?->price ?? 0);
+    }
 
-$save = function () {
-    $this->validate([
-        'plan_id'               => 'nullable|exists:plans,id',
-        'custom_monthly_amount' => 'nullable|numeric|min:0',
-        'discount_percent'      => 'required|numeric|min:0|max:100',
-        'billing_cycle'         => 'required|in:monthly,quarterly,semiannual,annual',
-        'status'                => 'required|in:active,trial,suspended,expired',
-        'starts_at'             => 'nullable|date',
-        'ends_at'               => 'nullable|date|after_or_equal:starts_at',
-    ]);
+    #[Computed]
+    public function months(): int
+    {
+        return match ($this->billing_cycle) {
+            'quarterly'  => 3,
+            'semiannual' => 6,
+            'annual'     => 12,
+            default      => 1,
+        };
+    }
 
-    $this->subscription->update([
-        'plan_id'               => $this->plan_id,
-        'custom_monthly_amount' => $this->custom_monthly_amount ?: null,
-        'discount_percent'      => $this->discount_percent,
-        'billing_cycle'         => $this->billing_cycle,
-        'status'                => $this->status,
-        'starts_at'             => $this->starts_at,
-        'ends_at'               => $this->ends_at,
-        'auto_renew'            => $this->auto_renew,
-    ]);
+    #[Computed]
+    public function cyclePreview(): float
+    {
+        $base = $this->monthly * $this->months;
+        $discount = $base * (((float) $this->discount_percent) / 100);
+        return round($base - $discount, 2);
+    }
 
-    session()->flash('status', 'Abonnement mis à jour.');
-    return redirect()->route('superadmin.subscriptions.index');
-};
+    public function save()
+    {
+        $this->validate([
+            'plan_id'               => 'nullable|exists:plans,id',
+            'custom_monthly_amount' => 'nullable|numeric|min:0',
+            'discount_percent'      => 'required|numeric|min:0|max:100',
+            'billing_cycle'         => 'required|in:monthly,quarterly,semiannual,annual',
+            'status'                => 'required|in:active,trial,suspended,expired',
+            'starts_at'             => 'nullable|date',
+            'ends_at'               => 'nullable|date|after_or_equal:starts_at',
+        ]);
 
-?>
+        $this->subscription->update([
+            'plan_id'               => $this->plan_id,
+            'custom_monthly_amount' => $this->custom_monthly_amount ?: null,
+            'discount_percent'      => $this->discount_percent,
+            'billing_cycle'         => $this->billing_cycle,
+            'status'                => $this->status,
+            'starts_at'             => $this->starts_at,
+            'ends_at'               => $this->ends_at,
+            'auto_renew'            => $this->auto_renew,
+        ]);
+
+        session()->flash('status', 'Abonnement mis à jour.');
+        return redirect()->route('superadmin.subscriptions.index');
+    }
+
+    public function layout()
+    {
+        return 'layouts.superadmin';
+    }
+} ?>
 
 <div class="p-6 max-w-2xl">
     <div class="flex items-center gap-3 mb-6">
@@ -94,7 +109,6 @@ $save = function () {
 
     <form wire:submit="save" class="space-y-6">
         <div class="bg-white rounded-lg border p-6 space-y-4">
-            {{-- Plan de référence --}}
             <div>
                 <label class="block text-sm mb-1">Plan de référence (optionnel)</label>
                 <select wire:model.live="plan_id" class="w-full border rounded px-3 py-2">
@@ -108,7 +122,6 @@ $save = function () {
                 <p class="text-xs text-slate-400 mt-1">Sert de point de départ. Le montant ci-dessous prime s'il est renseigné.</p>
             </div>
 
-            {{-- Montant mensuel négocié --}}
             <div>
                 <label class="block text-sm mb-1">Montant mensuel négocié (FDJ)</label>
                 <input type="number" wire:model.live="custom_monthly_amount"
@@ -116,7 +129,6 @@ $save = function () {
                        class="w-full border rounded px-3 py-2">
             </div>
 
-            {{-- Périodicité + remise --}}
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm mb-1">Périodicité de paiement</label>
@@ -134,7 +146,6 @@ $save = function () {
                 </div>
             </div>
 
-            {{-- Aperçu live du montant par cycle --}}
             <div class="rounded-lg bg-indigo-50 border border-indigo-100 p-4">
                 <div class="text-sm text-indigo-600">Montant à facturer par cycle</div>
                 <div class="text-2xl font-bold text-indigo-800">
@@ -147,7 +158,6 @@ $save = function () {
             </div>
         </div>
 
-        {{-- Statut + dates --}}
         <div class="bg-white rounded-lg border p-6 space-y-4">
             <div>
                 <label class="block text-sm mb-1">Statut</label>
