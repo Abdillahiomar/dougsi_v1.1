@@ -51,6 +51,8 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
 
     Volt::route('/users', 'superadmin.users.index')->name('users.index');
 
+    Volt::route('/subscriptions', 'superadmin.subscriptions.index')->name('subscriptions.index');
+
 
     
 });
