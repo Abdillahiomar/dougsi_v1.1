@@ -73,14 +73,14 @@ select:focus[data-flux-control] {
     --sidebar-w   : 240px;
     --header-h    : 56px;
     --footer-h    : 40px;
-    --sidebar     : #1E2D5A;
-    --sidebar-soft: #2A3F7E;
-    --accent      : #E8A838;
-    --accent-red  : #E05C3A;
-    --ink         : #1A1E35;
-    --paper       : #F5F3EE;
-    --paper-raised: #FFFFFF;
-    --line        : #E0DBD0;
+    --sidebar     : #0F172A;   /* Navy */
+    --sidebar-soft: #1E293B;   /* Navy soft */
+    --accent      : #10B981;   /* Émeraude */
+    --accent-red  : #EF4444;
+    --ink         : #0F172A;
+    --paper       : #F1F5F9;   /* Slate clair */
+    --paper-raised: #FFFFFF;   /* Blanc */
+    --line        : #E2E8F0;
 }
 
 /* ── Reset base ── */
