@@ -322,7 +322,7 @@
       <strong style="color:var(--white);">Contact</strong><br>
       📞 <a href="tel:+25377825892">77 33 40 40</a><br>
       ✉️ <a href="mailto:abdillahiomar96@gmail.com">contact@dougsi.tech</a><br>
-      🌐 www.dugsi.tech
+      🌐 www.dougsi.tech
     </div>
   </div>
   <div class="foot-bottom">© {{ date('Y') }} Dugsi — Tous droits réservés.</div>
