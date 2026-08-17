@@ -3,8 +3,9 @@
 use App\Models\{Subscription, Plan};
 use Livewire\Volt\Component;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
 
-new class extends Component
+new #[Layout('layouts.superadmin')] class extends Component
 {
     public ?Subscription $subscription = null;
     public $plan_id = null;
@@ -90,10 +91,7 @@ new class extends Component
         return redirect()->route('superadmin.subscriptions.index');
     }
 
-    public function layout()
-    {
-        return 'layouts.superadmin';
-    }
+    
 } ?>
 
 <div class="p-6 max-w-2xl">
