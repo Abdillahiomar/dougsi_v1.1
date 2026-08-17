@@ -1,6 +1,7 @@
 <?php
 use function Livewire\Volt\{state, computed, layout, usesPagination};
 use App\Models\Subscription;
+use App\Services\InvoiceGenerator;
 
 layout('layouts.superadmin');
 usesPagination();
@@ -9,6 +10,18 @@ state([
     'search'       => '',
     'statusFilter' => '',
 ]);
+
+$generateInvoice = function ($subscriptionId) {
+    $sub = \App\Models\Subscription::withoutGlobalScopes()->findOrFail($subscriptionId);
+
+    $invoice = app(InvoiceGenerator::class)->generateForSubscription($sub);
+
+    if ($invoice) {
+        session()->flash('status', "Facture {$invoice->invoice_number} générée ({$invoice->amount} FDJ).");
+    } else {
+        session()->flash('status', "Une facture existe déjà pour la période courante de {$sub->school?->name}.");
+    }
+};
 
 $subscriptions = computed(function () {
     return Subscription::query()
@@ -29,6 +42,11 @@ $subscriptions = computed(function () {
     <div class="mb-6">
         <h1 class="text-2xl font-bold">Abonnements</h1>
         <p class="text-sm text-slate-500">Les abonnements négociés par école.</p>
+        @if (session('status'))
+            <div class="mb-4 rounded bg-green-100 text-green-800 px-4 py-2">
+                {{ session('status') }}
+            </div>
+        @endif
     </div>
 
     <div class="flex flex-wrap gap-3 mb-4">
@@ -57,6 +75,7 @@ $subscriptions = computed(function () {
                     <th class="px-4 py-3 text-right">Montant / cycle</th>
                     <th class="px-4 py-3 text-center">Statut</th>
                     <th class="px-4 py-3">Échéance</th>
+                    <th class="px-4 py-3">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -87,6 +106,15 @@ $subscriptions = computed(function () {
                         </td>
                         <td class="px-4 py-3 text-slate-600">
                             {{ $sub->ends_at?->format('d/m/Y') ?? '—' }}
+                        </td>
+                        <td class="px-4 py-3 text-slate-600">
+                            <a href="{{ route('superadmin.subscriptions.edit', $sub->id) }}"
+                                class="text-sky-600 hover:text-sky-800">Modifier</a>
+                                <button wire:click="generateInvoice({{ $sub->id }})"
+                                        wire:confirm="Générer la facture du cycle courant pour {{ $sub->school?->name }} ?"
+                                        class="text-emerald-600 hover:text-emerald-800">
+                                    Générer facture
+                                </button>
                         </td>
                     </tr>
                 @empty
