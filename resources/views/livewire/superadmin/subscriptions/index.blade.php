@@ -107,21 +107,16 @@ $subscriptions = computed(function () {
                         <td class="px-4 py-3 text-slate-600">
                             {{ $sub->ends_at?->format('d/m/Y') ?? '—' }}
                         </td>
-                        <td class="px-4 py-3 text-slate-600">
+                        <td class="px-4 py-3 text-right space-x-3">
                             <a href="{{ route('superadmin.subscriptions.edit', $sub->id) }}"
-                                class="text-sky-600 hover:text-sky-800">Modifier</a>
-                                <button wire:click="generateInvoice({{ $sub->id }})"
-                                        wire:confirm="Générer la facture du cycle courant pour {{ $sub->school?->name }} ?"
-                                        class="text-emerald-600 hover:text-emerald-800">
-                                    Générer facture
-                                </button>
-                        </td>
-
-                        <td>
+                            class="text-sky-600 hover:text-sky-800">Modifier</a>
+                            <button wire:click="generateInvoice({{ $sub->id }})"
+                                    wire:confirm="Générer la facture du cycle courant pour {{ $sub->school?->name }} ?"
+                                    class="text-emerald-600 hover:text-emerald-800">
+                                Générer facture
+                            </button>
                             <a href="{{ route('superadmin.invoices.index') }}"
-                                class="{{ $link }} {{ request()->routeIs('superadmin.invoices.*') ? $active : $idle }}">
-                                    <span>🧾</span> Factures
-                            </a>
+                            class="text-slate-600 hover:text-slate-900">🧾 Factures</a>
                         </td>
                     </tr>
                 @empty
