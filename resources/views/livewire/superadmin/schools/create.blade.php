@@ -34,6 +34,7 @@ $save = function () {
         $school = School::create([
             'name'      => $data['school_name'],
             'email'     => $data['school_email'],
+            'slug'      => Str::slug($data['school_name']),  // ← ligne à ajouter
             'phone'     => $data['school_phone'],
             'is_active' => true,
         ]);
