@@ -16,14 +16,15 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --navy    : #1E2D5A;
-            --navy2   : #2A3F7E;
-            --gold    : #E8A838;
-            --ink     : #1A1E35;
-            --paper   : #F5F3EE;
-            --muted   : #6B7090;
-            --line    : #E0DBD0;
-            --red     : #E05C3A;
+            --navy    : #0F172A;   /* Navy */
+            --navy2   : #1E293B;   /* Navy soft */
+            --gold    : #10B981;   /* Émeraude (remplace l'or) */
+            --gold2   : #059669;   /* Émeraude foncé */
+            --ink     : #0F172A;
+            --paper   : #F1F5F9;   /* Slate clair */
+            --muted   : #64748B;
+            --line    : #E2E8F0;
+            --red     : #EF4444;
             --white   : #FFFFFF;
         }
 
@@ -52,7 +53,6 @@
             overflow: hidden;
         }
 
-        /* Motif géométrique subtil */
         .auth-left::before {
             content: '';
             position: absolute;
@@ -63,7 +63,6 @@
                 repeating-linear-gradient(-45deg, rgba(255,255,255,.4) 0px, rgba(255,255,255,.4) 1px, transparent 1px, transparent 48px);
         }
 
-        /* Cercle décoratif */
         .auth-left::after {
             content: '';
             position: absolute;
@@ -72,7 +71,7 @@
             width: 400px;
             height: 400px;
             border-radius: 50%;
-            border: 60px solid rgba(232,168,56,.12);
+            border: 60px solid rgba(16,185,129,.12);
         }
 
         .auth-brand {
@@ -86,14 +85,14 @@
         .auth-brand-logo {
             width: 40px;
             height: 40px;
-            background: rgba(255,255,255,.12);
+            background: rgba(16,185,129,.15);
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .auth-brand-logo svg { width: 22px; height: 22px; color: white; }
+        .auth-brand-logo svg { width: 22px; height: 22px; color: var(--gold); }
 
         .auth-brand-name {
             font-family: 'Fraunces', serif;
@@ -167,7 +166,6 @@
             max-width: 400px;
         }
 
-        /* Titre formulaire */
         .form-title {
             font-family: 'Fraunces', serif;
             font-size: 1.75rem;
@@ -183,19 +181,17 @@
             margin-bottom: 2.25rem;
         }
 
-        /* Session status */
         .session-status {
             padding: .75rem 1rem;
             border-radius: 8px;
-            background: rgba(30,120,80,.08);
-            border: 1px solid rgba(30,120,80,.2);
-            color: #166534;
+            background: rgba(16,185,129,.1);
+            border: 1px solid rgba(16,185,129,.3);
+            color: var(--gold2);
             font-size: .875rem;
             font-weight: 500;
             margin-bottom: 1.25rem;
         }
 
-        /* Champs */
         .field { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1.25rem; }
         .field:last-of-type { margin-bottom: 0; }
 
@@ -223,9 +219,9 @@
         }
 
         .field-input:focus {
-            border-color: var(--navy2);
+            border-color: var(--gold);
             background: var(--white);
-            box-shadow: 0 0 0 3px rgba(42,63,126,.1);
+            box-shadow: 0 0 0 3px rgba(16,185,129,.12);
         }
 
         .field-input::placeholder { color: var(--muted); opacity: .6; }
@@ -253,7 +249,6 @@
             flex-shrink: 0;
         }
 
-        /* Password wrap */
         .pw-wrap { position: relative; }
         .pw-toggle {
             position: absolute;
@@ -269,10 +264,9 @@
             padding: 0;
             transition: color .12s;
         }
-        .pw-toggle:hover { color: var(--navy); }
+        .pw-toggle:hover { color: var(--gold); }
         .pw-toggle svg { width: 16px; height: 16px; }
 
-        /* Ligne remember + mot de passe oublié */
         .auth-row {
             display: flex;
             align-items: center;
@@ -293,7 +287,7 @@
             border-radius: 4px;
             border: 1.5px solid var(--line);
             cursor: pointer;
-            accent-color: var(--navy);
+            accent-color: var(--gold);
         }
 
         .checkbox-label {
@@ -304,19 +298,18 @@
 
         .forgot-link {
             font-size: .875rem;
-            color: var(--navy2);
+            color: var(--gold2);
             text-decoration: none;
             font-weight: 500;
             transition: color .12s;
         }
-        .forgot-link:hover { color: var(--navy); text-decoration: underline; }
+        .forgot-link:hover { color: var(--gold); text-decoration: underline; }
 
-        /* Bouton submit */
         .btn-submit {
             width: 100%;
             padding: .75rem 1.5rem;
             border-radius: 10px;
-            background: var(--navy);
+            background: var(--gold);
             color: white;
             font-size: 1rem;
             font-weight: 600;
@@ -331,16 +324,15 @@
         }
 
         .btn-submit:hover {
-            background: var(--navy2);
+            background: var(--gold2);
             transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(30,45,90,.2);
+            box-shadow: 0 6px 20px rgba(16,185,129,.3);
         }
 
         .btn-submit:active { transform: translateY(0); }
 
         .btn-submit svg { width: 17px; height: 17px; }
 
-        /* Séparateur */
         .auth-divider {
             display: flex;
             align-items: center;
@@ -357,7 +349,6 @@
             background: var(--line);
         }
 
-        /* Lien inscription */
         .auth-signup {
             text-align: center;
             font-size: .9rem;
@@ -366,13 +357,12 @@
         }
 
         .auth-signup a {
-            color: var(--navy2);
+            color: var(--gold2);
             font-weight: 600;
             text-decoration: none;
         }
         .auth-signup a:hover { text-decoration: underline; }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .auth-shell { grid-template-columns: 1fr; }
             .auth-left  { display: none; }
@@ -472,12 +462,10 @@
                             style="padding-right:2.75rem;"
                         >
                         <button type="button" class="pw-toggle" @click="showPw = !showPw">
-                            {{-- Œil ouvert --}}
                             <svg x-show="!showPw" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                             </svg>
-                            {{-- Œil barré --}}
                             <svg x-show="showPw" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="display:none;">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
                             </svg>
@@ -507,7 +495,7 @@
                 </div>
 
                 {{-- Bouton submit --}}
-                <button type="submit" class="btn-submit" wire:navigate>
+                <button type="submit" class="btn-submit">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
                     </svg>
