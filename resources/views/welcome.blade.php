@@ -150,6 +150,12 @@
     .grid,.role-grid,.steps{grid-template-columns:1fr;}
     .nav-login{display:none;} .cta-final h2{font-size:28px;}
   }
+
+
+  .foot-social{display:flex;gap:10px;margin-top:18px;}
+  .social-btn{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+              background:var(--navy2);color:rgba(255,255,255,.75);transition:background .15s,color .15s,transform .15s;}
+  .social-btn:hover{background:var(--emerald);color:var(--white);transform:translateY(-2px);}
 </style>
 </head>
 <body>
@@ -312,21 +318,7 @@
   </div>
 </section>
 
-<footer>
-  <div class="wrap">
-    <div>
-      <div class="foot-logo">DUG<span>SI</span></div>
-      <p style="font-size:14px;margin-top:8px;opacity:.7;">Plateforme de gestion scolaire<br>conçue pour les écoles de Djibouti.</p>
-    </div>
-    <div class="foot-contact">
-      <strong style="color:var(--white);">Contact</strong><br>
-      📞 <a href="tel:+25377825892">77 33 40 40</a><br>
-      ✉️ <a href="mailto:abdillahiomar96@gmail.com">contact@dougsi.tech</a><br>
-      🌐 www.dougsi.tech
-    </div>
-  </div>
-  <div class="foot-bottom">© {{ date('Y') }} Dugsi — Tous droits réservés.</div>
-</footer>
+
 
 
 <footer>
