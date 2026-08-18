@@ -32,6 +32,12 @@ new class extends Component
     public string $editTeacherId      = '';
     public string $editCapacity       = '';
 
+    // Création de niveau
+    public bool   $showLevelForm  = false;
+    public string $levelName      = '';
+    public string $levelCycle     = '';
+    public string $levelOrder     = '';
+
     // Suppression
     public ?int $confirmDeleteId = null;
 
@@ -103,6 +109,23 @@ new class extends Component
     }
 
     // À ajouter dans grades/index.blade.php, absences/index.blade.php, etc.
+    public function saveLevel(): void
+    {
+        $this->validate([
+            'levelName'  => 'required|string|max:50',
+            'levelCycle' => 'required|string|max:30',
+            'levelOrder' => 'nullable|integer|min:0|max:100',
+        ]);
+
+        Level::create([
+            'school_id' => auth()->user()->school_id,
+            'name'      => trim($this->levelName),
+            'cycle'     => $this->levelCycle,
+            'order'     => $this->levelOrder !== '' ? (int) $this->levelOrder : 0,
+        ]);
+
+        $this->reset('levelName', 'levelCycle', 'levelOrder', 'showLevelForm');
+    }
 
 
 
@@ -442,6 +465,14 @@ new class extends Component
                 </svg>
                 Nouvelle classe
             </button>
+
+            <button wire:click="$toggle('showLevelForm')" class="btn-primary"
+                    style="background:var(--paper-raised); color:var(--ink); border:1px solid var(--line);">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                Nouveau niveau
+            </button>
         </div>
     </div>
 
@@ -664,6 +695,48 @@ new class extends Component
                 <div class="modal-actions">
                     <button wire:click="$set('confirmDeleteId', null)" class="btn-modal-cancel">Annuler</button>
                     <button wire:click="deleteClass" class="btn-modal-confirm">Oui, supprimer</button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+
+    {{-- Modal création niveau --}}
+    @if ($showLevelForm)
+        <div class="modal-overlay">
+            <div class="modal" style="max-width:440px;">
+                <div class="modal-title">Nouveau niveau</div>
+                <div class="edit-grid" style="margin-top:1.25rem;">
+                    <div class="form-field full">
+                        <label class="form-label">Nom du niveau (ex: CP, 6ème, Terminale)</label>
+                        <input wire:model="levelName" type="text" class="form-input" placeholder="CP">
+                        @error('levelName') <span class="form-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Cycle</label>
+                        <select wire:model="levelCycle" class="form-select-inp">
+                            <option value="">— Sélectionner —</option>
+                            <option value="Maternelle">Maternelle</option>
+                            <option value="Primaire">Primaire</option>
+                            <option value="Collège">Collège</option>
+                            <option value="Lycée">Lycée</option>
+                        </select>
+                        @error('levelCycle') <span class="form-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Ordre</label>
+                        <input wire:model="levelOrder" type="number" class="form-input" placeholder="1" min="0" max="100">
+                        @error('levelOrder') <span class="form-error">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+                <div class="edit-actions">
+                    <button wire:click="$set('showLevelForm', false)" class="btn-cancel-sm">Annuler</button>
+                    <button wire:click="saveLevel" class="btn-save-sm">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Créer le niveau
+                    </button>
                 </div>
             </div>
         </div>
