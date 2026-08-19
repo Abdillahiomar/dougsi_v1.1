@@ -156,6 +156,45 @@
   .social-btn{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
               background:var(--navy2);color:rgba(255,255,255,.75);transition:background .15s,color .15s,transform .15s;}
   .social-btn:hover{background:var(--emerald);color:var(--white);transform:translateY(-2px);}
+
+
+  /* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(30px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes floatBlob {
+  0%,100% { transform:translateY(0); }
+  50%     { transform:translateY(-30px); }
+}
+@keyframes pulseGlow {
+  0%,100% { box-shadow:0 8px 24px rgba(16,185,129,.35); }
+  50%     { box-shadow:0 8px 34px rgba(16,185,129,.6); }
+}
+
+/* Hero : apparition en cascade */
+.hero .badge   { animation:fadeUp .7s ease both; }
+.hero h1       { animation:fadeUp .7s ease .12s both; }
+.hero p        { animation:fadeUp .7s ease .24s both; }
+.hero-cta      { animation:fadeUp .7s ease .36s both; }
+
+/* Blobs flottants dans le hero */
+.b1 { animation:floatBlob 8s ease-in-out infinite; }
+.b2 { animation:floatBlob 10s ease-in-out infinite; }
+
+/* Bouton principal : pulsation douce */
+.btn-primary { animation:pulseGlow 2.6s ease-in-out infinite; }
+
+/* Apparition au scroll (via JS ci-dessous) */
+.reveal { opacity:0; transform:translateY(36px); transition:opacity .7s ease, transform .7s ease; }
+.reveal.visible { opacity:1; transform:translateY(0); }
+
+/* Respect des préférences d'accessibilité */
+@media (prefers-reduced-motion: reduce) {
+  *, .b1, .b2, .btn-primary { animation:none !important; transition:none !important; }
+  .reveal { opacity:1; transform:none; }
+}
+
 </style>
 </head>
 <body>
@@ -233,10 +272,11 @@
     <div class="mock">
       <div class="mock-bar"><span class="r"></span><span class="y"></span><span class="g"></span></div>
       <div class="mock-body">
-        <p>📊 [ Remplacez ce bloc par une capture d'écran de votre tableau de bord ]</p>
+        <img src="{{ asset('storage/dashboard.png') }}"
+       alt="Tableau de bord Dugsi"
+       style="display:block;width:100%;height:auto;">
       </div>
     </div>
-    <p class="preview-note">Astuce : une vraie capture de votre dashboard convaincra bien plus qu'un texte.</p>
   </div>
 </section>
 
