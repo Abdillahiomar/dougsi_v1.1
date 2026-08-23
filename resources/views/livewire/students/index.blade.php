@@ -3,12 +3,16 @@
 use App\Models\Student;
 use App\Models\SchoolClass;
 use App\Models\AcademicYear;
+use App\Models\StudentInvoice;
+use App\Models\StudentDocument;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Services\AcademicYearService;
 use Livewire\Attributes\On;
+
 
 new class extends Component
 {
@@ -27,6 +31,10 @@ new class extends Component
     public bool  $selectAll = false;
     public string $massAction = '';
 
+    public ?int $studentToDeleteId = null;
+    public array $deletePreview = [];
+    public bool $showDeleteModal = false;
+
     public function updatedSearch(): void       { $this->resetPage(); $this->selected = []; $this->selectAll = false; }
     public function updatedStatusFilter(): void { $this->resetPage(); $this->selected = []; $this->selectAll = false; }
     public function updatedClassFilter(): void  { $this->resetPage(); $this->selected = []; $this->selectAll = false; }
@@ -41,6 +49,207 @@ new class extends Component
         } else {
             $this->selected = [];
         }
+    }
+
+
+    public function confirmDelete(int $studentId): void
+    {
+        $student = Student::with([
+            'schoolYears.academicYear',
+            'schoolYears.schoolClass',
+        ])->findOrFail($studentId);
+
+        $schoolYearIds = $student->schoolYears->pluck('id');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Factures
+        |--------------------------------------------------------------------------
+        */
+
+        $invoices = StudentInvoice::with('payments')
+            ->whereIn('student_school_year_id', $schoolYearIds)
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Documents
+        |--------------------------------------------------------------------------
+        */
+
+        $documents = StudentDocument::whereIn(
+            'student_school_year_id',
+            $schoolYearIds
+        )->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Préparation de l'aperçu
+        |--------------------------------------------------------------------------
+        */
+
+        $this->studentToDeleteId = $student->id;
+
+        $this->deletePreview = [
+
+            'id' => $student->id,
+
+            'name' => $student->fullName(),
+
+            'matricule' => $student->matricule,
+
+            'school_years' => $student->schoolYears
+                ->map(function ($schoolYear) {
+                    return [
+                        'id' => $schoolYear->id,
+
+                        'year' => $schoolYear->academicYear?->name
+                            ?? $schoolYear->academicYear?->label
+                            ?? '-',
+
+                        'class' => $schoolYear->schoolClass?->name
+                            ?? '-',
+                    ];
+                })
+                ->values()
+                ->toArray(),
+
+            'invoices_count' => $invoices->count(),
+
+            'invoices_amount' => $invoices->sum('amount_due'),
+
+            'invoices_paid' => $invoices->sum('amount_paid'),
+
+            'invoices' => $invoices
+                ->map(function ($invoice) {
+                    return [
+                        'id' => $invoice->id,
+
+                        'number' => $invoice->invoice_number,
+
+                        'amount_due' => $invoice->amount_due,
+
+                        'amount_paid' => $invoice->amount_paid,
+
+                        'balance' => $invoice->balance(),
+
+                        'status' => $invoice->status,
+
+                        'payments_count' => $invoice->payments->count(),
+                    ];
+                })
+                ->values()
+                ->toArray(),
+
+            'documents_count' => $documents->count(),
+        ];
+
+        $this->showDeleteModal = true;
+    }
+
+    public function deleteStudent(): void
+    {
+        if (!$this->studentToDeleteId) {
+            return;
+        }
+
+        $studentId = $this->studentToDeleteId;
+
+        DB::transaction(function () use ($studentId) {
+
+            $student = Student::with('schoolYears')
+                ->findOrFail($studentId);
+
+            $schoolYearIds = $student->schoolYears
+                ->pluck('id');
+
+            /*
+            |--------------------------------------------------------------------------
+            | 1. Récupérer les factures
+            |--------------------------------------------------------------------------
+            */
+
+            $invoiceIds = StudentInvoice::whereIn(
+                'student_school_year_id',
+                $schoolYearIds
+            )->pluck('id');
+
+            /*
+            |--------------------------------------------------------------------------
+            | 2. Supprimer les paiements
+            |--------------------------------------------------------------------------
+            */
+
+            if ($invoiceIds->isNotEmpty()) {
+
+                StudentPayment::whereIn(
+                    'student_invoice_id',
+                    $invoiceIds
+                )->delete();
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | 3. Supprimer les factures
+            |--------------------------------------------------------------------------
+            */
+
+            StudentInvoice::whereIn(
+                'student_school_year_id',
+                $schoolYearIds
+            )->delete();
+
+            /*
+            |--------------------------------------------------------------------------
+            | 4. Supprimer les documents
+            |--------------------------------------------------------------------------
+            */
+
+            StudentDocument::whereIn(
+                'student_school_year_id',
+                $schoolYearIds
+            )->delete();
+
+            /*
+            |--------------------------------------------------------------------------
+            | 5. Supprimer les inscriptions scolaires
+            |--------------------------------------------------------------------------
+            */
+
+            $student->schoolYears()->delete();
+
+            /*
+            |--------------------------------------------------------------------------
+            | 6. Supprimer l'élève
+            |--------------------------------------------------------------------------
+            */
+
+            $student->delete();
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Nettoyage Livewire
+        |--------------------------------------------------------------------------
+        */
+
+        $this->selected = array_values(
+            array_filter(
+                $this->selected,
+                fn ($id) => (int) $id !== $studentId
+            )
+        );
+
+        $this->reset([
+            'studentToDeleteId',
+            'deletePreview',
+            'showDeleteModal',
+        ]);
+
+        session()->flash(
+            'success',
+            "L'élève et toutes ses données associées ont été supprimés avec succès."
+        );
     }
 
     public function updatedSelected(): void
@@ -558,6 +767,25 @@ new class extends Component
                                     </svg>
                                     Modifier
                                 </a>
+
+                                <button
+                                    type="button"
+                                    wire:click="confirmDelete({{ $student->id }})"
+                                    class="btn-action btn-delete"
+                                >
+                                    <svg fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        viewBox="0 0 24 24">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3M4 7h16"
+                                        />
+                                    </svg>
+
+                                    Supprimer
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -627,4 +855,356 @@ new class extends Component
         </div>
 
     </div>
+
+
+    @if ($showDeleteModal)
+    <div class="delete-modal-overlay">
+
+        <div class="delete-modal">
+
+            {{-- HEADER --}}
+
+            <div class="delete-modal-header">
+
+                <div>
+
+                    <h3>
+                        Supprimer l'élève
+                    </h3>
+
+                    <p>
+                        Vérifiez les données qui seront définitivement supprimées.
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    wire:click="$set('showDeleteModal', false)"
+                    class="modal-close"
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            {{-- AVERTISSEMENT --}}
+
+            <div class="delete-warning">
+
+                <strong>⚠️ Attention</strong>
+
+                <br>
+
+                Cette action est définitive.
+                Les factures, paiements, documents et inscriptions
+                associés à cet élève seront également supprimés.
+
+            </div>
+
+
+            {{-- ELEVE --}}
+
+            <div class="delete-section">
+
+                <h4>
+                    Élève
+                </h4>
+
+                <div class="delete-student-info">
+
+                    <div class="student-avatar">
+
+                        {{ strtoupper(
+                            substr(
+                                $deletePreview['name'] ?? '?',
+                                0,
+                                2
+                            )
+                        ) }}
+
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            {{ $deletePreview['name'] ?? '-' }}
+                        </strong>
+
+                        <div class="student-matric">
+
+                            Matricule :
+                            {{ $deletePreview['matricule'] ?? '-' }}
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {{-- INSCRIPTIONS --}}
+
+            <div class="delete-section">
+
+                <h4>
+
+                    Inscriptions
+
+                    <span>
+                        {{ count($deletePreview['school_years'] ?? []) }}
+                    </span>
+
+                </h4>
+
+                @forelse (
+                    $deletePreview['school_years'] ?? []
+                    as $schoolYear
+                )
+
+                    <div class="delete-row">
+
+                        <span>
+                            {{ $schoolYear['year'] }}
+                        </span>
+
+                        <strong>
+                            {{ $schoolYear['class'] }}
+                        </strong>
+
+                    </div>
+
+                @empty
+
+                    <div class="empty-delete-data">
+                        Aucune inscription.
+                    </div>
+
+                @endforelse
+
+            </div>
+
+
+            {{-- FACTURES --}}
+
+            <div class="delete-section">
+
+                <h4>
+
+                    Factures
+
+                    <span>
+                        {{ $deletePreview['invoices_count'] ?? 0 }}
+                    </span>
+
+                </h4>
+
+
+                @if (
+                    ($deletePreview['invoices_count'] ?? 0) > 0
+                )
+
+                    {{-- Résumé financier --}}
+
+                    <div class="invoice-summary">
+
+                        <div>
+
+                            <span>
+                                Total facturé
+                            </span>
+
+                            <strong>
+                                {{ number_format(
+                                    $deletePreview['invoices_amount'] ?? 0,
+                                    0,
+                                    ',',
+                                    ' '
+                                ) }}
+                                DJF
+                            </strong>
+
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Total payé
+                            </span>
+
+                            <strong>
+                                {{ number_format(
+                                    $deletePreview['invoices_paid'] ?? 0,
+                                    0,
+                                    ',',
+                                    ' '
+                                ) }}
+                                DJF
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- Liste factures --}}
+
+                    @foreach (
+                        $deletePreview['invoices'] ?? []
+                        as $invoice
+                    )
+
+                        <div class="delete-invoice-row">
+
+                            <div>
+
+                                <strong>
+                                    {{ $invoice['number'] }}
+                                </strong>
+
+                                <small>
+
+                                    {{ $invoice['payments_count'] }}
+                                    paiement(s)
+
+                                </small>
+
+                            </div>
+
+
+                            <div class="invoice-amount">
+
+                                <strong>
+
+                                    {{ number_format(
+                                        $invoice['amount_due'],
+                                        0,
+                                        ',',
+                                        ' '
+                                    ) }}
+
+                                    DJF
+
+                                </strong>
+
+                                @if ($invoice['balance'] > 0)
+
+                                    <small class="invoice-balance">
+
+                                        Reste :
+                                        {{ number_format(
+                                            $invoice['balance'],
+                                            0,
+                                            ',',
+                                            ' '
+                                        ) }}
+                                        DJF
+
+                                    </small>
+
+                                @else
+
+                                    <small class="invoice-paid">
+                                        Payée
+                                    </small>
+
+                                @endif
+
+                            </div>
+
+                        </div>
+
+                    @endforeach
+
+                @else
+
+                    <div class="empty-delete-data">
+                        Aucune facture.
+                    </div>
+
+                @endif
+
+            </div>
+
+
+            {{-- DOCUMENTS --}}
+
+            <div class="delete-section">
+
+                <h4>
+
+                    Documents
+
+                    <span>
+                        {{ $deletePreview['documents_count'] ?? 0 }}
+                    </span>
+
+                </h4>
+
+                @if (
+                    ($deletePreview['documents_count'] ?? 0) > 0
+                )
+
+                    <div class="delete-info-box">
+
+                        {{ $deletePreview['documents_count'] }}
+                        document(s) seront supprimés.
+
+                    </div>
+
+                @else
+
+                    <div class="empty-delete-data">
+                        Aucun document.
+                    </div>
+
+                @endif
+
+            </div>
+
+
+            {{-- FOOTER --}}
+
+            <div class="delete-modal-footer">
+
+                <button
+                    type="button"
+                    wire:click="$set('showDeleteModal', false)"
+                    class="btn-cancel-delete"
+                >
+                    Annuler
+                </button>
+
+
+                <button
+                    type="button"
+                    wire:click="deleteStudent"
+                    wire:loading.attr="disabled"
+                    class="btn-confirm-delete"
+                >
+
+                    <span wire:loading.remove wire:target="deleteStudent">
+
+                        Supprimer définitivement
+
+                    </span>
+
+
+                    <span wire:loading wire:target="deleteStudent">
+
+                        Suppression...
+
+                    </span>
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+    @endif
 </div>
