@@ -253,8 +253,8 @@
     <div class="hero-visual">
       <div class="hero-shot">
         {{-- Remplace le bloc ci-dessous par ta vraie capture --}}
-        {{-- <img src="{{ asset('images/dashboard.png') }}" alt="Tableau de bord Dugsi"> --}}
-        <div class="placeholder">📊 [ Capture de votre tableau de bord ]</div>
+         <img src="{{ asset('images/dashboard.png') }}" alt="Tableau de bord Dugsi">
+        
       </div>
     </div>
   </div>
@@ -305,10 +305,8 @@
     <div class="mock reveal">
       <div class="mock-bar"><span class="r"></span><span class="y"></span><span class="g"></span></div>
       {{-- Remplace le bloc ci-dessous par une 2e capture (ex: paiements ou bulletin) --}}
-      {{-- <img src="{{ asset('images/paiements.png') }}" alt="Écran de collecte des paiements Dugsi"> --}}
-      <div class="mock-body">
-        <p>📊 [ Remplacez ce bloc par une capture d'écran de votre tableau de bord ]</p>
-      </div>
+       <img src="{{ asset('images/paiements.png') }}" alt="Écran de collecte des paiements Dugsi">
+      
     </div>
     <p class="preview-note">Astuce : une vraie capture de votre dashboard convaincra bien plus qu'un texte.</p>
   </div>
