@@ -582,6 +582,81 @@ new class extends Component
     .empty-state-icon { width: 44px; height: 44px; margin: 0 auto 1rem; opacity: 0.2; }
     .empty-state-title { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 600; color: var(--ink); margin-bottom: 0.35rem; }
     .empty-state-sub { font-size: 0.875rem; color: var(--ink); opacity: 0.5; }
+
+    .invoice-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.invoice-summary > div {
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.02);
+
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.invoice-summary span {
+    font-size: 11px;
+    opacity: 0.55;
+}
+
+.invoice-summary strong {
+    font-size: 14px;
+}
+
+.delete-invoice-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 10px;
+
+    border-bottom: 1px solid var(--line);
+}
+
+.delete-invoice-row > div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.delete-invoice-row small {
+    font-size: 11px;
+    opacity: 0.55;
+}
+
+.invoice-amount {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+}
+
+.invoice-balance {
+    color: #C04020 !important;
+    opacity: 1 !important;
+}
+
+.invoice-paid {
+    color: #218739 !important;
+    opacity: 1 !important;
+}
+
+.delete-info-box {
+    padding: 10px;
+
+    border: 1px solid var(--line);
+    border-radius: 8px;
+
+    font-size: 13px;
+    opacity: 0.75;
+}
 </style>
 
 <div>
