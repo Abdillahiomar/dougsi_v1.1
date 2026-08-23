@@ -4,6 +4,7 @@ use App\Models\Student;
 use App\Models\SchoolClass;
 use App\Models\AcademicYear;
 use App\Models\StudentInvoice;
+use App\Models\StudentPayment;
 use App\Models\StudentDocument;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
