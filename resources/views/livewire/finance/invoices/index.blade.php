@@ -49,9 +49,9 @@ new class extends Component {
 
     // ── Vue détail ─────────────────────────────────────────────
     public function showInvoice(int $id): void
-{
-    $this->viewingId = $id;
-}
+    {
+        $this->viewingId = $id;
+    }
 
     // ── Edition ────────────────────────────────────────────────
     public function startEdit(int $id): void
@@ -175,6 +175,7 @@ new class extends Component {
             ->join('student_school_years AS ssy', 'ssy.id', '=', 'student_invoices.student_school_year_id')
             ->join('students AS s', 's.id', '=', 'ssy.student_id')
             ->leftJoin('school_classes AS sc', 'sc.id', '=', 'ssy.school_class_id')
+            ->leftJoin('academic_years AS ay', 'ay.id', '=', 'student_invoices.academic_year_id')
             ->whereNull('s.deleted_at')
             ->when($this->levelId, fn ($q) => $q->where('sc.level_id', $this->levelId))
             ->when($this->classId, fn ($q) => $q->where('sc.id', $this->classId))
@@ -194,6 +195,7 @@ new class extends Component {
                 'student_invoices.*',
                 's.first_name', 's.last_name', 's.matricule',
                 'sc.name AS class_name',
+                'ay.label AS year_label',
             ])
             ->paginate(25);
 
@@ -208,59 +210,59 @@ new class extends Component {
     }
 }; ?>
 
-@include('layouts.partials.finance-styles')
-
-
-<style>
-    .inv-filters { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:.75rem; margin-bottom:1.25rem; }
-    @media (max-width:900px) { .inv-filters { grid-template-columns:1fr 1fr; } }
-    @media (max-width:560px) { .inv-filters { grid-template-columns:1fr; } }
-    .inv-filters input, .inv-filters select {
-        padding:.5rem .75rem; border-radius:8px; border:1px solid var(--line);
-        background:var(--paper-raised); font-size:.875rem; font-family:'Inter',sans-serif;
-        color:var(--ink); outline:none; width:100%;
-    }
-    .st { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;
-          font-family:'JetBrains Mono',monospace; }
-    .st-paid      { background:rgba(74,222,128,.15); color:#166534; }
-    .st-partial   { background:rgba(232,168,56,.15); color:#8A6010; }
-    .st-overdue   { background:rgba(224,92,58,.12);  color:var(--accent-red); }
-    .st-pending   { background:rgba(0,0,0,.06);      color:var(--ink); }
-    .st-cancelled { background:rgba(0,0,0,.06);      color:var(--ink); opacity:.5; text-decoration:line-through; }
-    .act-btns { display:inline-flex; gap:4px; }
-    .btn-icon2 { width:30px; height:30px; border-radius:7px; border:none; cursor:pointer;
-                 display:inline-flex; align-items:center; justify-content:center; transition:background .12s; }
-    .btn-icon2 svg { width:15px; height:15px; }
-    .ic-view { background:rgba(42,63,126,.08); color:var(--sidebar-soft); }
-    .ic-view:hover { background:rgba(42,63,126,.16); }
-    .ic-edit { background:rgba(232,168,56,.12); color:#8A6010; }
-    .ic-edit:hover { background:rgba(232,168,56,.22); }
-    .ic-del  { background:rgba(224,92,58,.08); color:var(--accent-red); }
-    .ic-del:hover { background:rgba(224,92,58,.16); }
-    .ov { position:fixed; inset:0; z-index:80; background:rgba(0,0,0,.4);
-          display:flex; align-items:center; justify-content:center; padding:1rem; }
-    .ov-panel { background:var(--paper-raised); border-radius:14px; border:1px solid var(--line);
-                padding:1.75rem; max-width:560px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.2);
-                max-height:90vh; overflow-y:auto; }
-    .ov-title { font-family:'Fraunces',serif; font-size:1.15rem; font-weight:600; margin-bottom:1.25rem; }
-    .ed-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem; }
-    .ed-grid .full { grid-column:1 / -1; }
-    .ff { display:flex; flex-direction:column; gap:.35rem; }
-    .ff label { font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600;
-                text-transform:uppercase; letter-spacing:.08em; opacity:.5; }
-    .ff input, .ff select { padding:.5rem .75rem; border-radius:8px; border:1px solid var(--line);
-                            background:var(--paper); font-size:.875rem; font-family:'Inter',sans-serif;
-                            color:var(--ink); outline:none; width:100%; }
-    .ov-actions { display:flex; justify-content:flex-end; gap:.65rem; padding-top:1rem; border-top:1px solid var(--line); }
-    .flash-ok { background:rgba(74,222,128,.12); border:1px solid rgba(74,222,128,.4); color:#166534;
-                padding:.6rem 1rem; border-radius:9px; font-size:.875rem; margin-bottom:1rem; }
-    .kv { display:flex; justify-content:space-between; padding:.5rem 0; border-bottom:1px solid var(--line); font-size:.875rem; }
-    .kv:last-child { border-bottom:none; }
-    .kv-k { opacity:.55; }
-    .kv-v { font-weight:600; }
-</style>
-
 <div>
+    @include('layouts.partials.finance-styles')
+
+    <style>
+        .inv-filters { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:.75rem; margin-bottom:1.25rem; }
+        @media (max-width:900px) { .inv-filters { grid-template-columns:1fr 1fr; } }
+        @media (max-width:560px) { .inv-filters { grid-template-columns:1fr; } }
+        .inv-filters input, .inv-filters select {
+            padding:.5rem .75rem; border-radius:8px; border:1px solid var(--line);
+            background:var(--paper-raised); font-size:.875rem; font-family:'Inter',sans-serif;
+            color:var(--ink); outline:none; width:100%;
+        }
+        .st { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;
+              font-family:'JetBrains Mono',monospace; }
+        .st-paid      { background:rgba(74,222,128,.15); color:#166534; }
+        .st-partial   { background:rgba(232,168,56,.15); color:#8A6010; }
+        .st-overdue   { background:rgba(224,92,58,.12);  color:var(--accent-red); }
+        .st-pending   { background:rgba(0,0,0,.06);      color:var(--ink); }
+        .st-cancelled { background:rgba(0,0,0,.06);      color:var(--ink); opacity:.5; text-decoration:line-through; }
+        .mono-num { font-family:'JetBrains Mono',monospace; font-size:11px; }
+        .act-btns { display:inline-flex; gap:4px; }
+        .btn-icon2 { width:30px; height:30px; border-radius:7px; border:none; cursor:pointer;
+                     display:inline-flex; align-items:center; justify-content:center; transition:background .12s; }
+        .btn-icon2 svg { width:15px; height:15px; }
+        .ic-view { background:rgba(42,63,126,.08); color:var(--sidebar-soft); }
+        .ic-view:hover { background:rgba(42,63,126,.16); }
+        .ic-edit { background:rgba(232,168,56,.12); color:#8A6010; }
+        .ic-edit:hover { background:rgba(232,168,56,.22); }
+        .ic-del  { background:rgba(224,92,58,.08); color:var(--accent-red); }
+        .ic-del:hover { background:rgba(224,92,58,.16); }
+        .ov { position:fixed; inset:0; z-index:80; background:rgba(0,0,0,.4);
+              display:flex; align-items:center; justify-content:center; padding:1rem; }
+        .ov-panel { background:var(--paper-raised); border-radius:14px; border:1px solid var(--line);
+                    padding:1.75rem; max-width:560px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.2);
+                    max-height:90vh; overflow-y:auto; }
+        .ov-title { font-family:'Fraunces',serif; font-size:1.15rem; font-weight:600; margin-bottom:1.25rem; }
+        .ed-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem; }
+        .ed-grid .full { grid-column:1 / -1; }
+        .ff { display:flex; flex-direction:column; gap:.35rem; }
+        .ff label { font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600;
+                    text-transform:uppercase; letter-spacing:.08em; opacity:.5; }
+        .ff input, .ff select { padding:.5rem .75rem; border-radius:8px; border:1px solid var(--line);
+                                background:var(--paper); font-size:.875rem; font-family:'Inter',sans-serif;
+                                color:var(--ink); outline:none; width:100%; }
+        .ov-actions { display:flex; justify-content:flex-end; gap:.65rem; padding-top:1rem; border-top:1px solid var(--line); }
+        .flash-ok { background:rgba(74,222,128,.12); border:1px solid rgba(74,222,128,.4); color:#166534;
+                    padding:.6rem 1rem; border-radius:9px; font-size:.875rem; margin-bottom:1rem; }
+        .kv { display:flex; justify-content:space-between; padding:.5rem 0; border-bottom:1px solid var(--line); font-size:.875rem; }
+        .kv:last-child { border-bottom:none; }
+        .kv-k { opacity:.55; }
+        .kv-v { font-weight:600; }
+    </style>
+
     <div class="page-head">
         <div>
             <div class="page-title">Toutes les factures</div>
@@ -307,7 +309,7 @@ new class extends Component {
             <table class="fin-table">
                 <thead>
                     <tr>
-                        <th>Élève</th><th>Classe</th><th>Libellé</th>
+                        <th>N° facture</th><th>Élève</th><th>Classe</th><th>Année</th><th>Libellé</th>
                         <th class="num">Dû</th><th class="num">Payé</th><th class="num">Reste</th>
                         <th>Statut</th><th>Échéance</th><th class="num">Actions</th>
                     </tr>
@@ -316,11 +318,13 @@ new class extends Component {
                     @forelse ($invoices as $inv)
                         @php $reste = (int) $inv->amount_due - (int) $inv->amount_paid; @endphp
                         <tr>
+                            <td class="mono-num">{{ $inv->invoice_number }}</td>
                             <td>
                                 <div style="font-weight:600;">{{ $inv->first_name }} {{ $inv->last_name }}</div>
                                 <div class="lbl">{{ $inv->matricule }}</div>
                             </td>
                             <td style="opacity:.65;">{{ $inv->class_name ?? '—' }}</td>
+                            <td class="lbl">{{ $inv->year_label ?? '—' }}</td>
                             <td>{{ $inv->label }}</td>
                             <td class="num mono">{{ number_format((int)$inv->amount_due, 0, ',', ' ') }}</td>
                             <td class="num mono" style="color:#166534;">{{ number_format((int)$inv->amount_paid, 0, ',', ' ') }}</td>
@@ -344,7 +348,7 @@ new class extends Component {
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="9" class="fin-empty">Aucune facture ne correspond à ces critères.</td></tr>
+                        <tr><td colspan="11" class="fin-empty">Aucune facture ne correspond à ces critères.</td></tr>
                     @endforelse
                 </tbody>
             </table>
