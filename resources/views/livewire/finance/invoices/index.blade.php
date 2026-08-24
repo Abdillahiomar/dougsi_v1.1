@@ -48,10 +48,10 @@ new class extends Component {
     }
 
     // ── Vue détail ─────────────────────────────────────────────
-    public function view(int $id): void
-    {
-        $this->viewingId = $id;
-    }
+    public function showInvoice(int $id): void
+{
+    $this->viewingId = $id;
+}
 
     // ── Edition ────────────────────────────────────────────────
     public function startEdit(int $id): void
@@ -330,7 +330,7 @@ new class extends Component {
                             <td class="lbl">{{ $inv->due_at ? \Carbon\Carbon::parse($inv->due_at)->format('d/m/Y') : '—' }}</td>
                             <td class="num">
                                 <div class="act-btns">
-                                    <button wire:click="view({{ $inv->id }})" class="btn-icon2 ic-view" title="Voir">
+                                    <button wire:click="showInvoice({{ $inv->id }})" class="btn-icon2 ic-view" title="Voir">
                                         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     </button>
                                     <button wire:click="startEdit({{ $inv->id }})" class="btn-icon2 ic-edit" title="Modifier">
