@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\On;
 use Livewire\WithPagination;
-use Livewire\Component;
+use Livewire\Volt\Component;
 
 new class extends Component {
     use WithPagination;
