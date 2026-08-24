@@ -236,7 +236,18 @@ new class extends Component
 
     /* Recherche */
     .search-wrap { position:relative; }
-    .search-results { position:absolute; z-index:20; top:calc(100% + 4px); left:0; right:0; border:1px solid var(--line); border-radius:10px; background:var(--paper-raised); box-shadow:0 8px 24px rgba(0,0,0,.08); overflow:hidden; }
+    .search-results { position:absolute; 
+    z-index:20; 
+    top:calc(100% + 4px); 
+    left:0; 
+    right:0; 
+    border:1px solid var(--line); 
+    border-radius:10px; 
+    background:var(--paper-raised); 
+    box-shadow:0 8px 24px rgba(0,0,0,.08); 
+    max-height: 280px; 
+    overflow-y: auto;
+    }
     .search-item { display:flex; align-items:center; gap:.65rem; padding:.6rem 1rem; cursor:pointer; border-bottom:1px solid var(--line); }
     .search-item:last-child { border-bottom:none; }
     .search-item:hover { background:rgba(42,63,126,.05); }
