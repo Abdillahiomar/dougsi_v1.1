@@ -531,6 +531,7 @@ new class extends Component
             <div class="page-sub">Année {{ $year->label }} · vue de pilotage</div>
         </div>
         <div style="display:flex;gap:.6rem;">
+            <a href="{{ route('finances.invoices') }}" class="btn" wire:navigate>Toutes les factures</a>
             <a href="{{ route('finances.receivables') }}" class="btn" wire:navigate>Impayés</a>
             <a href="{{ route('finances.cashbook') }}" class="btn" wire:navigate>Journal de caisse</a>
             @can('finance.collect')

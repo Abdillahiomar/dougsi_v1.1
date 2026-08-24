@@ -179,6 +179,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Volt::route('/journal', 'finance.cashbook')->name('cashbook')->middleware('can:finance.view');
         Volt::route('/impayes', 'finance.receivables')->name('receivables')->middleware('can:finance.view');
         Route::get('/recus/{receipt}', ReceiptController::class)->name('receipt')->middleware('can:finance.view');
+
+        Volt::route('finances/factures', 'finances.invoices-index')->name('finances.invoices');
     });;
 
     
