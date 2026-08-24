@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\On;
 use Livewire\WithPagination;
-use Livewire\Volt\Component;
+use Livewire\Component;
 
 new class extends Component {
     use WithPagination;
@@ -209,6 +209,7 @@ new class extends Component {
 }; ?>
 
 @include('layouts.partials.finance-styles')
+
 
 <style>
     .inv-filters { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:.75rem; margin-bottom:1.25rem; }
