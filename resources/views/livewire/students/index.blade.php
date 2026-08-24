@@ -13,7 +13,6 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Services\AcademicYearService;
 use Livewire\Attributes\On;
-use Illuminate\Database\Eloquent\Builder;
 
 
 new class extends Component
@@ -43,47 +42,7 @@ new class extends Component
 
     #[On('academic-year-changed')]
 
-    public function scopeVisibleTo(Builder $query, $user): Builder
-    {
-        // Admin / comptable : aucun filtre (le tenant school_id suffit)
-        if ($user->hasRole(['admin', 'comptable'])) {
-            return $query;
-        }
-
-        // Parent : uniquement ses enfants
-        if ($user->hasRole('parent')) {
-            return $query->whereHas('guardians', fn ($q) =>
-                $q->where('guardians.user_id', $user->id)
-            );
-        }
-
-        // Enseignant : élèves de ses classes (prof principal OU matière enseignée)
-        if ($user->hasRole('enseignant')) {
-            $staffId = Staff::where('user_id', $user->id)->value('id');
-
-            if (! $staffId) {
-                return $query->whereRaw('1 = 0');
-            }
-
-            $classIds = SchoolClass::query()
-                ->where('main_teacher_id', $staffId)
-                ->orWhereIn('id',
-                    ClassSubjectTeacher::where('staff_id', $staffId)
-                        ->pluck('school_class_id')
-                )
-                ->pluck('id');
-
-            $year = AcademicYearService::current();
-
-            return $query->whereHas('schoolYears', fn ($q) =>
-                $q->whereIn('school_class_id', $classIds)
-                ->when($year, fn ($q) => $q->where('academic_year_id', $year->id))
-            );
-        }
-
-        // Rôle inconnu : ne rien montrer (échouer fermé)
-        return $query->whereRaw('1 = 0');
-    }
+    
 
 
     public function refresh(): void { }
