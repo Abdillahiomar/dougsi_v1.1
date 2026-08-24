@@ -46,6 +46,7 @@ new class extends Component
 
     public function saveClass(): void
     {
+        abort_unless(auth()->user()->can('classes.manage'), 403);
         $this->validate([
             'name'     => 'required|string|max:50',
             'level_id' => 'required|exists:levels,id',
@@ -69,6 +70,7 @@ new class extends Component
 
     public function startEdit(int $classId): void
     {
+        abort_unless(auth()->user()->can('classes.manage'), 403);
         $class = SchoolClass::find($classId);
         if (! $class) return;
 
@@ -80,6 +82,7 @@ new class extends Component
 
     public function saveEdit(): void
     {
+        abort_unless(auth()->user()->can('classes.manage'), 403);
         $this->validate([
             'editName'     => 'required|string|max:50',
             'editCapacity' => 'nullable|integer|min:1|max:200',
@@ -101,6 +104,7 @@ new class extends Component
 
     public function deleteClass(): void
     {
+        abort_unless(auth()->user()->can('classes.manage'), 403);
         if (! $this->confirmDeleteId) return;
         SchoolClass::where('id', $this->confirmDeleteId)
             ->where('school_id', auth()->user()->school_id)
@@ -111,6 +115,7 @@ new class extends Component
     // À ajouter dans grades/index.blade.php, absences/index.blade.php, etc.
     public function saveLevel(): void
     {
+        abort_unless(auth()->user()->can('classes.manage'), 403);
         $this->validate([
             'levelName'  => 'required|string|max:50',
             'levelCycle' => 'required|string|max:30',
@@ -459,13 +464,14 @@ new class extends Component
                     {{ $year->label }}
                 </span>
             @endif
+
+            @can('classes.manage')
             <button wire:click="$toggle('showForm')" class="btn-primary">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
                 </svg>
                 Nouvelle classe
             </button>
-
             <button wire:click="$toggle('showLevelForm')" class="btn-primary"
                     style="background:var(--paper-raised); color:var(--ink); border:1px solid var(--line);">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -473,6 +479,7 @@ new class extends Component
                 </svg>
                 Nouveau niveau
             </button>
+            @endcan
         </div>
     </div>
 
@@ -611,6 +618,7 @@ new class extends Component
                                 </div>
                                 <div class="class-card-footer">
                                     {{-- Matières --}}
+                                    @can('classes.manage')
                                     <a href="{{ route('classes.subjects', $class) }}"
                                     class="btn-card btn-subjects-card"
                                     title="Matières & Enseignants">
@@ -620,6 +628,7 @@ new class extends Component
                                     </a>
 
                                     {{-- Modifier --}}
+                                    
                                     <button wire:click="startEdit({{ $class->id }})"
                                             class="btn-card btn-edit-card"
                                             title="Modifier la classe">
@@ -636,6 +645,7 @@ new class extends Component
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16"/>
                                         </svg>
                                     </button>
+                                    @endcan
                                 </div>
                             </div>
                         @endforeach

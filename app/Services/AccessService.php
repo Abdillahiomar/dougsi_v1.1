@@ -18,8 +18,15 @@ class AccessService
         $staff = $user->staff;
         if (! $staff) return [];
 
-        return ClassSubjectTeacher::where('staff_id', $staff->id)
-            ->pluck('school_class_id')
+        // Classes où il enseigne une matière
+        $subjectClassIds = ClassSubjectTeacher::where('staff_id', $staff->id)
+            ->pluck('school_class_id');
+
+        // Classes où il est prof principal
+        $mainClassIds = \App\Models\SchoolClass::where('main_teacher_id', $staff->id)
+            ->pluck('id');
+
+        return $subjectClassIds->merge($mainClassIds)
             ->unique()->values()->toArray();
     }
 
