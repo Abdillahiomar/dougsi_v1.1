@@ -13,6 +13,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Services\AcademicYearService;
 use Livewire\Attributes\On;
+use Illuminate\Database\Eloquent\Builder;
 
 
 new class extends Component
@@ -41,6 +42,50 @@ new class extends Component
     public function updatedClassFilter(): void  { $this->resetPage(); $this->selected = []; $this->selectAll = false; }
 
     #[On('academic-year-changed')]
+
+    public function scopeVisibleTo(Builder $query, $user): Builder
+    {
+        // Admin / comptable : aucun filtre (le tenant school_id suffit)
+        if ($user->hasRole(['admin', 'comptable'])) {
+            return $query;
+        }
+
+        // Parent : uniquement ses enfants
+        if ($user->hasRole('parent')) {
+            return $query->whereHas('guardians', fn ($q) =>
+                $q->where('guardians.user_id', $user->id)
+            );
+        }
+
+        // Enseignant : élèves de ses classes (prof principal OU matière enseignée)
+        if ($user->hasRole('enseignant')) {
+            $staffId = Staff::where('user_id', $user->id)->value('id');
+
+            if (! $staffId) {
+                return $query->whereRaw('1 = 0');
+            }
+
+            $classIds = SchoolClass::query()
+                ->where('main_teacher_id', $staffId)
+                ->orWhereIn('id',
+                    ClassSubjectTeacher::where('staff_id', $staffId)
+                        ->pluck('school_class_id')
+                )
+                ->pluck('id');
+
+            $year = AcademicYearService::current();
+
+            return $query->whereHas('schoolYears', fn ($q) =>
+                $q->whereIn('school_class_id', $classIds)
+                ->when($year, fn ($q) => $q->where('academic_year_id', $year->id))
+            );
+        }
+
+        // Rôle inconnu : ne rien montrer (échouer fermé)
+        return $query->whereRaw('1 = 0');
+    }
+
+
     public function refresh(): void { }
     
     public function updatedSelectAll(bool $value): void
@@ -264,7 +309,7 @@ new class extends Component
         $year = AcademicYearService::current();
 
         return Student::query()
-            // ── Même filtre année ──
+            ->visibleTo(auth()->user())
             ->when($year, fn ($q) =>
                 $q->whereHas('schoolYears', fn ($q) =>
                     $q->where('academic_year_id', $year->id)
@@ -292,23 +337,25 @@ new class extends Component
 
     public function applyMassAction(): void
     {
+        abort_unless(auth()->user()->can('students.edit'), 403);
+
         if (empty($this->selected) || !$this->massAction) return;
 
         $status = match ($this->massAction) {
-            'activate'   => 'active',
-            'transfer'   => 'transferred',
-            'drop'       => 'dropped',
-            'graduate'   => 'graduated',
-            default      => null,
+            'activate' => 'active', 'transfer' => 'transferred',
+            'drop' => 'dropped', 'graduate' => 'graduated', default => null,
         };
 
         if ($status) {
-            Student::whereIn('id', $this->selected)->update(['status' => $status]);
+            Student::query()
+                ->visibleTo(auth()->user())
+                ->whereIn('id', $this->selected)
+                ->update(['status' => $status]);
         }
 
-        $this->selected    = [];
-        $this->selectAll   = false;
-        $this->massAction  = '';
+        $this->selected = [];
+        $this->selectAll = false;
+        $this->massAction = '';
     }
 
     public function clearSelection(): void
@@ -322,13 +369,15 @@ new class extends Component
     {
         $year = AcademicYearService::current();
 
+        
+
         $students = Student::query()
-            // ── Filtrer UNIQUEMENT les élèves inscrits cette année ──
-            ->when($year, fn ($q) =>
-                $q->whereHas('schoolYears', fn ($q) =>
-                    $q->where('academic_year_id', $year->id)
-                )
-            )
+    ->visibleTo(auth()->user())
+    ->when($year, fn ($q) =>
+        $q->whereHas('schoolYears', fn ($q) =>
+            $q->where('academic_year_id', $year->id)
+        )
+    )
             ->when($this->search, fn ($q) =>
                 $q->where(fn ($q) =>
                     $q->where('first_name', 'like', "%{$this->search}%")
@@ -692,12 +741,14 @@ new class extends Component
         </div>
 
         <div class="toolbar-right">
+            @can('students.create')
             <a href="{{ route('students.enroll') }}" class="btn-primary" wire:navigate>
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
                 </svg>
                 Nouvel élève
             </a>
+            @endcan
         </div>
     </div>
 
@@ -830,6 +881,7 @@ new class extends Component
                             </td>
                         <td>
                             <div class="actions-cell">
+                                @can('students.show')
                                 <a href="{{ route('students.show', $student) }}" class="btn-action btn-see" wire:navigate>
                                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -837,13 +889,16 @@ new class extends Component
                                     </svg>
                                     Voir
                                 </a>
+                                @endcan
+                                @can('students.edit')
                                 <a href="{{ route('students.edit', $student) }}" class="btn-action btn-edit" wire:navigate>
                                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                     </svg>
                                     Modifier
                                 </a>
-
+                                @endcan
+                                @can('students.delete')
                                 <button
                                     type="button"
                                     wire:click="confirmDelete({{ $student->id }})"
@@ -862,6 +917,7 @@ new class extends Component
 
                                     Supprimer
                                 </button>
+                                @endcan
                             </div>
                         </td>
                     </tr>
