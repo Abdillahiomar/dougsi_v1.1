@@ -359,8 +359,11 @@ new class extends Component
             ->latest()
             ->paginate(15);
 
-        $classes = $year
-            ? SchoolClass::where('academic_year_id', $year->id)->with('level')->get()
+       $classes = $year
+            ? SchoolClass::where('academic_year_id', $year->id)
+                ->visibleTo(auth()->user())
+                ->with('level')
+                ->get()
             : collect();
 
         return compact('students', 'classes', 'year');
