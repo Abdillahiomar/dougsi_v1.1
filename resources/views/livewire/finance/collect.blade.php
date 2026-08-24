@@ -212,7 +212,7 @@ new class extends Component
     .pay-grid { display:grid; grid-template-columns:1fr 340px; gap:1.5rem; align-items:start; }
     @media (max-width:960px) { .pay-grid { grid-template-columns:1fr; } }
 
-    .card { border-radius:12px; border:1px solid var(--line); background:var(--paper-raised); overflow:hidden; margin-bottom:1.25rem; }
+    .card { border-radius:12px; border:1px solid var(--line); background:var(--paper-raised); overflow:auto; margin-bottom:1.25rem; }
     .card:last-child { margin-bottom:0; }
     .card-header { padding:.875rem 1.5rem; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:.65rem; }
     .card-header-icon { width:28px; height:28px; border-radius:7px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
