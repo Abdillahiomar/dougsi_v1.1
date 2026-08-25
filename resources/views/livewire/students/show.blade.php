@@ -662,7 +662,7 @@ new class extends Component
                     Modifier
                 </a>
                 @endif
-
+            @can('students.enroll')
                 {{-- Bouton contextuel selon l'état d'inscription --}}
                 @if ($currentSsy && ! $isParent)
                     
@@ -685,6 +685,7 @@ new class extends Component
                         Inscrire {{ $year?->label }}
                     </a>
                 @endif
+            @endcan
             </div>
         </div>
     </div>
@@ -1063,6 +1064,7 @@ new class extends Component
                                 <td class="inv-year">{{ $invoice->due_at?->format('d/m/Y') ?? '—' }}</td>
                                 <td><span class="badge {{ $badgeCss }}">{{ $badgeLbl }}</span></td>
                                 <td>
+                                    @can('finance.collect')
                                     @if ($invoice->status !== 'paid')
                                     @if (! $isParent)
                                         <button wire:click="openPayment({{ $invoice->id }})" class="btn-pay">
@@ -1072,6 +1074,7 @@ new class extends Component
 
                                     @endif
                                     @endif
+                                    @endcan
                                 </td>
                             </tr>
                             {{-- Paiements reçus --}}
@@ -1219,41 +1222,43 @@ new class extends Component
         </div>
 
         {{-- Formulaire ajout absence --}}
+        @can('absences.manage')
         <div style="display:flex;justify-content:flex-end;margin-bottom:.75rem;">
             <button wire:click="$toggle('showAbsenceForm')" class="btn-primary-sm">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 Enregistrer une présence
             </button>
         </div>
+        
 
-        @if ($showAbsenceForm)
-            <div class="absence-form">
-                <div class="form-row-inline">
-                    <div class="form-field-sm">
-                        <label class="form-label-sm">Date</label>
-                        <input wire:model="absenceDate" type="date" class="form-input-sm">
+            @if ($showAbsenceForm)
+                <div class="absence-form">
+                    <div class="form-row-inline">
+                        <div class="form-field-sm">
+                            <label class="form-label-sm">Date</label>
+                            <input wire:model="absenceDate" type="date" class="form-input-sm">
+                        </div>
+                        <div class="form-field-sm">
+                            <label class="form-label-sm">Statut</label>
+                            <select wire:model="absenceStatus" class="form-select-sm">
+                                <option value="present">Présent</option>
+                                <option value="absent">Absent</option>
+                                <option value="late">En retard</option>
+                                <option value="excused">Absence justifiée</option>
+                            </select>
+                        </div>
+                        <div class="form-field-sm">
+                            <label class="form-label-sm">Justificatif</label>
+                            <input wire:model="absenceJustif" type="text" class="form-input-sm" placeholder="Certificat médical...">
+                        </div>
                     </div>
-                    <div class="form-field-sm">
-                        <label class="form-label-sm">Statut</label>
-                        <select wire:model="absenceStatus" class="form-select-sm">
-                            <option value="present">Présent</option>
-                            <option value="absent">Absent</option>
-                            <option value="late">En retard</option>
-                            <option value="excused">Absence justifiée</option>
-                        </select>
-                    </div>
-                    <div class="form-field-sm">
-                        <label class="form-label-sm">Justificatif</label>
-                        <input wire:model="absenceJustif" type="text" class="form-input-sm" placeholder="Certificat médical...">
+                    <div class="form-actions-sm">
+                        <button wire:click="$set('showAbsenceForm',false)" class="btn-sm-cancel">Annuler</button>
+                        <button wire:click="saveAbsence" class="btn-sm-save">Enregistrer</button>
                     </div>
                 </div>
-                <div class="form-actions-sm">
-                    <button wire:click="$set('showAbsenceForm',false)" class="btn-sm-cancel">Annuler</button>
-                    <button wire:click="saveAbsence" class="btn-sm-save">Enregistrer</button>
-                </div>
-            </div>
-        @endif
-
+            @endif
+        @endcan
         {{-- Liste des absences --}}
         <div class="card">
             <div class="card-header">
