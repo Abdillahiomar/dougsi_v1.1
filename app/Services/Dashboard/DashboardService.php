@@ -37,7 +37,9 @@ class DashboardService
             'surveillant' => [
                 'stats', 'attendance_chart',
             ],
-            'parent' => ['stats'],
+            'parent' => [
+                'parent_children'
+            ],
             default  => ['stats'],
         };
     }

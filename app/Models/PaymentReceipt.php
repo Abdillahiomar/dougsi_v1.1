@@ -13,6 +13,11 @@ class PaymentReceipt extends Model
     public const METHODS = [
         'cash'          => 'Espèces',
         'dmoney'        => 'D-Money',
+        'waafi'        => 'Waafi',
+        'cacpay'        => 'Cac Pay',
+        'dahabplus'        => 'DahabPlus',
+        'sabapay'        => 'Saba Pay',
+        'Eximpay'        => 'Exim Pay',
         'bank_transfer' => 'Virement bancaire',
         'cheque'        => 'Chèque',
     ];
