@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new class extends Component {
+new #[Layout('layouts.guest')] class extends Component {
     public string $password = '';
     public string $password_confirmation = '';
 
@@ -25,15 +25,13 @@ new class extends Component {
             'password.min'       => 'Le mot de passe doit contenir au moins 8 caractères.',
         ]);
 
-        $user = auth()->user();
-
         // Empêcher de réutiliser le mot de passe par défaut
-        if (Hash::check('password', Hash::make($this->password)) || $this->password === 'password') {
+        if ($this->password === 'password') {
             $this->addError('password', 'Choisissez un mot de passe différent de celui par défaut.');
             return;
         }
 
-        $user->update([
+        auth()->user()->update([
             'password'             => Hash::make($this->password),
             'must_change_password' => false,
         ]);
