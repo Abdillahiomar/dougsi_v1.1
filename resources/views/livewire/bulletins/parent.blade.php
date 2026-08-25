@@ -45,7 +45,7 @@ new class extends Component {
 }; ?>
 
 <div>
-    
+    @include('layouts.partials.finance-styles')
 
     <style>
         .bp-head { margin-bottom:1.5rem; }
