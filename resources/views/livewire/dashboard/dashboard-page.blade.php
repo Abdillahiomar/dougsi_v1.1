@@ -155,7 +155,11 @@
     </div>
 
     {{-- KPI Cards --}}
+    @if ($role === 'parent')
+    @livewire('dashboard.widgets.parent-children')
+@else
     @livewire('dashboard.widgets.stats-grid', ['role' => $role])
+@endif
 
     {{-- Graphiques principaux --}}
     @if (in_array('revenue_chart', $widgets) && in_array('enrollment_chart', $widgets))
