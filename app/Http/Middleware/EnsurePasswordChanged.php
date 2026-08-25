@@ -13,13 +13,17 @@ class EnsurePasswordChanged
      *
      * @param  Closure(Request): (Response)  $next
      */
-    public function handle($request, Closure $next)
+   public function handle($request, Closure $next)
 {
     $user = $request->user();
 
     if ($user && $user->must_change_password) {
-        // Autoriser uniquement la page de changement + déconnexion
-        if (! $request->routeIs('password.force', 'password.force.update', 'logout')) {
+        // Ne pas interférer avec les requêtes Livewire (mise à jour des composants)
+        if ($request->hasHeader('X-Livewire')) {
+            return $next($request);
+        }
+
+        if (! $request->routeIs('password.force', 'logout')) {
             return redirect()->route('password.force');
         }
     }
