@@ -20,6 +20,14 @@ class BulletinController extends Controller
      */
     public function pdf(Student $student, Bulletin $bulletin)
     {
+        abort_unless(
+            $bulletin->studentSchoolYear->student_id === $student->id,
+            404
+        );
+        abort_unless(
+            Student::whereKey($student->id)->visibleTo(auth()->user())->exists(),
+            403
+        );
         $service  = new BulletinService();
         $schoolId = auth()->user()->school_id;
         $config   = GradingConfigService::get($schoolId);

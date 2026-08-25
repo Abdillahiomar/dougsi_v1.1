@@ -18,6 +18,19 @@ new class extends Component
 
     public function mount(Student $student, Bulletin $bulletin): void
     {
+        // 1. Le bulletin appartient-il bien à cet élève ?
+        abort_unless(
+        $bulletin->studentSchoolYear->student_id === $student->id,
+        404
+    );
+
+    // 2. L'élève est-il visible par l'utilisateur courant ?
+    //    (parent → ses enfants ; enseignant → ses élèves ; admin → tous)
+    abort_unless(
+        Student::whereKey($student->id)->visibleTo(auth()->user())->exists(),
+        403
+    );
+
         $this->student  = $student;
         $this->bulletin = $bulletin;
         $this->comment  = $bulletin->general_comment ?? '';
@@ -25,6 +38,7 @@ new class extends Component
 
     public function saveComment(): void
     {
+        abort_unless(auth()->user()->can('bulletins.generate'), 403);
         $this->bulletin->update(['general_comment' => $this->comment]);
         $this->saved = true;
     }

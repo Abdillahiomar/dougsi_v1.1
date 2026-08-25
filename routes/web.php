@@ -155,6 +155,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Volt::route('bulletins/list', 'bulletins.index')->name('bulletins.index');
         Volt::route('bulletins/class/{schoolClass}', 'bulletins.class')->name('bulletins.class');
         Volt::route('students/{student}/bulletins/{bulletin}', 'bulletins.show')->name('bulletins.show');
+        Volt::route('bulletins/mes-enfants', 'bulletins.parent')->name('bulletins.parent');
         Route::get('students/{student}/bulletins/{bulletin}/pdf',
             [App\Http\Controllers\BulletinController::class, 'pdf'])->name('bulletins.pdf');
     });

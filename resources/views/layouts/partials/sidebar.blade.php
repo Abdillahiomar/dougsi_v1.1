@@ -14,11 +14,11 @@
                      class="sidebar-logo">
             @else
                 <div class="sidebar-logo-placeholder">
-                    {{ strtoupper(substr($school?->name ?? 'D', 0, 1)) }}
+                    {{ strtoupper(substr($school?->name ?? 'D', 0, 1)) }} 
                 </div>
             @endif
             <span class="sidebar-brand-name">
-                {{ $school?->short_name ?? $school?->name ?? 'Dugsi' }}
+                {{ $school?->short_name ?? $school?->name ?? 'Dugsi' }} - Avec DOUGSI
             </span>
         </div>
 
@@ -66,7 +66,7 @@
                         ],
                         [
                             'label'      => 'Bulletins',
-                            'route'      => 'bulletins.index',
+                            'route'      => auth()->user()->hasRole('parent') ? 'bulletins.parent' : 'bulletins.index',
                             'permission' => 'bulletins.view',
                             'svg'        => '<path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>',
                         ],
@@ -198,7 +198,7 @@
     {{-- Pied du sidebar : version Dugsi --}}
     <div class="sidebar-footer-brand">
         <span style="font-family:'Fraunces',serif;font-size:.8125rem;font-weight:600;color:rgba(255,255,255,.35);letter-spacing:.04em;">
-            Dugsi
+            DOUGSI
         </span>
         <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.2);">
             v1.0 · {{ auth()->user()->roles->first()?->label ?? auth()->user()->roles->first()?->name ?? '' }}
