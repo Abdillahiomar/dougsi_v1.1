@@ -44,8 +44,15 @@ new class extends Component
     public bool   $resetDone         = false;
     public string $resetEmail        = '';
 
+    public string $guardianEmail       = '';
+    public string $guardianEmailExist  = '';
+
     public function mount(Student $student): void
     {
+        abort_unless(
+        Student::whereKey($student->id)->visibleTo(auth()->user())->exists(),
+        403
+    );
         $this->student      = $student;
         $this->absenceDate  = now()->format('Y-m-d');
     }
@@ -64,6 +71,7 @@ new class extends Component
 
     public function savePayment(): void
     {
+        abort_unless(auth()->user()->can('finance.collect'), 403);
         $this->validate([
             'payAmount' => 'required|integer|min:1',
             'payMethod' => 'required|string',
@@ -116,6 +124,7 @@ new class extends Component
 
     public function saveAbsence(): void
     {
+        abort_unless(auth()->user()->can('absences.manage'), 403);
         $this->validate([
             'absenceDate'   => 'required|date',
             'absenceStatus' => 'required|in:present,absent,late,excused',
@@ -152,13 +161,15 @@ new class extends Component
     // Remplacer createParentAccount() entièrement
     public function createParentAccount(int $guardianId): void
     {
-        // Seuls admin et directeur peuvent faire ça
         if (! auth()->user()->hasAnyRole(['admin','directeur'])) return;
+
+        // Nettoyer les erreurs précédentes
+        $this->resetErrorBag(['guardianEmail', 'guardianEmailExist']);
 
         $guardian = \App\Models\Guardian::with('user')->find($guardianId);
         if (! $guardian) return;
 
-        // ── Cas 1 : tuteur a déjà un compte (user_id renseigné) ──────
+        // ── Cas 1 : tuteur a déjà un compte lié ──────────────────────
         if ($guardian->user_id && $guardian->user) {
             $this->showResetModal  = true;
             $this->resetGuardianId = $guardianId;
@@ -166,20 +177,36 @@ new class extends Component
             return;
         }
 
-        // ── Cas 2 : l'email existe déjà en base sans être lié ────────
         $schoolId = auth()->user()->school_id;
-        $school   = auth()->user()->school;
-        $email    = $guardian->email
-            ?: 'parent.' . $guardianId . '@' . ($school->slug ?? $schoolId) . '.dj';
 
+        // ── Email réel obligatoire (pas de génération automatique) ───
+        if (! $guardian->email) {
+            $this->addError('guardianEmail',
+                "Ce tuteur n'a pas d'email. Ajoutez-en un via « Modifier » avant de créer son compte.");
+            return;
+        }
+
+        $email = $guardian->email;
+
+        // ── Cas 2 : l'email existe déjà en base ──────────────────────
         $existingUser = \App\Models\User::where('email', $email)->first();
         if ($existingUser) {
-            // Lier ce compte existant au tuteur
+            // S'il appartient déjà à un autre tuteur, on bloque
+            $liePar = \App\Models\Guardian::where('user_id', $existingUser->id)
+                ->where('id', '!=', $guardianId)
+                ->first();
+
+            if ($liePar) {
+                $this->addError('guardianEmailExist',
+                    "L'email {$email} est déjà utilisé par le compte d'un autre tuteur ({$liePar->fullName()}).");
+                return;
+            }
+
+            // Sinon, lier ce compte existant à ce tuteur et proposer un reset
             $guardian->update(['user_id' => $existingUser->id]);
             if (! $existingUser->hasRole('parent')) {
                 $existingUser->assignRole('parent');
             }
-            // Proposer reset
             $this->showResetModal  = true;
             $this->resetGuardianId = $guardianId;
             $this->resetEmail      = $email;
@@ -187,14 +214,15 @@ new class extends Component
         }
 
         // ── Cas 3 : créer un nouveau compte ──────────────────────────
-        $tempPass = 'Parent@' . rand(1000, 9999);
+        $tempPass = 'password';  // mot de passe par défaut
 
         $user = \App\Models\User::create([
-            'school_id' => $schoolId,
-            'name'      => $guardian->fullName(),
-            'email'     => $email,
-            'password'  => \Illuminate\Support\Facades\Hash::make($tempPass),
-            'status'    => 'active',
+            'school_id'            => $schoolId,
+            'name'                 => $guardian->fullName(),
+            'email'                => $email,
+            'password'             => \Illuminate\Support\Facades\Hash::make($tempPass),
+            'status'               => 'active',
+            'must_change_password' => true,  // ← forçage première connexion
         ]);
 
         $user->assignRole('parent');
@@ -204,7 +232,6 @@ new class extends Component
         $this->parentAccountEmail    = $email;
         $this->parentAccountTempPass = $tempPass;
     }
-
     public function resetParentPassword(): void
     {
         if (! auth()->user()->hasAnyRole(['admin','directeur'])) return;
@@ -756,6 +783,12 @@ new class extends Component
                                                 style="font-size:.8rem;padding:.3rem .65rem;border-radius:6px;background:rgba(42,63,126,.08);color:var(--sidebar-soft);border:none;cursor:pointer;">
                                             Créer compte parent
                                         </button>
+                                        @error('guardianEmail')
+                                            <div style="font-size:.75rem;color:var(--accent-red);margin-top:.35rem;width:100%;">{{ $message }}</div>
+                                        @enderror
+                                        @error('guardianEmailExist')
+                                            <div style="font-size:.75rem;color:var(--accent-red);margin-top:.35rem;width:100%;">{{ $message }}</div>
+                                        @enderror
                                     @endif
                                 @endif
                             </div>

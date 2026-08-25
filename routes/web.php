@@ -93,6 +93,11 @@ Route::get('/favicon.ico', function () {
 
 Route::view('/', 'welcome')->name('home');
 
+Route::middleware(['auth'])->group(function () {
+    Volt::route('/changer-mot-de-passe', 'auth.force-password')
+        ->name('password.force');
+});
+
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -102,8 +107,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
 
     Route::get('/dashboard', \App\Livewire\Dashboard\DashboardPage::class)
-    ->name('dashboard')
-    ->middleware(['auth','verified']);
+        ->name('dashboard')
+        ->middleware(['auth','verified']);
 
      Volt::route('students/enroll', 'students.enroll')->name('students.enroll');
     // ── Élèves ─────────────────────────────────────────────────────
@@ -170,6 +175,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Volt::route('absences', 'absences.index')->name('absences.index');
     });
 
+
+    
     // ── Finances ───────────────────────────────────────────────────
    
 

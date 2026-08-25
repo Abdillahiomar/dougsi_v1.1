@@ -141,14 +141,20 @@ new class extends Component
         // 3. Tuteur
         $guardianId = $this->guardian_id ?: null;
         if ($this->guardian_mode === 'new') {
-            $guardian = \App\Models\Guardian::create([
-                'school_id'  => $schoolId,
-                'first_name' => $this->g_first_name,
-                'last_name'  => $this->g_last_name,
-                'phone'      => $this->g_phone,
-                'email'      => $this->g_email ?: null,
-                'profession' => $this->g_profession ?: null,
-            ]);
+            $guardian = \App\Models\Guardian::where('school_id', $schoolId)
+                ->where('phone', $this->g_phone)
+                ->first();
+
+            if (! $guardian) {
+                $guardian = \App\Models\Guardian::create([
+                    'school_id'  => $schoolId,
+                    'first_name' => $this->g_first_name,
+                    'last_name'  => $this->g_last_name,
+                    'phone'      => $this->g_phone,
+                    'email'      => $this->g_email ?: null,
+                    'profession' => $this->g_profession ?: null,
+                ]);
+            }
             $guardianId = $guardian->id;
         }
         if ($guardianId) {
