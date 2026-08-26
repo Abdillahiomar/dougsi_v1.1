@@ -12,13 +12,27 @@ class Announcement extends Model
     use HasFactory, BelongsToTenant;
 
     protected $fillable = [
-        'school_id', 'created_by', 'title', 'content', 'audience', 'published_at',
+        'school_id', 'created_by', 'user_id', 'title', 'content',
+        'audience', 'target_roles', 'is_pinned',
+        'published_at', 'expires_at',
+        'file_path', 'file_name', 'file_size',
     ];
 
     protected $casts = [
         'published_at' => 'datetime',
-        'expired_at'   => 'datetime', // À ajouter si vous gérez les expirations
+        'expires_at'   => 'datetime',
+        'target_roles' => 'array',
+        'is_pinned'    => 'boolean',
     ];
+
+
+    public function scopeForRole(Builder $query, string $role): Builder
+{
+    return $query->where(function ($q) use ($role) {
+        $q->whereJsonContains('target_roles', $role)
+          ->orWhereJsonContains('target_roles', 'all');
+    });
+}
 
     /**
      * Scope pour filtrer uniquement les annonces publiées.
