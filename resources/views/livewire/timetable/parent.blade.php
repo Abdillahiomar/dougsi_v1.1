@@ -49,8 +49,10 @@ new class extends Component {
     }
 }; ?>
 
+<div>
+    
 
-<style>
+    <style>
         .et-head { margin-bottom:1.25rem; }
         .et-title { font-family:'Fraunces',serif; font-size:1.5rem; font-weight:700; color:var(--ink); }
         .et-sub { font-size:.875rem; color:var(--dsh-muted,#8A8578); margin-top:.15rem; }
@@ -80,11 +82,6 @@ new class extends Component {
         .et-empty { padding:3rem; text-align:center; color:var(--dsh-muted,#8A8578);
                     background:var(--paper-raised,#fff); border:1px dashed var(--line,#E5E2DA); border-radius:14px; }
     </style>
-
-<div>
-   
-
-    
 
     <div class="et-head">
         <div class="et-title">Emploi du temps</div>
@@ -117,19 +114,19 @@ new class extends Component {
                     <div class="et-day">
                         <div class="et-day-head">{{ \App\Models\TimetableSlot::$DAYS[$dayNum] }}</div>
                         <div class="et-day-body">
-                            @forelse (($slotsByDay[$dayNum] ?? collect()) as $creneau)
-                                @php $c = $creneau->effectiveColor(); @endphp
+                            @forelse (($slotsByDay[$dayNum] ?? collect()) as $slot)
+                                @php $c = $slot->effectiveColor(); @endphp
                                 <div class="et-slot" style="background:{{ $c }}14; border-left-color:{{ $c }};">
                                     <div class="et-slot-time">
-                                        {{ \Illuminate\Support\Str::substr($creneau->start_time, 0, 5) }} – {{ \Illuminate\Support\Str::substr($slot->end_time, 0, 5) }}
+                                        {{ \Illuminate\Support\Str::substr($slot->start_time, 0, 5) }} – {{ \Illuminate\Support\Str::substr($slot->end_time, 0, 5) }}
                                     </div>
-                                    <div class="et-slot-subject">{{ $creneau->subject?->name ?? 'Matière' }}</div>
+                                    <div class="et-slot-subject">{{ $slot->subject?->name ?? 'Matière' }}</div>
                                     <div class="et-slot-meta">
-                                        @if ($creneau->staff?->user)
-                                            {{ $creneau->staff->user->name }}
+                                        @if ($slot->staff?->user)
+                                            {{ $slot->staff->user->name }}
                                         @endif
-                                        @if ($creneau->room)
-                                            · Salle {{ $creneau->room }}
+                                        @if ($slot->room)
+                                            · Salle {{ $slot->room }}
                                         @endif
                                     </div>
                                 </div>
