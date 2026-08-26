@@ -18,7 +18,7 @@ new class extends Component {
         $guardian = Guardian::where('user_id', $user->id)->first();
 
         if (! $guardian) {
-            return ['children' => collect(), 'slots' => collect(), 'selected' => null, 'year' => $year];
+            return ['children' => collect(), 'creneaux' => collect(), 'selected' => null, 'year' => $year];
         }
 
         // Enfants du parent (année courante)
@@ -35,9 +35,9 @@ new class extends Component {
             : $children->first();
 
         // Créneaux de la classe de l'enfant sélectionné
-        $slots = collect();
+        $creneaux = collect();
         if ($selected && $selected->school_class_id) {
-            $slots = TimetableSlot::where('school_class_id', $selected->school_class_id)
+            $creneaux = TimetableSlot::where('school_class_id', $selected->school_class_id)
                 ->when($year, fn ($q) => $q->where('academic_year_id', $year->id))
                 ->with(['subject', 'staff.user'])
                 ->orderBy('day_of_week')
@@ -45,12 +45,12 @@ new class extends Component {
                 ->get();
         }
 
-        return compact('children', 'slots', 'selected', 'year');
+        return compact('children', 'creneaux', 'selected', 'year');
     }
 }; ?>
 
 <div>
-    
+    @include('layouts.partials.finance-styles')
 
     <style>
         .et-head { margin-bottom:1.25rem; }
@@ -103,30 +103,31 @@ new class extends Component {
             </select>
         </div>
 
-        @if (! $selected || $slots->isEmpty())
+        @if (! $selected || $creneaux->isEmpty())
             <div class="et-empty">
                 Aucun emploi du temps disponible pour cette classe pour le moment.
             </div>
         @else
-            @php $slotsByDay = $slots->groupBy('day_of_week'); @endphp
+            @php $parJour = $creneaux->groupBy('day_of_week'); @endphp
             <div class="et-grid">
                 @foreach (\App\Models\TimetableSlot::$SCHOOL_DAYS as $dayNum)
                     <div class="et-day">
                         <div class="et-day-head">{{ \App\Models\TimetableSlot::$DAYS[$dayNum] }}</div>
                         <div class="et-day-body">
-                            @forelse (($slotsByDay[$dayNum] ?? collect()) as $slot)
-                                @php $c = $slot->effectiveColor(); @endphp
+                            @php $duJour = $parJour->get($dayNum, collect()); @endphp
+                            @forelse ($duJour as $creneau)
+                                @php $c = $creneau->effectiveColor(); @endphp
                                 <div class="et-slot" style="background:{{ $c }}14; border-left-color:{{ $c }};">
                                     <div class="et-slot-time">
-                                        {{ \Illuminate\Support\Str::substr($slot->start_time, 0, 5) }} – {{ \Illuminate\Support\Str::substr($slot->end_time, 0, 5) }}
+                                        {{ \Illuminate\Support\Str::substr($creneau->start_time, 0, 5) }} – {{ \Illuminate\Support\Str::substr($creneau->end_time, 0, 5) }}
                                     </div>
-                                    <div class="et-slot-subject">{{ $slot->subject?->name ?? 'Matière' }}</div>
+                                    <div class="et-slot-subject">{{ $creneau->subject?->name ?? 'Matière' }}</div>
                                     <div class="et-slot-meta">
-                                        @if ($slot->staff?->user)
-                                            {{ $slot->staff->user->name }}
+                                        @if ($creneau->staff?->user)
+                                            {{ $creneau->staff->user->name }}
                                         @endif
-                                        @if ($slot->room)
-                                            · Salle {{ $slot->room }}
+                                        @if ($creneau->room)
+                                            · Salle {{ $creneau->room }}
                                         @endif
                                     </div>
                                 </div>
