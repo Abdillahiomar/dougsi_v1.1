@@ -231,6 +231,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('can:homeworks.view')->group(function () {
         Volt::route('homeworks', 'homeworks.index')->name('homeworks.index');
         Volt::route('homeworks/{homework}', 'homeworks.show')->name('homeworks.show');
+        Volt::route('devoirs/mes-enfants', 'homeworks.parent')->name('homeworks.parent');
     });
 
     Route::middleware('can:announcements.view')->group(function () {
