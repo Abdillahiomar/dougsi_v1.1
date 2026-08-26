@@ -174,6 +174,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ── Absences ───────────────────────────────────────────────────
     Route::middleware('can:absences.view')->group(function () {
         Volt::route('absences', 'absences.index')->name('absences.index');
+        Volt::route('absences/mes-enfants', 'absences.parent')->name('absences.parent');
     });
 
 
