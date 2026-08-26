@@ -226,7 +226,8 @@ new class extends Component
         ]);
 
         $user->assignRole('parent');
-        $guardian->update(['user_id' => $user->id]);
+        $guardian->user_id = $user->id;
+        $guardian->save();
 
         $this->parentAccountCreated  = true;
         $this->parentAccountEmail    = $email;
