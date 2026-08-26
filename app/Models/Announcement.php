@@ -27,12 +27,12 @@ class Announcement extends Model
 
 
     public function scopeForRole(Builder $query, string $role): Builder
-{
-    return $query->where(function ($q) use ($role) {
-        $q->whereJsonContains('target_roles', $role)
-          ->orWhereJsonContains('target_roles', 'all');
-    });
-}
+    {
+        return $query->where(function ($q) use ($role) {
+            $q->whereJsonContains('target_roles', $role)
+            ->orWhereJsonContains('target_roles', 'all');
+        });
+    }
 
     /**
      * Scope pour filtrer uniquement les annonces publiées.
@@ -120,5 +120,14 @@ class Announcement extends Model
 
         // Sinon, par défaut, une annonce n'expire pas toute seule
         return false;
+    }
+
+    public function isPublished(): bool
+    {
+        // Publiée = date de publication définie et passée, et non expirée
+        if (is_null($this->published_at) || $this->published_at->isFuture()) {
+            return false;
+        }
+        return ! $this->isExpired();
     }
 }
