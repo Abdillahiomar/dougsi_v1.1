@@ -49,10 +49,8 @@ new class extends Component {
     }
 }; ?>
 
-<div>
-    @include('layouts.partials.finance-styles')
 
-    <style>
+<style>
         .et-head { margin-bottom:1.25rem; }
         .et-title { font-family:'Fraunces',serif; font-size:1.5rem; font-weight:700; color:var(--ink); }
         .et-sub { font-size:.875rem; color:var(--dsh-muted,#8A8578); margin-top:.15rem; }
@@ -82,6 +80,11 @@ new class extends Component {
         .et-empty { padding:3rem; text-align:center; color:var(--dsh-muted,#8A8578);
                     background:var(--paper-raised,#fff); border:1px dashed var(--line,#E5E2DA); border-radius:14px; }
     </style>
+
+<div>
+   
+
+    
 
     <div class="et-head">
         <div class="et-title">Emploi du temps</div>
