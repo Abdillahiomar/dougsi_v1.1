@@ -87,6 +87,9 @@ new class extends Component
 
     public function createEvaluation(): void
     {
+        // Permission
+        abort_unless(auth()->user()->can('grades.enter'), 403);
+
         $this->validate([
             'evalType'     => 'required|string',
             'evalDate'     => 'required|date',
@@ -94,6 +97,28 @@ new class extends Component
             'classId'      => 'required|exists:school_classes,id',
             'subjectId'    => 'required|exists:subjects,id',
         ]);
+
+        $year = AcademicYearService::current();
+
+        // La classe est-elle dans le périmètre + l'école de l'utilisateur ?
+        $myClassIds = AccessService::myClassIds();
+        $classOk = SchoolClass::where('id', $this->classId)
+            ->where('school_id', auth()->user()->school_id)
+            ->where('academic_year_id', $year?->id)
+            ->when($myClassIds !== null, fn ($q) => $q->whereIn('id', $myClassIds))
+            ->exists();
+        abort_unless($classOk, 403);
+
+        // La matière fait-elle partie des matières de l'utilisateur DANS cette classe ?
+        $mySubjectIds = AccessService::mySubjectIds();
+        $subjectOk = \App\Models\ClassSubjectTeacher::where('school_class_id', $this->classId)
+            ->where('subject_id', $this->subjectId)
+            ->when($mySubjectIds !== null, function ($q) {
+                // enseignant : doit être SA matière (il est le staff assigné)
+                $q->where('staff_id', auth()->user()->staff?->id);
+            })
+            ->exists();
+        abort_unless($subjectOk, 403);
 
         $eval = Evaluation::create([
             'school_class_id' => $this->classId,
@@ -132,19 +157,48 @@ new class extends Component
 
     public function saveGrades(): void
     {
-        // Vérifier que l'enseignant a accès à cette classe
-        if (! AccessService::canManageClass((int) $this->classId)) {
-            abort(403, 'Accès non autorisé à cette classe.');
-        }
-        
+        // Permission
+        abort_unless(auth()->user()->can('grades.enter'), 403);
+
         if (! $this->evalId) return;
 
         $eval = Evaluation::find($this->evalId);
         if (! $eval) return;
 
+        $year = AcademicYearService::current();
+
+        // La classe de l'évaluation est-elle dans le périmètre + l'école ?
+        $myClassIds = AccessService::myClassIds();
+        $classOk = SchoolClass::where('id', $eval->school_class_id)
+            ->where('school_id', auth()->user()->school_id)
+            ->when($myClassIds !== null, fn ($q) => $q->whereIn('id', $myClassIds))
+            ->exists();
+        abort_unless($classOk, 403);
+
+        // La matière de l'évaluation fait-elle partie des matières de l'utilisateur ?
+        $mySubjectIds = AccessService::mySubjectIds();
+        if ($mySubjectIds !== null) {
+            $subjectOk = \App\Models\ClassSubjectTeacher::where('school_class_id', $eval->school_class_id)
+                ->where('subject_id', $eval->subject_id)
+                ->where('staff_id', auth()->user()->staff?->id)
+                ->exists();
+            abort_unless($subjectOk, 403);
+        }
+
+        // Les élèves notés appartiennent-ils bien à la classe de l'évaluation ?
+        $validSsyIds = StudentSchoolYear::where('school_class_id', $eval->school_class_id)
+            ->where('academic_year_id', $year?->id)
+            ->pluck('id')
+            ->map(fn ($id) => (string) $id)
+            ->toArray();
+
         foreach ($this->scores as $ssyId => $score) {
+            // Anti-forge : ignorer tout élève hors de la classe de l'évaluation
+            if (! in_array((string) $ssyId, $validSsyIds)) {
+                continue;
+            }
+
             if ($score === '' || $score === null) {
-                // Supprimer la note si vidée
                 Grade::where('student_school_year_id', $ssyId)
                     ->where('evaluation_id', $this->evalId)
                     ->delete();
