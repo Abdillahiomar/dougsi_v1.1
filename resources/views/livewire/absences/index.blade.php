@@ -132,12 +132,32 @@ new class extends Component
 
     public function saveAttendance(): void
     {
-        if (! $this->classId) return;
+       // Garde 1 : permission
+    abort_unless(auth()->user()->can('absences.manage'), 403);
 
-        $sessionStart = $this->sessionStart ?: null;
+    if (! $this->classId) return;
 
-        foreach ($this->statuses as $ssyId => $status) {
+    // Garde 2 : la classe est-elle dans le périmètre de l'utilisateur ?
+    $allowed = AccessService::myClassIds();
+    abort_unless(
+        $allowed === null || in_array((int) $this->classId, $allowed),
+        403
+    );
 
+    // Garde 3 : les élèves traités appartiennent-ils bien à cette classe ?
+    $year = AcademicYearService::current();
+    $validSsyIds = StudentSchoolYear::where('school_class_id', $this->classId)
+        ->where('academic_year_id', $year?->id)
+        ->pluck('id')
+        ->map(fn ($id) => (string) $id)
+        ->toArray();
+
+    // ... suite de la méthode, mais en filtrant :
+    foreach ($this->statuses as $ssyId => $status) {
+        // Ignorer tout ssyId qui n'appartient pas à la classe (anti-forge)
+        if (! in_array((string) $ssyId, $validSsyIds)) {
+            continue;
+        }
             $docPath = null;
 
             // Upload document (réservé aux non-enseignants)
