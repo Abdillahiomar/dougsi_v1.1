@@ -209,11 +209,44 @@ new class extends Component
 
     public function deleteSub(): void
     {
-        $sub = HomeworkSubmission::find($this->confirmDeleteSubId);
-        if ($sub) {
-            Storage::disk('public')->delete($sub->file_path);
-            $sub->delete();
+        if (! $this->confirmDeleteSubId) return;
+
+        $sub = HomeworkSubmission::with('homework')->find($this->confirmDeleteSubId);
+        if (! $sub) return;
+
+        $user     = auth()->user();
+        $homework = $sub->homework;
+
+        // Garde école
+        abort_unless($homework->school_id === $user->school_id, 403);
+
+        $isTeacher = $user->hasRole('enseignant') && ! $user->hasAnyRole(['admin','directeur']);
+        $isParent  = $user->hasRole('parent');
+
+        if ($isTeacher) {
+            // Enseignant : uniquement les rendus de SES devoirs
+            abort_unless($homework->staff_id === $user->staff?->id, 403);
+        } elseif ($isParent) {
+            // Parent : uniquement le rendu de SON enfant, et pas si déjà noté
+            $guardian = \App\Models\Guardian::where('user_id', $user->id)->first();
+            abort_unless($guardian !== null, 403);
+
+            $ownsChild = StudentSchoolYear::where('id', $sub->student_school_year_id)
+                ->whereHas('student.guardians', fn ($q) => $q->where('guardians.id', $guardian->id))
+                ->exists();
+            abort_unless($ownsChild, 403);
+            abort_unless(is_null($sub->graded_at), 403);
+        } elseif (! $user->hasAnyRole(['admin','directeur'])) {
+            // Tout autre rôle : refusé
+            abort(403);
         }
+
+        // Supprimer le fichier (borné contre null)
+        if ($sub->file_path) {
+            Storage::disk('public')->delete($sub->file_path);
+        }
+
+        $sub->delete();
         $this->confirmDeleteSubId = null;
     }
 
