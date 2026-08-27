@@ -245,6 +245,22 @@ new class extends Component
             ->toArray();
     }
 
+    public function updatedScores($value, $key): void
+    {
+        if (! $this->evalId) return;
+
+        $eval = Evaluation::find($this->evalId);
+        if (! $eval) return;
+
+        if ($value === '' || $value === null) return;
+
+        $score = (float) str_replace(',', '.', $value);
+        $score = max(0, min($eval->max_score, $score));
+
+        // Réécrire la valeur bornée dans le tableau
+        $this->scores[$key] = (string) $score;
+    }
+
     private function getMySubjectIds(): ?array
     {
         $user = auth()->user();

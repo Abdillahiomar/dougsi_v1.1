@@ -34,6 +34,33 @@ new class extends Component
 
     public function mount(Homework $homework): void
     {
+        $user = auth()->user();
+
+        // Garde école (tenant)
+        abort_unless($homework->school_id === $user->school_id, 403);
+
+        $isTeacher = $user->hasRole('enseignant') && ! $user->hasAnyRole(['admin','directeur']);
+        $isParent  = $user->hasRole('parent');
+
+        // Enseignant : uniquement SES devoirs
+        if ($isTeacher) {
+            abort_unless($homework->staff_id === $user->staff?->id, 403);
+        }
+
+        // Parent : uniquement les devoirs des classes de SES enfants
+        if ($isParent) {
+            $guardian = \App\Models\Guardian::where('user_id', $user->id)->first();
+            abort_unless($guardian !== null, 403);
+
+            $year = AcademicYearService::current();
+            $childInClass = StudentSchoolYear::where('school_class_id', $homework->school_class_id)
+                ->when($year, fn ($q) => $q->where('academic_year_id', $year->id))
+                ->whereHas('student.guardians', fn ($q) => $q->where('guardians.id', $guardian->id))
+                ->exists();
+
+            abort_unless($childInClass, 403);
+        }
+
         $this->homework = $homework;
     }
 
@@ -49,6 +76,28 @@ new class extends Component
     public function submitHomework(): void
     {
         $this->submitError = '';
+
+        // Garde 1 : l'enfant appartient-il bien au parent connecté ?
+        $guardian = Guardian::where('user_id', auth()->id())->first();
+        abort_unless($guardian !== null, 403);
+
+        $ownsChild = StudentSchoolYear::where('id', $this->submittingForSsyId)
+            ->whereHas('student.guardians', fn ($q) => $q->where('guardians.id', $guardian->id))
+            ->exists();
+        abort_unless($ownsChild, 403);
+
+        // Garde 2 : l'enfant est-il bien dans la classe de ce devoir ?
+        $inClass = StudentSchoolYear::where('id', $this->submittingForSsyId)
+            ->where('school_class_id', $this->homework->school_class_id)
+            ->exists();
+        abort_unless($inClass, 403);
+
+        // Garde 3 : le rendu en ligne est-il autorisé ?
+        if (! $this->homework->allow_submission) {
+            $this->submitError = 'Le rendu en ligne n\'est pas activé pour ce devoir.';
+            return;
+        }
+
         $this->validate([
             'submissionFile' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
         ], [
@@ -56,23 +105,25 @@ new class extends Component
             'submissionFile.max'      => 'Le fichier ne doit pas dépasser 10 Mo.',
         ]);
 
-        if (! $this->homework->allow_submission) {
-            $this->submitError = 'Le rendu en ligne n\'est pas activé pour ce devoir.';
-            return;
-        }
-
-        // Supprimer l'ancien rendu si existant
+        // Garde 4 : pas de remplacement si déjà noté
         $existing = HomeworkSubmission::where('homework_id', $this->homework->id)
             ->where('student_school_year_id', $this->submittingForSsyId)
             ->first();
 
+        if ($existing && $existing->graded_at) {
+            $this->submitError = 'Ce devoir a déjà été noté, le rendu ne peut plus être modifié.';
+            return;
+        }
+
+        // Supprimer l'ancien rendu si existant (fichier + ligne)
         if ($existing) {
-            Storage::disk('public')->delete($existing->file_path);
+            if ($existing->file_path) {
+                Storage::disk('public')->delete($existing->file_path);
+            }
             $existing->delete();
         }
 
         $path = $this->submissionFile->store('homeworks/submissions', 'public');
-
         $isLate = now()->gt($this->homework->due_date);
 
         HomeworkSubmission::create([
@@ -112,15 +163,37 @@ new class extends Component
 
     public function saveGrade(): void
     {
+        // Permission par rôle
+        abort_unless(
+            auth()->user()->hasAnyRole(['admin','directeur','enseignant']),
+            403
+        );
+
+        // Charger le rendu avec son devoir
+        $submission = HomeworkSubmission::with('homework')->find($this->gradingSubmissionId);
+        abort_unless($submission !== null, 404);
+
+        $homework = $submission->homework;
+
+        // Garde école
+        abort_unless($homework->school_id === auth()->user()->school_id, 403);
+
+        // Garde périmètre : un enseignant ne note QUE les rendus de SES devoirs
+        $user = auth()->user();
+        $isTeacher = $user->hasRole('enseignant') && ! $user->hasAnyRole(['admin','directeur']);
+        if ($isTeacher) {
+            abort_unless($homework->staff_id === $user->staff?->id, 403);
+        }
+
         $this->validate([
-            'gradeValue' => 'nullable|numeric|min:0|max:' . $this->homework->subject->coefficient * 5,
+            'gradeValue' => 'nullable|numeric|min:0|max:' . ($this->homework->subject->coefficient * 5),
         ]);
 
-        HomeworkSubmission::where('id', $this->gradingSubmissionId)->update([
-            'grade'          => $this->gradeValue ?: null,
-            'teacher_comment'=> $this->teacherComment ?: null,
-            'status'         => 'graded',
-            'graded_at'      => now(),
+        $submission->update([
+            'grade'           => $this->gradeValue ?: null,
+            'teacher_comment' => $this->teacherComment ?: null,
+            'status'          => 'graded',
+            'graded_at'       => now(),
         ]);
 
         $this->gradingSubmissionId = null;

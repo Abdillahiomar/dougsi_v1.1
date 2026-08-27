@@ -44,6 +44,12 @@ new class extends Component
 
     public function saveHomework(): void
     {
+        // Permission (ajuste si tu as une permission dédiée type 'homeworks.manage')
+        abort_unless(
+            auth()->user()->hasAnyRole(['admin','directeur','enseignant']),
+            403
+        );
+
         $this->validate([
             'title'    => 'required|string|max:200',
             'classId'  => 'required|exists:school_classes,id',
@@ -58,6 +64,25 @@ new class extends Component
         $year     = AcademicYearService::current();
         $schoolId = auth()->user()->school_id;
         $staff    = auth()->user()->staff;
+
+        // Garde périmètre : la classe est-elle dans le périmètre + l'école ?
+        $myClassIds = AccessService::myClassIds();
+        $classOk = SchoolClass::where('id', $this->classId)
+            ->where('school_id', $schoolId)
+            ->where('academic_year_id', $year?->id)
+            ->when($myClassIds !== null, fn ($q) => $q->whereIn('id', $myClassIds))
+            ->exists();
+        abort_unless($classOk, 403);
+
+        // Garde matière : l'enseignant enseigne-t-il cette matière dans cette classe ?
+        $mySubjectIds = AccessService::mySubjectIds();
+        if ($mySubjectIds !== null) {
+            $subjectOk = \App\Models\ClassSubjectTeacher::where('school_class_id', $this->classId)
+                ->where('subject_id', $this->subjectId)
+                ->where('staff_id', $staff?->id)
+                ->exists();
+            abort_unless($subjectOk, 403);
+        }
 
         $filePath = null;
         $fileName = null;
@@ -93,14 +118,37 @@ new class extends Component
 
     public function deleteHomework(): void
     {
-        $hw = Homework::find($this->confirmDeleteId);
+        // Permission par rôle
+        abort_unless(
+            auth()->user()->hasAnyRole(['admin','directeur','enseignant']),
+            403
+        );
+
+        if (! $this->confirmDeleteId) return;
+
+        $hw = Homework::with('submissions')->find($this->confirmDeleteId);
         if (! $hw) return;
 
-        if ($hw->file_path) Storage::disk('public')->delete($hw->file_path);
+        // Garde école : le devoir appartient-il à l'école de l'utilisateur ?
+        abort_unless($hw->school_id === auth()->user()->school_id, 403);
 
-        // Supprimer tous les rendus
+        // Garde périmètre : un enseignant ne peut supprimer QUE ses propres devoirs
+        $user = auth()->user();
+        $isTeacher = $user->hasRole('enseignant') && ! $user->hasAnyRole(['admin','directeur']);
+        if ($isTeacher) {
+            abort_unless($hw->staff_id === $user->staff?->id, 403);
+        }
+
+        // Supprimer le fichier du devoir (s'il existe)
+        if ($hw->file_path) {
+            Storage::disk('public')->delete($hw->file_path);
+        }
+
+        // Supprimer les fichiers des rendus (en bornant les null)
         foreach ($hw->submissions as $sub) {
-            Storage::disk('public')->delete($sub->file_path);
+            if ($sub->file_path) {
+                Storage::disk('public')->delete($sub->file_path);
+            }
         }
 
         $hw->delete();
