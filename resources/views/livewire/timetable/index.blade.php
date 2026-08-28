@@ -64,6 +64,10 @@ new class extends Component
 
     public function openEdit(int $id): void
     {
+        abort_unless(
+        auth()->user()->hasAnyRole(['admin','directeur']) || auth()->user()->can('timetable.manage'),
+        403
+    );
         $slot = TimetableSlot::find($id);
         if (! $slot) return;
 
@@ -80,6 +84,10 @@ new class extends Component
 
     public function saveSlot(): void
     {
+        abort_unless(
+           auth()->user()->hasAnyRole(['admin','directeur']) || auth()->user()->can('timetable.manage'),
+           403
+       );
         $this->validate([
             'classId'    => 'required|exists:school_classes,id',
             'fDay'       => 'required|integer|between:0,6',
@@ -126,7 +134,17 @@ new class extends Component
 
     public function deleteSlot(): void
     {
-        TimetableSlot::find($this->confirmDeleteId)?->delete();
+        abort_unless(
+            auth()->user()->hasAnyRole(['admin','directeur']) || auth()->user()->can('timetable.manage'),
+            403
+        );
+
+        $slot = TimetableSlot::find($this->confirmDeleteId);
+        if ($slot) {
+            // Garde tenant
+            abort_unless($slot->school_id === auth()->user()->school_id, 403);
+            $slot->delete();
+        }
         $this->confirmDeleteId = null;
     }
 

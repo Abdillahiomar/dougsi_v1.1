@@ -243,6 +243,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('can:timetable.view')->group(function () {
         Volt::route('timetable', 'timetable.index')->name('timetable.index');
         Volt::route('timetable/mes-enfants', 'timetable.parent')->name('timetable.parent');
+        Volt::route('emploi-du-temps/mes-classes', 'timetable.enseignant')->name('timetable.enseignant');
     });
 
     Route::middleware('can:calander.view')->group(function () {

@@ -11,7 +11,7 @@ class Bulletin extends Model
 
     protected $fillable = [
         'student_school_year_id', 'period', 'average', 'rank',
-        'general_comment', 'pdf_path', 'generated_at',
+        'general_comment', 'pdf_path', 'generated_at', 'decision',
     ];
 
     protected $casts = [

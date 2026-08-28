@@ -186,7 +186,7 @@ new class extends Component
         }
 
         $this->validate([
-            'gradeValue' => 'nullable|numeric|min:0|max:' . ($this->homework->subject->coefficient * 5),
+            'gradeValue' => 'nullable|numeric|min:0|max:20',
         ]);
 
         $submission->update([

@@ -99,6 +99,8 @@ new class extends Component
 
     public function saveEvent(): void
     {
+        abort_unless($this->canManage(), 403);
+
         $this->validate([
             'fTitle'     => 'required|string|max:200',
             'fType'      => 'required|string',
@@ -106,6 +108,15 @@ new class extends Component
             'fEndDate'   => 'required|date|after_or_equal:fStartDate',
             'fColor'     => 'required|string',
         ]);
+
+        // Si édition : vérifier que l'événement appartient à l'école (tenant)
+        if ($this->editingId) {
+            $event = SchoolEvent::find($this->editingId);
+            abort_unless(
+                $event && $event->school_id === auth()->user()->school_id,
+                403
+            );
+        }
 
         $data = [
             'school_id'   => auth()->user()->school_id,
@@ -140,7 +151,14 @@ new class extends Component
 
     public function deleteEvent(): void
     {
-        SchoolEvent::find($this->confirmDeleteId)?->delete();
+        abort_unless($this->canManage(), 403);
+
+        $event = SchoolEvent::find($this->confirmDeleteId);
+        if ($event) {
+            // Garde tenant : ne supprimer que dans son école
+            abort_unless($event->school_id === auth()->user()->school_id, 403);
+            $event->delete();
+        }
         $this->confirmDeleteId = null;
     }
 

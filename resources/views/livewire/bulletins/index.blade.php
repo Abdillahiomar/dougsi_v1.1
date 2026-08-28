@@ -98,6 +98,19 @@ new class extends Component
 
     public function saveDecision(string $ssyId, string $decision): void
     {
+        // Permission
+        abort_unless(auth()->user()->can('bulletins.generate'), 403);
+
+        // Périmètre : le ssy appartient-il à une classe du périmètre de l'utilisateur ?
+        $myClassIds = AccessService::myClassIds();
+        $ssyInScope = StudentSchoolYear::where('id', $ssyId)
+            ->whereHas('schoolClass', function ($q) use ($myClassIds) {
+                $q->where('school_id', auth()->user()->school_id)
+                ->when($myClassIds !== null, fn ($qq) => $qq->whereIn('id', $myClassIds));
+            })
+            ->exists();
+        abort_unless($ssyInScope, 403);
+
         $this->decisions[$ssyId] = $decision;
 
         $bulletin = Bulletin::where('student_school_year_id', $ssyId)
@@ -109,7 +122,21 @@ new class extends Component
 
     public function generateAll(): void
     {
-        $year    = AcademicYearService::current();
+        // Permission
+        abort_unless(auth()->user()->can('bulletins.generate'), 403);
+
+        if (! $this->classId) return;
+
+        // Périmètre : la classe est-elle dans le périmètre + l'école ?
+        $year = AcademicYearService::current();
+        $myClassIds = AccessService::myClassIds();
+        $classOk = SchoolClass::where('id', $this->classId)
+            ->where('school_id', auth()->user()->school_id)
+            ->where('academic_year_id', $year?->id)
+            ->when($myClassIds !== null, fn ($q) => $q->whereIn('id', $myClassIds))
+            ->exists();
+        abort_unless($classOk, 403);
+
         $service = new BulletinService();
 
         $ssys = StudentSchoolYear::where('school_class_id', $this->classId)
