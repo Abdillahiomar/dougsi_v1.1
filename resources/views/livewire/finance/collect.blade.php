@@ -401,14 +401,14 @@ new class extends Component
         <div>
             {{-- ══ Recherche / élève ══ --}}
             @if (! $student)
-                <div class="card">
+                <div class="card" style="overflow:visible;">
                     <div class="card-header">
                         <div class="card-header-icon" style="background:rgba(42,63,126,.08);color:var(--sidebar-soft);">
                             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                         </div>
                         <span class="card-title">Rechercher un élève</span>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body" style="overflow:visible;">
                         <div style="position:relative;">
                             <input wire:model.live.debounce.300ms="search" type="text" class="form-input"
                                 placeholder="Matricule, nom ou prénom…" autofocus autocomplete="off">
