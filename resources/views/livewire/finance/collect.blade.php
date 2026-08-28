@@ -30,11 +30,14 @@ new class extends Component
 
     public function mount(): void
     {
+        abort_unless(auth()->user()->can('finance.collect'), 403);
         $this->paidAt = now()->format('Y-m-d\TH:i');
     }
 
     public function openSession(): void
     {
+        abort_unless(auth()->user()->can('finance.collect'), 403);
+
         try {
             app(CashSessionService::class)->open(
                 auth()->user()->school_id,
@@ -45,10 +48,16 @@ new class extends Component
         } catch (\Throwable $e) {
             $this->error = $e->getMessage();
         }
-    }
+    }   
 
     public function selectStudent(int $id): void
     {
+        // Anti-forge : n'accepter qu'un élève de son école
+        $exists = Student::where('id', $id)
+            ->where('school_id', auth()->user()->school_id)
+            ->exists();
+        if (! $exists) return;
+
         $this->studentId = $id;
         $this->search    = '';
         $this->reset(['amount', 'manual', 'error', 'receiptId']);
@@ -93,10 +102,16 @@ new class extends Component
 
     public function collect(): void
     {
+        abort_unless(auth()->user()->can('finance.collect'), 403);
+
         $this->error = null;
 
-        $student = Student::find($this->studentId);
-        $year    = AcademicYearService::current();
+        // Vérifier que l'élève appartient bien à l'école de l'utilisateur
+        $student = Student::where('id', $this->studentId)
+            ->where('school_id', auth()->user()->school_id)
+            ->first();
+
+        $year = AcademicYearService::current();
 
         if (! $student || ! $year) {
             $this->error = 'Élève ou année académique introuvable.';
@@ -135,7 +150,8 @@ new class extends Component
         $year = AcademicYearService::current();
         if (! $year) return collect();
 
-        return StudentInvoice::where('academic_year_id', $year->id)
+        return StudentInvoice::where('school_id', auth()->user()->school_id)
+            ->where('academic_year_id', $year->id)
             ->whereHas('studentSchoolYear', fn ($q) => $q->where('student_id', $this->studentId))
             ->open()
             ->with('feeStructure')
@@ -154,14 +170,19 @@ new class extends Component
         if (strlen($this->search) >= 2) {
             $results = Student::where('school_id', $schoolId)
                 ->where(function ($q) {
-                    $q->where('matricule', 'like', "%{$this->search}%")
-                      ->orWhere('first_name', 'like', "%{$this->search}%")
-                      ->orWhere('last_name', 'like', "%{$this->search}%");
+                    $q->where('matricule', 'ilike', "%{$this->search}%")
+                      ->orWhere('first_name', 'ilike', "%{$this->search}%")
+                      ->orWhere('last_name', 'ilike', "%{$this->search}%");
                 })
                 ->limit(8)->get();
         }
 
-        $student  = $this->studentId ? Student::with('currentSchoolYear.schoolClass')->find($this->studentId) : null;
+        $student = $this->studentId
+                ? Student::with('currentSchoolYear.schoolClass')
+                    ->where('school_id', $schoolId)
+                    ->find($this->studentId)
+                : null;
+        
         $invoices = $this->openInvoices();
 
         //dd($invoices);
@@ -198,6 +219,7 @@ new class extends Component
         // Historique récent de l'élève
         $history = $student
             ? PaymentReceipt::where('student_id', $student->id)
+                ->where('school_id', $schoolId)
                 ->valid()->latest('paid_at')->limit(5)->get()
             : collect();
 
@@ -387,19 +409,48 @@ new class extends Component
                         <span class="card-title">Rechercher un élève</span>
                     </div>
                     <div class="card-body">
-                        <div class="search-wrap">
+                        <div style="position:relative;">
                             <input wire:model.live.debounce.300ms="search" type="text" class="form-input"
-                                   placeholder="Matricule, nom ou prénom…" autofocus>
-                            @if ($results->isNotEmpty())
-                                <div class="search-results">
+                                placeholder="Matricule, nom ou prénom…" autofocus autocomplete="off">
+
+                            @if (strlen($search) >= 2 && $results->isNotEmpty())
+                                <div style="position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:50;
+                                            background:var(--paper-raised,#fff); border:1px solid var(--line,#E5E2DA);
+                                            border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.14);
+                                            max-height:320px; overflow-y:auto; overflow-x:hidden;">
                                     @foreach ($results as $r)
-                                        <div class="search-item" wire:click="selectStudent({{ $r->id }})">
-                                            <div>
-                                                <div style="font-weight:600;font-size:.875rem;">{{ $r->fullName() }}</div>
-                                                <div class="search-mat">{{ $r->matricule }}</div>
+                                        <div wire:click="selectStudent({{ $r->id }})"
+                                            wire:key="res-{{ $r->id }}"
+                                            style="display:flex; align-items:center; gap:.75rem; padding:.7rem .9rem;
+                                                    cursor:pointer; border-bottom:1px solid var(--line,#E5E2DA);
+                                                    transition:background .12s;"
+                                            onmouseover="this.style.background='var(--paper,#F5F3EE)'"
+                                            onmouseout="this.style.background='transparent'">
+                                            <div style="width:34px; height:34px; border-radius:9px; flex-shrink:0;
+                                                        background:var(--sidebar,#2A3F7E); color:#fff; display:flex;
+                                                        align-items:center; justify-content:center;
+                                                        font-family:'Fraunces',serif; font-weight:700; font-size:.8rem;">
+                                                {{ strtoupper(substr($r->first_name,0,1).substr($r->last_name,0,1)) }}
+                                            </div>
+                                            <div style="min-width:0;">
+                                                <div style="font-weight:600; font-size:.875rem; color:var(--ink,#1A1A1A);
+                                                            white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                                    {{ $r->fullName() }}
+                                                </div>
+                                                <div style="font-size:.75rem; color:var(--dsh-muted,#8A8578);
+                                                            font-family:'JetBrains Mono',monospace;">
+                                                    {{ $r->matricule }}
+                                                </div>
                                             </div>
                                         </div>
                                     @endforeach
+                                </div>
+                            @elseif (strlen($search) >= 2 && $results->isEmpty())
+                                <div style="position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:50;
+                                            background:var(--paper-raised,#fff); border:1px solid var(--line,#E5E2DA);
+                                            border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.14);
+                                            padding:1rem; text-align:center; font-size:.85rem; color:var(--dsh-muted,#8A8578);">
+                                    Aucun élève trouvé pour « {{ $search }} ».
                                 </div>
                             @endif
                         </div>

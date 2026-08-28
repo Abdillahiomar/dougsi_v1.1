@@ -10,6 +10,13 @@ new class extends Component
 {
     public string $scope = 'year'; // year | month | quarter
 
+
+    public function mount(): void
+    {
+        abort_unless(auth()->user()->can('finance.view'), 403);
+    }
+
+
     /**
      * Base des factures.
      *
