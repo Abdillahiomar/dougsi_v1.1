@@ -498,7 +498,7 @@ new class extends Component
     }
 }; ?>
 
-@include('layouts.partials.finance-styles')
+
 
 <style>
     /* ── Bande horizontale session + méthodes ── */
@@ -620,6 +620,7 @@ new class extends Component
 </style>
 
 <div>
+    @include('layouts.partials.finance-styles')
 
     {{-- ═══════════════════════════════════════════════════════════
          EN-TÊTE
@@ -868,13 +869,10 @@ new class extends Component
     ═══════════════════════════════════════════════════════════ --}}
 
     @if ($session)
-
         @can('finance.close')
-
             <div
                 style="margin-bottom:1rem;text-align:right;"
             >
-
                 <button
                     type="button"
                     wire:click="openCloseModal"
