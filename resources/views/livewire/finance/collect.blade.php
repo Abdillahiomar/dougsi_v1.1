@@ -52,10 +52,18 @@ new class extends Component
 
     public function selectStudent(int $id): void
     {
-        // Anti-forge : n'accepter qu'un élève de son école
+        $year = AcademicYearService::current();
+
+        // Anti-forge : élève de son école ET inscrit pour l'année courante
         $exists = Student::where('id', $id)
             ->where('school_id', auth()->user()->school_id)
+            ->when($year, fn ($q) =>
+                $q->whereHas('schoolYears', fn ($qq) =>
+                    $qq->where('academic_year_id', $year->id)
+                )
+            )
             ->exists();
+
         if (! $exists) return;
 
         $this->studentId = $id;
@@ -166,15 +174,19 @@ new class extends Component
 
         $session = app(CashSessionService::class)->currentFor($schoolId, auth()->id());
 
+        
         $results = collect();
-        if (strlen($this->search) >= 2) {
+        if (strlen($this->search) >= 2 && $year) {
             $results = Student::where('school_id', $schoolId)
+                ->whereHas('schoolYears', fn ($q) =>
+                    $q->where('academic_year_id', $year->id)
+                )
                 ->where(function ($q) {
                     $q->where('matricule', 'ilike', "%{$this->search}%")
-                      ->orWhere('first_name', 'ilike', "%{$this->search}%")
-                      ->orWhere('last_name', 'ilike', "%{$this->search}%");
+                    ->orWhere('first_name', 'ilike', "%{$this->search}%")
+                    ->orWhere('last_name', 'ilike', "%{$this->search}%");
                 })
-                ->limit(8)->get();
+                ->limit(10)->get();
         }
 
         $student = $this->studentId
