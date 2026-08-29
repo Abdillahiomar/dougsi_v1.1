@@ -35,7 +35,7 @@ new class extends Component {
     public ?int    $confirmDeleteId = null;
     public ?string $deleteBlockedMsg = null;
 
-    public array $statuses = ['pending', 'partial', 'paid', 'overdue', 'cancelled'];
+    public array $statuses = ['unpaid', 'partial', 'paid', 'cancelled'];
 
     public function updatedSearch()  { $this->resetPage(); }
     public function updatedLevelId() { $this->classId = ''; $this->resetPage(); }
@@ -295,10 +295,9 @@ new class extends Component {
         </select>
         <select wire:model.live="status">
             <option value="">Tous les statuts</option>
-            <option value="pending">En attente</option>
-            <option value="partial">Partiel</option>
+            <option value="unpaid">Impayée</option>
+            <option value="partial">Partiellement Payée</option>
             <option value="paid">Payé</option>
-            <option value="overdue">En retard</option>
             <option value="cancelled">Annulé</option>
         </select>
     </div>
