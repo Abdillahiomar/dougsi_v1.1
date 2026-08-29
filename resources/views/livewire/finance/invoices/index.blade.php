@@ -396,10 +396,10 @@ new class extends Component {
                     <div class="ff">
                         <label>Statut</label>
                         <select wire:model="editStatus">
-                            <option value="pending">En attente</option>
-                            <option value="partial">Partiel</option>
+                            <option value="unpaid">Impayée</option>
+                            <option value="partial">Partiellemment Payée</option>
                             <option value="paid">Payé</option>
-                            <option value="overdue">En retard</option>
+                            
                             <option value="cancelled">Annulé</option>
                         </select>
                         @error('editStatus') <span style="color:var(--accent-red);font-size:.75rem;">{{ $message }}</span> @enderror
