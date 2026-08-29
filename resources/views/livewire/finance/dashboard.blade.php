@@ -511,7 +511,7 @@ new class extends Component
 }; ?>
 
 
-@include('layouts.partials.finance-styles')
+
 
 <style>
     .split-2 { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; align-items:start; }
@@ -528,6 +528,7 @@ new class extends Component
 </style>
 
 <div>
+    @include('layouts.partials.finance-styles')
     @if (! ($ready ?? false))
         <div class="fin-empty">Aucune année académique active. Activez-en une pour consulter les finances.</div>
     @else
