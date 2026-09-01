@@ -13,7 +13,7 @@ class ReceiptController extends Controller
         abort_unless($receipt->school_id === $request->user()->school_id, 404);
 
         $receipt->load(['student.currentSchoolYear.schoolClass', 'lines.invoice', 'receivedBy', 'academicYear']);
-
+        //$receipt = PaymentReceipt::with(['lines.invoice', 'student', 'receivedBy', 'academicYear', 'methods'])->findOrFail(...);
         return view('finance.receipt', [
             'receipt' => $receipt,
             'school'  => $request->user()->school,

@@ -121,11 +121,25 @@
         </div>
         <div>
             <div class="meta-lbl">Mode de règlement</div>
-            <div class="meta-val">{{ $receipt->methodLabel() }}</div>
-            @if ($receipt->reference)
-                <div class="school-meta">Réf. {{ $receipt->reference }}</div>
-            @endif
-        </div>
+                @if ($receipt->methods && $receipt->methods->count() > 1)
+                    {{-- Paiement multi-modes : détailler chaque mode --}}
+                    @foreach ($receipt->methods as $m)
+                        <div class="meta-val" style="font-size:11px;">
+                            {{ \App\Models\PaymentReceipt::METHODS[$m->method] ?? $m->method }} :
+                            {{ number_format($m->amount, 0, ',', ' ') }} DJF
+                        </div>
+                        @if ($m->reference)
+                            <div class="school-meta" style="margin-bottom:3px;">Réf. {{ $m->reference }}</div>
+                        @endif
+                    @endforeach
+                @else
+                    {{-- Mono-mode : affichage simple comme avant --}}
+                    <div class="meta-val">{{ $receipt->methodLabel() }}</div>
+                    @if ($receipt->reference)
+                        <div class="school-meta">Réf. {{ $receipt->reference }}</div>
+                    @endif
+                @endif
+            </div>
         <div>
             <div class="meta-lbl">Encaissé par</div>
             <div class="meta-val">{{ $receipt->receivedBy?->name }}</div>

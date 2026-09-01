@@ -97,8 +97,38 @@ new class extends Component
                 'level_id'        => 'required|exists:levels,id',
                 'school_class_id' => 'required|exists:school_classes,id',
             ]),
+            4 => $this->validateDocuments(),
             default => null,
         };
+    }
+
+    private function validateDocuments(): void
+    {
+        $schoolId = auth()->user()->school_id;
+
+        $mandatoryDocs = RequiredDocument::where('school_id', $schoolId)
+            ->where('is_active', true)
+            ->where('is_mandatory', true)
+            ->where(fn ($q) => $q->where('applies_to','all')->orWhere('applies_to','new'))
+            ->where(function ($q) {
+                $q->whereNull('applies_to_levels')
+                ->orWhereJsonContains('applies_to_levels', (int) $this->level_id);
+            })
+            ->get();
+
+        $missing = [];
+        foreach ($mandatoryDocs as $doc) {
+            if (! isset($this->docFiles[$doc->id]) || ! $this->docFiles[$doc->id]) {
+                $missing[] = $doc->name;
+            }
+        }
+
+        if (! empty($missing)) {
+            $this->addError('docFiles', 'Documents obligatoires manquants : ' . implode(', ', $missing) . '.');
+            throw ValidationException::withMessages([
+                'docFiles' => 'Documents obligatoires manquants : ' . implode(', ', $missing) . '.',
+            ]);
+        }
     }
 
     public function updatedLevelId(): void
@@ -108,6 +138,8 @@ new class extends Component
 
     public function enroll(): void
     {
+        abort_unless(auth()->user()->can('students.enroll'), 403);
+
         $year     = AcademicYearService::current();
         $schoolId = auth()->user()->school_id;
 
@@ -118,9 +150,26 @@ new class extends Component
             return;
         }
 
-        // 2. Créer l'élève
-        $count     = Student::where('school_id', $schoolId)->count() + 1;
-        $matricule = sprintf('ELV-%d-%04d-%s', $schoolId, $count, now()->format('Y'));
+        // 2. Créer l'élève — génération de matricule robuste (anti-collision)
+        $year4 = now()->format('Y');
+
+        $lastMatricule = Student::where('school_id', $schoolId)
+            ->where('matricule', 'like', "ELV-{$schoolId}-%-{$year4}")
+            ->orderByDesc('matricule')
+            ->value('matricule');
+
+        $lastNumber = 0;
+        if ($lastMatricule && preg_match('/ELV-\d+-(\d+)-\d+/', $lastMatricule, $m)) {
+            $lastNumber = (int) $m[1];
+        }
+
+        $count     = $lastNumber + 1;
+        $matricule = sprintf('ELV-%d-%04d-%s', $schoolId, $count, $year4);
+
+        while (Student::where('school_id', $schoolId)->where('matricule', $matricule)->exists()) {
+            $count++;
+            $matricule = sprintf('ELV-%d-%04d-%s', $schoolId, $count, $year4);
+        }
 
         $photoPath = $this->photo
             ? $this->photo->store('students/photos', 'public')
@@ -138,7 +187,7 @@ new class extends Component
             'status'     => 'active',
         ]);
 
-        // 3. Tuteur
+        // 3. Tuteur — réutilise un guardian existant par téléphone (évite les doublons)
         $guardianId = $this->guardian_id ?: null;
         if ($this->guardian_mode === 'new') {
             $guardian = \App\Models\Guardian::where('school_id', $schoolId)
@@ -157,6 +206,7 @@ new class extends Component
             }
             $guardianId = $guardian->id;
         }
+
         if ($guardianId) {
             $student->guardians()->attach($guardianId, [
                 'relationship'       => $this->g_relationship,
@@ -165,14 +215,14 @@ new class extends Component
         }
 
         // 4. Inscrire + générer factures
-        $plan    = $this->installment_plan_id
+        $plan = $this->installment_plan_id
             ? InstallmentPlan::find($this->installment_plan_id)
             : null;
 
         $service = new EnrollmentService();
         $ssy     = $service->enroll($student, $year, (int) $this->school_class_id, $plan, $this->discount_ids, false);
 
-        // 5. Sauvegarder les documents
+        // 5. Sauvegarder les documents fournis
         foreach ($this->docFiles as $docId => $file) {
             if (! $file) continue;
             $path = $file->store('students/documents', 'public');
@@ -186,7 +236,7 @@ new class extends Component
             ]);
         }
 
-        // Documents manquants → créer en status "pending"
+        // Documents manquants → créer en statut "pending"
         $allRequired = RequiredDocument::where('school_id', $schoolId)
             ->where('is_active', true)
             ->where(fn ($q) => $q->where('applies_to','all')->orWhere('applies_to','new'))

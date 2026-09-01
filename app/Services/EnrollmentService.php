@@ -329,15 +329,22 @@ class EnrollmentService
 
     private function generateInvoiceNumber(int $schoolId, string $prefix = 'SCO'): string
     {
-        $year  = now()->format('Y');
-        $count = StudentInvoice::withoutGlobalScopes()
-            ->whereHas('studentSchoolYear', fn ($q) =>
-                $q->withoutGlobalScopes()
-                  ->whereHas('student', fn ($q) =>
-                      $q->withoutGlobalScopes()->where('school_id', $schoolId)
-                  )
-            )->count() + 1;
+        $year = now()->format('Y');
 
-        return sprintf('%s-%d-%s-%05d', $prefix, $schoolId, $year, $count);
+        $lastNumber = StudentInvoice::withoutGlobalScopes()
+            ->where('school_id', $schoolId)
+            ->where('invoice_number', 'like', "{$prefix}-{$schoolId}-{$year}-%")
+            ->selectRaw("MAX(CAST(SPLIT_PART(invoice_number, '-', 4) AS INTEGER)) AS max_num")
+            ->value('max_num') ?? 0;
+
+        $count = $lastNumber + 1;
+        $number = sprintf('%s-%d-%s-%05d', $prefix, $schoolId, $year, $count);
+
+        while (StudentInvoice::withoutGlobalScopes()->where('invoice_number', $number)->exists()) {
+            $count++;
+            $number = sprintf('%s-%d-%s-%05d', $prefix, $schoolId, $year, $count);
+        }
+
+        return $number;
     }
 }

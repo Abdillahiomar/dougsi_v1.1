@@ -42,20 +42,20 @@ return new class extends Migration
     }
 
     /**
-     * Supprime un index unique seulement s'il existe en base.
+     * Supprime un index unique seulement s'il existe en base (PostgreSQL uniquement)
      */
     private function dropUniqueIfExists(string $table, string $indexName): void
     {
-        $exists = DB::select(
-            "SELECT COUNT(*) as cnt
-             FROM information_schema.statistics
-             WHERE table_schema = DATABASE()
-               AND table_name   = ?
-               AND index_name   = ?",
+        $result = DB::select(
+            "SELECT COUNT(*) as count
+             FROM pg_indexes
+             WHERE schemaname = 'public'
+               AND tablename = ?
+               AND indexname = ?",
             [$table, $indexName]
         );
 
-        if ($exists[0]->cnt > 0) {
+        if ((int) $result[0]->count > 0) {
             Schema::table($table, function (Blueprint $t) use ($indexName) {
                 $t->dropUnique($indexName);
             });

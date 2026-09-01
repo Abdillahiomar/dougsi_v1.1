@@ -17,9 +17,10 @@ class PaymentReceipt extends Model
         'cacpay'        => 'Cac Pay',
         'dahabplus'        => 'DahabPlus',
         'sabapay'        => 'Saba Pay',
-        'Eximpay'        => 'Exim Pay',
+        'eximpay'        => 'Exim Pay',
         'bank_transfer' => 'Virement bancaire',
         'cheque'        => 'Chèque',
+        'mixed' => 'Paiement mixte',
     ];
 
     protected $fillable = [
@@ -40,6 +41,7 @@ class PaymentReceipt extends Model
     public function receivedBy() { return $this->belongsTo(User::class, 'received_by'); }
     public function voidedBy() { return $this->belongsTo(User::class, 'voided_by'); }
     public function lines() { return $this->hasMany(StudentPayment::class, 'payment_receipt_id'); }
+    public function methods(){return $this->hasMany(ReceiptMethod::class, 'payment_receipt_id');}
 
     public function isVoided(): bool { return $this->voided_at !== null; }
 

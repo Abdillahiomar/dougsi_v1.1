@@ -68,8 +68,7 @@ new class extends Component
             ->when($this->search, function ($q) {
 
                 $search = '%' . $this->search . '%';
-
-                $q->where(function ($w) use ($search) {
+                    $q->where(function ($w) use ($search) {
 
                     // PostgreSQL : ILIKE permet une recherche
                     // insensible à la casse
@@ -366,7 +365,7 @@ new class extends Component
     }
 }; ?>
 
-@include('layouts.partials.finance-styles')
+
 
 <style>
     .age-pill {
@@ -405,7 +404,7 @@ new class extends Component
 </style>
 
 <div>
-
+@include('layouts.partials.finance-styles')
     <div class="page-head">
 
         <div>

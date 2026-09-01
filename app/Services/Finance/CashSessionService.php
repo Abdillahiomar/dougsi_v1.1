@@ -52,6 +52,19 @@ class CashSessionService
         });
     }
 
+    public function expectedCash(): int
+    {
+        // Fond de caisse + toutes les portions ESPÈCES des reçus valides de cette session
+        $cashCollected = \App\Models\ReceiptMethod::where('method', 'cash')
+            ->whereHas('receipt', function ($q) {
+                $q->where('cash_session_id', $this->id)
+                ->whereNull('voided_at');  // exclure les reçus annulés
+            })
+            ->sum('amount');
+
+        return (int) $this->opening_float + (int) $cashCollected;
+    }
+
     public function currentFor(int $schoolId, int $userId): ?CashSession
     {
         return CashSession::where('school_id', $schoolId)

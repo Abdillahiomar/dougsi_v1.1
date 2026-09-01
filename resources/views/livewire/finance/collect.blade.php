@@ -4,6 +4,7 @@ use App\Models\PaymentReceipt;
 use App\Models\Student;
 use App\Models\StudentInvoice;
 use App\Services\AcademicYearService;
+use App\Services\Finance\ReceiptNumberService;
 use App\Services\Finance\CashSessionService;
 use App\Services\Finance\PaymentService;
 use Livewire\Component;
@@ -13,11 +14,13 @@ new class extends Component
     public string $search = '';
     public ?int   $studentId = null;
 
-    public string $amount    = '';
-    public string $method    = 'cash';
-    public string $reference = '';
-    public string $paidAt    = '';
-    public string $note      = '';
+    public string $amount = '';
+    public string $paidAt = '';
+    public string $note   = '';
+
+    // ── Multi-modes ──────────────────────────────────────────────
+    public array $methodAmounts = [];   // ['cash' => 3000, 'waafi' => 7000, ...]
+    public array $methodRefs    = [];   // ['waafi' => 'TXN123', ...]
 
     public string $mode   = 'auto';       // auto | manual
     public array  $manual = [];           // [invoice_id => montant]
@@ -48,7 +51,7 @@ new class extends Component
         } catch (\Throwable $e) {
             $this->error = $e->getMessage();
         }
-    }   
+    }
 
     public function selectStudent(int $id): void
     {
@@ -68,13 +71,16 @@ new class extends Component
 
         $this->studentId = $id;
         $this->search    = '';
-        $this->reset(['amount', 'manual', 'error', 'receiptId']);
+        $this->reset(['amount', 'manual', 'error', 'receiptId', 'methodAmounts', 'methodRefs']);
         $this->mode = 'auto';
     }
 
     public function clearStudent(): void
     {
-        $this->reset(['studentId', 'amount', 'manual', 'error', 'receiptId', 'reference', 'note']);
+        $this->reset([
+            'studentId', 'amount', 'manual', 'error', 'receiptId',
+            'methodAmounts', 'methodRefs', 'note',
+        ]);
         $this->mode = 'auto';
     }
 
@@ -108,13 +114,17 @@ new class extends Component
         }
     }
 
+    /** Total réparti sur les modes de règlement. */
+    public function getMethodTotalProperty(): int
+    {
+        return (int) collect($this->methodAmounts)->sum(fn ($v) => (int) $v);
+    }
+
     public function collect(): void
     {
         abort_unless(auth()->user()->can('finance.collect'), 403);
-
         $this->error = null;
 
-        // Vérifier que l'élève appartient bien à l'école de l'utilisateur
         $student = Student::where('id', $this->studentId)
             ->where('school_id', auth()->user()->school_id)
             ->first();
@@ -126,23 +136,51 @@ new class extends Component
             return;
         }
 
+        // Construire la répartition des modes (uniquement ceux > 0)
+        $methods = [];
+        foreach ($this->methodAmounts as $key => $amt) {
+            $amt = (int) $amt;
+            if ($amt > 0) {
+                $methods[] = [
+                    'method'    => $key,
+                    'amount'    => $amt,
+                    'reference' => $this->methodRefs[$key] ?? null,
+                ];
+            }
+        }
+
+        if (empty($methods)) {
+            $this->error = 'Répartissez le montant sur au moins un mode de règlement.';
+            return;
+        }
+
+        $sumMethods = array_sum(array_column($methods, 'amount'));
+        if ($sumMethods !== (int) $this->amount) {
+            $this->error = sprintf(
+                'La répartition (%s DJF) ne correspond pas au montant reçu (%s DJF).',
+                number_format($sumMethods, 0, ',', ' '),
+                number_format((int) $this->amount, 0, ',', ' ')
+            );
+            return;
+        }
+
         try {
             $receipt = app(PaymentService::class)->collect(
                 $student,
                 $year,
                 (int) $this->amount,
-                $this->method,
+                count($methods) === 1 ? $methods[0]['method'] : 'mixed',
                 auth()->id(),
                 [
-                    'reference'   => $this->reference ?: null,
                     'paid_at'     => $this->paidAt ?: now(),
                     'note'        => $this->note ?: null,
                     'allocations' => $this->mode === 'manual' ? $this->manual : null,
+                    'methods'     => $methods,
                 ]
             );
 
             $this->receiptId = $receipt->id;
-            $this->reset(['amount', 'manual', 'reference', 'note']);
+            $this->reset(['amount', 'manual', 'methodAmounts', 'methodRefs', 'note']);
             $this->mode = 'auto';
 
         } catch (\Throwable $e) {
@@ -174,7 +212,6 @@ new class extends Component
 
         $session = app(CashSessionService::class)->currentFor($schoolId, auth()->id());
 
-        
         $results = collect();
         if (strlen($this->search) >= 2 && $year) {
             $results = Student::where('school_id', $schoolId)
@@ -183,21 +220,19 @@ new class extends Component
                 )
                 ->where(function ($q) {
                     $q->where('matricule', 'ilike', "%{$this->search}%")
-                    ->orWhere('first_name', 'ilike', "%{$this->search}%")
-                    ->orWhere('last_name', 'ilike', "%{$this->search}%");
+                      ->orWhere('first_name', 'ilike', "%{$this->search}%")
+                      ->orWhere('last_name', 'ilike', "%{$this->search}%");
                 })
                 ->limit(10)->get();
         }
 
         $student = $this->studentId
-                ? Student::with('currentSchoolYear.schoolClass')
-                    ->where('school_id', $schoolId)
-                    ->find($this->studentId)
-                : null;
-        
-        $invoices = $this->openInvoices();
+            ? Student::with('currentSchoolYear.schoolClass')
+                ->where('school_id', $schoolId)
+                ->find($this->studentId)
+            : null;
 
-        //dd($invoices);
+        $invoices = $this->openInvoices();
 
         $totalDue  = $invoices->sum('amount_due');
         $totalPaid = $invoices->sum('amount_paid');
@@ -225,7 +260,7 @@ new class extends Component
         }
 
         $receipt = $this->receiptId
-            ? PaymentReceipt::with('lines.invoice')->find($this->receiptId)
+            ? PaymentReceipt::with(['lines.invoice', 'methods'])->find($this->receiptId)
             : null;
 
         // Historique récent de l'élève
@@ -241,6 +276,8 @@ new class extends Component
         );
     }
 }; ?>
+
+
 
 <style>
     .pay-grid { display:grid; grid-template-columns:1fr 340px; gap:1.5rem; align-items:start; }
@@ -350,6 +387,8 @@ new class extends Component
     .empty { text-align:center; padding:2rem 1rem; font-size:.875rem; color:var(--ink); opacity:.45; }
 </style>
 
+
+
 <div>
     {{-- ══ Barre de caisse ══ --}}
     @if ($session)
@@ -394,6 +433,14 @@ new class extends Component
                         {{ number_format($receipt->amount, 0, ',', ' ') }} DJF encaissés
                         · {{ $receipt->methodLabel() }}
                     </div>
+                    {{-- Détail des modes si multi --}}
+                    @if ($receipt->methods && $receipt->methods->count() > 1)
+                        <div style="font-size:.75rem;opacity:.55;margin-top:2px;">
+                            @foreach ($receipt->methods as $m)
+                                {{ \App\Models\PaymentReceipt::METHODS[$m->method] ?? $m->method }} : {{ number_format($m->amount, 0, ',', ' ') }} DJF{{ ! $loop->last ? ' · ' : '' }}
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
                 <a href="{{ route('finances.receipt', $receipt) }}" target="_blank" class="btn-plain">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:15px;height:15px;"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
@@ -534,7 +581,7 @@ new class extends Component
                                             </td>
                                             <td>
                                                 <span class="st st-{{ $inv->status }}">
-                                                    {{ match($inv->status) { 'pending'=>'À payer','partial'=>'Partiel','overdue'=>'En retard',default=>$inv->status } }}
+                                                    {{ match($inv->status) { 'unpaid'=>'Impayée','partial'=>'Partiel','paid'=>'Payée','cancelled'=>'Annulée',default=>$inv->status } }}
                                                 </span>
                                             </td>
                                             <td class="num mono">{{ number_format($inv->amount_due, 0, ',', ' ') }}</td>
@@ -617,24 +664,45 @@ new class extends Component
                             </div>
                         @endif
 
+                        {{-- ══ Répartition multi-modes ══ --}}
                         <div class="form-field" style="margin-bottom:1rem;">
-                            <label class="form-label">Mode de règlement</label>
-                            <div class="method-grid">
+                            <label class="form-label">Répartition par mode de règlement</label>
+
+                            <div style="display:flex; flex-direction:column; gap:.5rem; margin-top:.35rem;">
                                 @foreach (\App\Models\PaymentReceipt::METHODS as $key => $label)
-                                    <button wire:click="$set('method','{{ $key }}')"
-                                            class="method-btn {{ $method === $key ? 'active' : '' }}">{{ $label }}</button>
+                                    @if ($key === 'mixed') @continue @endif
+                                    <div style="display:flex; align-items:center; gap:.5rem;">
+                                        <span style="flex:0 0 115px; font-size:.8125rem; color:var(--ink);">{{ $label }}</span>
+                                        <input wire:model.live.debounce.400ms="methodAmounts.{{ $key }}"
+                                               type="number" min="0"
+                                               class="form-input" style="flex:1; font-family:'JetBrains Mono',monospace; text-align:right;"
+                                               placeholder="0">
+                                    </div>
+                                    @if ($key !== 'cash' && (int)($methodAmounts[$key] ?? 0) > 0)
+                                        <input wire:model="methodRefs.{{ $key }}" type="text"
+                                               class="form-input" style="margin-left:115px; font-size:.8rem;"
+                                               placeholder="Réf. {{ $label }}">
+                                    @endif
                                 @endforeach
                             </div>
-                        </div>
 
-                        @if ($method !== 'cash')
-                            <div class="form-field" style="margin-bottom:1rem;">
-                                <label class="form-label">
-                                    {{ $method === 'dmoney' ? 'N° transaction D-Money' : ($method === 'cheque' ? 'N° de chèque' : 'Référence virement') }}
-                                </label>
-                                <input wire:model="reference" type="text" class="form-input">
+                            {{-- Compteur de répartition --}}
+                            @php
+                                $reparti = (int) collect($methodAmounts)->sum(fn($v) => (int)$v);
+                                $cible   = (int) $amount;
+                                $ok      = $cible > 0 && $reparti === $cible;
+                            @endphp
+                            <div style="display:flex; justify-content:space-between; align-items:center;
+                                        margin-top:.75rem; padding:.5rem .75rem; border-radius:8px;
+                                        background:{{ $ok ? 'rgba(30,120,80,.08)' : 'rgba(232,168,56,.1)' }};
+                                        border:1px solid {{ $ok ? 'rgba(30,120,80,.2)' : 'rgba(232,168,56,.25)' }};">
+                                <span style="font-size:.8125rem; color:var(--ink); opacity:.7;">Réparti</span>
+                                <span class="mono" style="font-weight:700; color:{{ $ok ? '#166534' : '#8A6010' }};">
+                                    {{ number_format($reparti, 0, ',', ' ') }} / {{ number_format($cible, 0, ',', ' ') }} DJF
+                                    {{ $ok ? '✓' : '' }}
+                                </span>
                             </div>
-                        @endif
+                        </div>
 
                         <div class="form-field" style="margin-bottom:1rem;">
                             <label class="form-label">Date & heure</label>
@@ -648,8 +716,9 @@ new class extends Component
 
                         <button wire:click="collect"
                                 wire:loading.attr="disabled"
+                                wire:target="collect"
                                 class="btn-cash"
-                                @if (! $amount || (int)$amount <= 0 || $overflow > 0 || $invoices->isEmpty()) disabled @endif>
+                                @if (! $amount || (int)$amount <= 0 || $overflow > 0 || $invoices->isEmpty() || $reparti !== (int)$amount) disabled @endif>
                             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <span wire:loading.remove wire:target="collect">
                                 Encaisser {{ (int)$amount > 0 ? number_format((int)$amount, 0, ',', ' ').' DJF' : '' }}

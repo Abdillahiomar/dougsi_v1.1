@@ -14,13 +14,14 @@ return new class extends Migration
             $t->foreignId('academic_year_id')->nullable()->after('school_id')->constrained();
         });
 
-        // Backfill depuis la chaîne existante
+        // Backfill PostgreSQL
         DB::statement("
             UPDATE student_invoices si
-            JOIN student_school_years ssy ON ssy.id = si.student_school_year_id
+            SET school_id = s.school_id,
+                academic_year_id = ssy.academic_year_id
+            FROM student_school_years ssy
             JOIN students s ON s.id = ssy.student_id
-            SET si.school_id = s.school_id,
-                si.academic_year_id = ssy.academic_year_id
+            WHERE ssy.id = si.student_school_year_id
         ");
 
         Schema::table('student_invoices', function (Blueprint $t) {
@@ -34,10 +35,12 @@ return new class extends Migration
             $t->foreignId('school_id')->nullable()->after('id')->constrained()->cascadeOnDelete();
         });
 
+        // Backfill PostgreSQL
         DB::statement("
             UPDATE student_payments sp
-            JOIN student_invoices si ON si.id = sp.student_invoice_id
-            SET sp.school_id = si.school_id
+            SET school_id = si.school_id
+            FROM student_invoices si
+            WHERE si.id = sp.student_invoice_id
         ");
 
         Schema::table('student_payments', function (Blueprint $t) {

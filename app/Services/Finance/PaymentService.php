@@ -22,26 +22,49 @@ class PaymentService
      *         allocations : [student_invoice_id => montant]. Si absent → répartition FIFO par échéance.
      */
     public function collect(
-        Student $student,
-        AcademicYear $year,
-        int $amount,
-        string $method,
-        int $receivedBy,
-        array $opts = []
-    ): PaymentReceipt {
+                    Student $student,
+                    AcademicYear $year,
+                    int $amount,
+                    string $method,           // on garde pour compatibilité (mode principal ou 'mixed')
+                    int $receivedBy,
+                    array $opts = []
+                ): PaymentReceipt 
+    {
 
         if ($amount <= 0) {
             throw new RuntimeException('Le montant doit être supérieur à zéro.');
         }
-        if (! array_key_exists($method, PaymentReceipt::METHODS)) {
-            throw new RuntimeException('Mode de règlement inconnu.');
+
+        // Répartition des modes : [ ['method'=>'cash','amount'=>1000,'reference'=>null], ... ]
+        $methodBreakdown = $opts['methods'] ?? [[
+            'method'    => $method,
+            'amount'    => $amount,
+            'reference' => $opts['reference'] ?? null,
+        ]];
+
+        // Valider chaque mode + que la somme = montant total
+        $sumMethods = 0;
+        foreach ($methodBreakdown as $line) {
+            if (! array_key_exists($line['method'], PaymentReceipt::METHODS)) {
+                throw new RuntimeException("Mode de règlement inconnu : {$line['method']}.");
+            }
+            if ((int) $line['amount'] <= 0) {
+                throw new RuntimeException('Chaque mode doit avoir un montant positif.');
+            }
+            $sumMethods += (int) $line['amount'];
+        }
+        if ($sumMethods !== $amount) {
+            throw new RuntimeException(sprintf(
+                'La répartition des modes (%s DJF) ne correspond pas au montant encaissé (%s DJF).',
+                number_format($sumMethods, 0, ',', ' '),
+                number_format($amount, 0, ',', ' ')
+            ));
         }
 
         $session = $this->requireOpenSession($student->school_id, $receivedBy);
 
-        return DB::transaction(function () use ($student, $year, $amount, $method, $receivedBy, $opts, $session) {
+        return DB::transaction(function () use ($student, $year, $amount, $method, $receivedBy, $opts, $session, $methodBreakdown) {
 
-            // Verrou pessimiste : empêche deux caissiers d'encaisser la même facture simultanément
             $invoices = StudentInvoice::where('school_id', $student->school_id)
                 ->where('academic_year_id', $year->id)
                 ->whereHas('studentSchoolYear', fn ($q) => $q->where('student_id', $student->id))
@@ -59,6 +82,9 @@ class PaymentService
                 ? $this->validateManual($invoices, $opts['allocations'], $amount)
                 : $this->allocateFifo($invoices, $amount);
 
+            // Le method principal du reçu : si un seul mode, c'est lui ; sinon 'mixed'
+            $mainMethod = count($methodBreakdown) === 1 ? $methodBreakdown[0]['method'] : 'mixed';
+
             $receipt = PaymentReceipt::create([
                 'school_id'        => $student->school_id,
                 'academic_year_id' => $year->id,
@@ -66,16 +92,26 @@ class PaymentService
                 'cash_session_id'  => $session->id,
                 'receipt_number'   => $this->numbers->next($student->school_id),
                 'amount'           => $amount,
-                'method'           => $method,
+                'method'           => $mainMethod,
                 'reference'        => $opts['reference'] ?? null,
                 'paid_at'          => $opts['paid_at'] ?? now(),
                 'received_by'      => $receivedBy,
                 'note'             => $opts['note'] ?? null,
             ]);
 
+            // Créer les lignes de modes de paiement
+            foreach ($methodBreakdown as $line) {
+                \App\Models\ReceiptMethod::create([
+                    'payment_receipt_id' => $receipt->id,
+                    'method'             => $line['method'],
+                    'amount'             => (int) $line['amount'],
+                    'reference'          => $line['reference'] ?? null,
+                ]);
+            }
+
+            // Allocations aux factures (inchangé)
             foreach ($allocations as $invoiceId => $allocated) {
                 if ($allocated <= 0) continue;
-
                 $invoice = $invoices->firstWhere('id', $invoiceId);
 
                 StudentPayment::create([
@@ -83,7 +119,7 @@ class PaymentService
                     'payment_receipt_id' => $receipt->id,
                     'student_invoice_id' => $invoice->id,
                     'amount'             => $allocated,
-                    'method'             => $method,
+                    'method'             => $mainMethod,
                     'reference'          => $opts['reference'] ?? null,
                     'paid_at'            => $receipt->paid_at,
                     'received_by'        => null,
@@ -94,7 +130,7 @@ class PaymentService
                 $invoice->save();
             }
 
-            return $receipt->fresh(['lines.invoice', 'student']);
+            return $receipt->fresh(['lines.invoice', 'student', 'methods']);
         });
     }
 
@@ -200,8 +236,7 @@ class PaymentService
     {
         if ($invoice->amount_paid >= $invoice->amount_due) return 'paid';
         if ($invoice->amount_paid > 0) return 'partial';
-
-        return $invoice->due_at && $invoice->due_at->isPast() ? 'overdue' : 'pending';
+        return 'unpaid';
     }
 
     private function requireOpenSession(int $schoolId, int $userId): CashSession
