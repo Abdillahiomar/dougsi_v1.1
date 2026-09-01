@@ -228,15 +228,15 @@ new class extends Component
 
         $school = auth()->user()->school;
         
-        // Récupérer la config existante pour garder le mot de passe si non modifié
+        // Récupérer la config existante
         $existingConfig = SchoolSmtpConfig::where('school_id', $school->id)->first();
         
-        // Si le mot de passe est vide, garder l'ancien
-        $password = $this->smtp_password;
-        if (empty($password) && $existingConfig && $existingConfig->password) {
-            $password = $existingConfig->password;
-        } else if (empty($password)) {
-            $password = null;
+        // Gérer le mot de passe
+        $password = null;
+        if (!empty($this->smtp_password)) {
+            $password = $this->smtp_password; // Nouveau mot de passe
+        } elseif ($existingConfig && $existingConfig->password) {
+            $password = $existingConfig->password; // Garder l'ancien
         }
 
         SchoolSmtpConfig::updateOrCreate(
@@ -255,6 +255,9 @@ new class extends Component
         );
 
         $this->savedSmtp = true;
+        
+        // Effacer le mot de passe du formulaire pour sécurité
+        $this->smtp_password = '';
     }
 
     // ── Test SMTP ────────────────────────────────────────────────
@@ -269,16 +272,23 @@ new class extends Component
         ]);
 
         try {
-            // Configurer le mailer
-            $encryption = $this->smtp_encryption !== 'none' ? $this->smtp_encryption : null;
-            
-            // Récupérer le mot de passe depuis la base si non saisi
+            // Récupérer le mot de passe de la base si non saisi
             $smtpPassword = $this->smtp_password;
             if (empty($smtpPassword)) {
                 $smtpConfig = auth()->user()->school?->smtpConfig;
                 if ($smtpConfig && $smtpConfig->password) {
                     $smtpPassword = $smtpConfig->password;
                 }
+            }
+
+            if (empty($smtpPassword)) {
+                throw new \Exception('Le mot de passe SMTP est requis. Veuillez le saisir.');
+            }
+
+            // Configuration pour Gmail
+            $encryption = $this->smtp_encryption;
+            if ($this->smtp_host === 'smtp.gmail.com') {
+                $encryption = 'tls'; // Forcer TLS pour Gmail
             }
 
             config([
@@ -297,11 +307,17 @@ new class extends Component
                 'mail.from.name' => $this->smtp_from_name ?: auth()->user()->school->name,
             ]);
 
-            // Forcer le rechargement du mailer
+            // Nettoyer le cache du mailer
             app('mail.manager')->forgetMailers();
 
             Mail::raw(
-                "Ceci est un email de test envoyé depuis Dugsi.\n\nSi vous recevez cet email, votre configuration SMTP est correcte.",
+                "Ceci est un email de test envoyé depuis Dugsi.\n\n" .
+                "Configuration SMTP :\n" .
+                "- Hôte : {$this->smtp_host}\n" .
+                "- Port : {$this->smtp_port}\n" .
+                "- Chiffrement : {$encryption}\n" .
+                "- Utilisateur : {$this->smtp_username}\n\n" .
+                "Si vous recevez cet email, votre configuration est correcte.",
                 function (Message $msg) {
                     $msg->to($this->test_email)
                         ->subject('[Dugsi] Test de configuration email')
@@ -323,13 +339,12 @@ new class extends Component
             $this->test_result = "❌ Echec : " . $e->getMessage();
             $this->test_success = false;
             
-            // Log l'erreur pour debug
-            \Log::error('SMTP Test failed: ' . $e->getMessage(), [
+            // Log pour debug
+            \Log::error('SMTP Test failed', [
+                'error' => $e->getMessage(),
                 'host' => $this->smtp_host,
                 'port' => $this->smtp_port,
                 'username' => $this->smtp_username,
-                'from' => $this->smtp_from_email,
-                'error' => $e->getTraceAsString()
             ]);
         }
     }
