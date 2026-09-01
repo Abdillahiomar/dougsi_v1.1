@@ -261,93 +261,140 @@ new class extends Component
     }
 
     // ── Test SMTP ────────────────────────────────────────────────
+public function testSmtp(): void
+{
+    $this->validate([
+        'test_email'      => 'required|email',
+        'smtp_host'       => 'required',
+        'smtp_username'   => 'required',
+        'smtp_from_email' => 'required|email',
+    ]);
 
-    public function testSmtp(): void
-    {
-        $this->validate([
-            'test_email'      => 'required|email',
-            'smtp_host'       => 'required',
-            'smtp_username'   => 'required',
-            'smtp_from_email' => 'required|email',
+    try {
+        // Récupérer le mot de passe
+        $smtpPassword = $this->smtp_password;
+        if (empty($smtpPassword)) {
+            $smtpConfig = auth()->user()->school?->smtpConfig;
+            if ($smtpConfig && $smtpConfig->password) {
+                $smtpPassword = $smtpConfig->password;
+            }
+        }
+
+        if (empty($smtpPassword)) {
+            throw new \Exception('⚠️ Le mot de passe SMTP est requis.');
+        }
+
+        // Nettoyer le mot de passe
+        $smtpPassword = trim($smtpPassword);
+        
+        // Vérifier la longueur pour Gmail
+        if (strpos($this->smtp_host, 'gmail.com') !== false) {
+            $cleanPassword = str_replace(' ', '', $smtpPassword);
+            if (strlen($cleanPassword) !== 16) {
+                throw new \Exception(
+                    "⚠️ Mot de passe d'application Gmail invalide !\n\n" .
+                    "Longueur actuelle : " . strlen($cleanPassword) . " caractères\n" .
+                    "Longueur attendue : 16 caractères\n\n" .
+                    "Exemple valide : abcd efgh ijkl mnop\n" .
+                    "Générez-en un nouveau sur :\n" .
+                    "https://myaccount.google.com/apppasswords"
+                );
+            }
+        }
+
+        // Configuration
+        $encryption = 'tls';
+        $port = (int) $this->smtp_port;
+        
+        if ($port === 465) {
+            $encryption = 'ssl';
+        }
+
+        config([
+            'mail.default' => 'smtp',
+            'mail.mailers.smtp' => [
+                'transport' => 'smtp',
+                'host' => $this->smtp_host,
+                'port' => $port,
+                'encryption' => $encryption,
+                'username' => $this->smtp_username,
+                'password' => $smtpPassword,
+                'timeout' => 30,
+                'auth_mode' => null,
+            ],
+            'mail.from.address' => $this->smtp_from_email,
+            'mail.from.name' => $this->smtp_from_name ?: auth()->user()->school->name,
         ]);
 
-        try {
-            // Récupérer le mot de passe de la base si non saisi
-            $smtpPassword = $this->smtp_password;
-            if (empty($smtpPassword)) {
-                $smtpConfig = auth()->user()->school?->smtpConfig;
-                if ($smtpConfig && $smtpConfig->password) {
-                    $smtpPassword = $smtpConfig->password;
-                }
-            }
+        app('mail.manager')->forgetMailers();
 
-            if (empty($smtpPassword)) {
-                throw new \Exception('Le mot de passe SMTP est requis. Veuillez le saisir.');
+        // Envoyer l'email
+        Mail::raw(
+            "✅ Configuration SMTP correcte !\n\n" .
+            "📧 Email envoyé depuis : " . auth()->user()->school->name . "\n" .
+            "📅 Date : " . now()->format('d/m/Y H:i:s') . "\n\n" .
+            "Configuration :\n" .
+            "- Hôte : {$this->smtp_host}\n" .
+            "- Port : {$port}\n" .
+            "- Chiffrement : {$encryption}\n" .
+            "- Utilisateur : {$this->smtp_username}\n" .
+            "- Mot de passe : " . str_repeat('*', strlen($smtpPassword)) . "\n\n" .
+            "Ceci est un email de test automatisé.",
+            function (Message $msg) {
+                $msg->to($this->test_email)
+                    ->subject('[Dugsi] ✅ Test SMTP - ' . now()->format('d/m/Y H:i'))
+                    ->replyTo($this->smtp_reply_to ?: $this->smtp_from_email);
             }
+        );
 
-            // Configuration pour Gmail
-            $encryption = $this->smtp_encryption;
-            if ($this->smtp_host === 'smtp.gmail.com') {
-                $encryption = 'tls'; // Forcer TLS pour Gmail
-            }
-
-            config([
-                'mail.default' => 'smtp',
-                'mail.mailers.smtp' => [
-                    'transport' => 'smtp',
-                    'host' => $this->smtp_host,
-                    'port' => (int) $this->smtp_port,
-                    'encryption' => $encryption,
-                    'username' => $this->smtp_username,
-                    'password' => $smtpPassword,
-                    'timeout' => 30,
-                    'auth_mode' => null,
-                ],
-                'mail.from.address' => $this->smtp_from_email,
-                'mail.from.name' => $this->smtp_from_name ?: auth()->user()->school->name,
+        // Marquer comme vérifié
+        SchoolSmtpConfig::where('school_id', auth()->user()->school_id)
+            ->update([
+                'is_verified' => true,
+                'last_tested_at' => now()
             ]);
 
-            // Nettoyer le cache du mailer
-            app('mail.manager')->forgetMailers();
+        $this->test_result = "✅ Email envoyé avec succès à {$this->test_email} ! 🎉";
+        $this->test_success = true;
 
-            Mail::raw(
-                "Ceci est un email de test envoyé depuis Dugsi.\n\n" .
-                "Configuration SMTP :\n" .
-                "- Hôte : {$this->smtp_host}\n" .
-                "- Port : {$this->smtp_port}\n" .
-                "- Chiffrement : {$encryption}\n" .
-                "- Utilisateur : {$this->smtp_username}\n\n" .
-                "Si vous recevez cet email, votre configuration est correcte.",
-                function (Message $msg) {
-                    $msg->to($this->test_email)
-                        ->subject('[Dugsi] Test de configuration email')
-                        ->replyTo($this->smtp_reply_to ?: $this->smtp_from_email);
-                }
-            );
-
-            // Marquer comme vérifié
-            SchoolSmtpConfig::where('school_id', auth()->user()->school_id)
-                ->update([
-                    'is_verified' => true,
-                    'last_tested_at' => now()
-                ]);
-
-            $this->test_result = "✅ Email envoyé avec succès à {$this->test_email}.";
-            $this->test_success = true;
-
-        } catch (\Exception $e) {
-            $this->test_result = "❌ Echec : " . $e->getMessage();
-            $this->test_success = false;
-            
-            // Log pour debug
-            \Log::error('SMTP Test failed', [
-                'error' => $e->getMessage(),
-                'host' => $this->smtp_host,
-                'port' => $this->smtp_port,
-                'username' => $this->smtp_username,
-            ]);
+    } catch (\Exception $e) {
+        $errorMessage = $e->getMessage();
+        
+        // Ajouter des conseils pour les erreurs Gmail
+        if (strpos($errorMessage, '535') !== false) {
+            $errorMessage = 
+                "🔴 ÉCHEC D'AUTHENTIFICATION GMAIL\n\n" .
+                "Causes possibles :\n" .
+                "1. ❌ Mot de passe d'application invalide (doit faire 16 caractères)\n" .
+                "2. ❌ Double authentification non activée\n" .
+                "3. ❌ IMAP non activé dans Gmail\n" .
+                "4. ❌ Compte bloqué temporairement\n\n" .
+                "🔧 SOLUTION :\n" .
+                "1. Activez la double authentification :\n" .
+                "   https://myaccount.google.com/security\n\n" .
+                "2. Générez un MOT DE PASSE D'APPLICATION :\n" .
+                "   https://myaccount.google.com/apppasswords\n\n" .
+                "3. Activez IMAP :\n" .
+                "   https://mail.google.com/mail/u/0/#settings/fwdandpop\n\n" .
+                "4. Débloquez le compte :\n" .
+                "   https://accounts.google.com/b/0/DisplayUnlockCaptcha\n\n" .
+                "📧 Utilisateur : {$this->smtp_username}\n" .
+                "🔑 Longueur mot de passe : " . strlen($smtpPassword ?? '') . " caractères\n\n" .
+                "Erreur technique : " . $errorMessage;
         }
+
+        $this->test_result = $errorMessage;
+        $this->test_success = false;
+        
+        \Log::error('SMTP Test failed', [
+            'host' => $this->smtp_host,
+            'port' => $port ?? null,
+            'username' => $this->smtp_username,
+            'password_length' => strlen($smtpPassword ?? ''),
+            'error' => $e->getMessage()
+        ]);
     }
+}
 
     public function with(): array
     {
