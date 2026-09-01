@@ -62,6 +62,7 @@ new class extends Component
     // Test email
     public string $test_email     = '';
     public ?string $test_result   = null;
+    public ?string $smtp_password_hash = null;
     public bool    $test_success  = false;
 
     // Feedback
@@ -109,7 +110,8 @@ new class extends Component
             $this->smtp_port        = (string) ($smtp->port ?? '587');
             $this->smtp_encryption  = $smtp->encryption ?? 'tls';
             $this->smtp_username    = $smtp->username ?? '';
-            $this->smtp_password    = $smtp->password ?? '';
+            // NE PAS charger le mot de passe pour des raisons de sécurité
+            $this->smtp_password    = ''; // Toujours vide
             $this->smtp_from_name   = $smtp->from_name ?? '';
             $this->smtp_from_email  = $smtp->from_email ?? '';
             $this->smtp_reply_to    = $smtp->reply_to_email ?? '';
@@ -225,19 +227,30 @@ new class extends Component
         ]);
 
         $school = auth()->user()->school;
+        
+        // Récupérer la config existante pour garder le mot de passe si non modifié
+        $existingConfig = SchoolSmtpConfig::where('school_id', $school->id)->first();
+        
+        // Si le mot de passe est vide, garder l'ancien
+        $password = $this->smtp_password;
+        if (empty($password) && $existingConfig && $existingConfig->password) {
+            $password = $existingConfig->password;
+        } else if (empty($password)) {
+            $password = null;
+        }
 
         SchoolSmtpConfig::updateOrCreate(
             ['school_id' => $school->id],
             [
-                'host'            => $this->smtp_host,
-                'port'            => (int) $this->smtp_port,
-                'encryption'      => $this->smtp_encryption,
-                'username'        => $this->smtp_username,
-                'password'        => $this->smtp_password ?: null,
-                'from_name'       => $this->smtp_from_name ?: $school->name,
-                'from_email'      => $this->smtp_from_email,
-                'reply_to_email'  => $this->smtp_reply_to ?: null,
-                'is_active'       => $this->smtp_is_active,
+                'host' => $this->smtp_host,
+                'port' => (int) $this->smtp_port,
+                'encryption' => $this->smtp_encryption,
+                'username' => $this->smtp_username,
+                'password' => $password,
+                'from_name' => $this->smtp_from_name ?: $school->name,
+                'from_email' => $this->smtp_from_email,
+                'reply_to_email' => $this->smtp_reply_to ?: null,
+                'is_active' => $this->smtp_is_active,
             ]
         );
 
@@ -256,35 +269,68 @@ new class extends Component
         ]);
 
         try {
-            // Configuration temporaire du mailer avec les paramètres saisis
+            // Configurer le mailer
+            $encryption = $this->smtp_encryption !== 'none' ? $this->smtp_encryption : null;
+            
+            // Récupérer le mot de passe depuis la base si non saisi
+            $smtpPassword = $this->smtp_password;
+            if (empty($smtpPassword)) {
+                $smtpConfig = auth()->user()->school?->smtpConfig;
+                if ($smtpConfig && $smtpConfig->password) {
+                    $smtpPassword = $smtpConfig->password;
+                }
+            }
+
             config([
-                'mail.mailers.smtp.host'       => $this->smtp_host,
-                'mail.mailers.smtp.port'       => (int) $this->smtp_port,
-                'mail.mailers.smtp.encryption' => $this->smtp_encryption !== 'none' ? $this->smtp_encryption : null,
-                'mail.mailers.smtp.username'   => $this->smtp_username,
-                'mail.mailers.smtp.password'   => $this->smtp_password,
-                'mail.from.address'            => $this->smtp_from_email,
-                'mail.from.name'               => $this->smtp_from_name ?: auth()->user()->school->name,
+                'mail.default' => 'smtp',
+                'mail.mailers.smtp' => [
+                    'transport' => 'smtp',
+                    'host' => $this->smtp_host,
+                    'port' => (int) $this->smtp_port,
+                    'encryption' => $encryption,
+                    'username' => $this->smtp_username,
+                    'password' => $smtpPassword,
+                    'timeout' => 30,
+                    'auth_mode' => null,
+                ],
+                'mail.from.address' => $this->smtp_from_email,
+                'mail.from.name' => $this->smtp_from_name ?: auth()->user()->school->name,
             ]);
+
+            // Forcer le rechargement du mailer
+            app('mail.manager')->forgetMailers();
 
             Mail::raw(
                 "Ceci est un email de test envoyé depuis Dugsi.\n\nSi vous recevez cet email, votre configuration SMTP est correcte.",
                 function (Message $msg) {
                     $msg->to($this->test_email)
-                        ->subject('[Dugsi] Test de configuration email');
+                        ->subject('[Dugsi] Test de configuration email')
+                        ->replyTo($this->smtp_reply_to ?: $this->smtp_from_email);
                 }
             );
 
             // Marquer comme vérifié
             SchoolSmtpConfig::where('school_id', auth()->user()->school_id)
-                ->update(['is_verified' => true, 'last_tested_at' => now()]);
+                ->update([
+                    'is_verified' => true,
+                    'last_tested_at' => now()
+                ]);
 
-            $this->test_result  = "Email envoyé avec succès à {$this->test_email}.";
+            $this->test_result = "✅ Email envoyé avec succès à {$this->test_email}.";
             $this->test_success = true;
 
         } catch (\Exception $e) {
-            $this->test_result  = "Echec : " . $e->getMessage();
+            $this->test_result = "❌ Echec : " . $e->getMessage();
             $this->test_success = false;
+            
+            // Log l'erreur pour debug
+            \Log::error('SMTP Test failed: ' . $e->getMessage(), [
+                'host' => $this->smtp_host,
+                'port' => $this->smtp_port,
+                'username' => $this->smtp_username,
+                'from' => $this->smtp_from_email,
+                'error' => $e->getTraceAsString()
+            ]);
         }
     }
 
