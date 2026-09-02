@@ -600,75 +600,75 @@ new class extends Component
     grid-template-columns: 1fr 1fr;
     gap: 10px;
     margin-bottom: 12px;
-}
+    }
 
-.invoice-summary > div {
-    padding: 10px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.02);
+    .invoice-summary > div {
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.02);
 
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
 
-.invoice-summary span {
-    font-size: 11px;
-    opacity: 0.55;
-}
+    .invoice-summary span {
+        font-size: 11px;
+        opacity: 0.55;
+    }
 
-.invoice-summary strong {
-    font-size: 14px;
-}
+    .invoice-summary strong {
+        font-size: 14px;
+    }
 
-.delete-invoice-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    .delete-invoice-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
 
-    padding: 10px;
+        padding: 10px;
 
-    border-bottom: 1px solid var(--line);
-}
+        border-bottom: 1px solid var(--line);
+    }
 
-.delete-invoice-row > div:first-child {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
+    .delete-invoice-row > div:first-child {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
 
-.delete-invoice-row small {
-    font-size: 11px;
-    opacity: 0.55;
-}
+    .delete-invoice-row small {
+        font-size: 11px;
+        opacity: 0.55;
+    }
 
-.invoice-amount {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 3px;
-}
+    .invoice-amount {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 3px;
+    }
 
-.invoice-balance {
-    color: #C04020 !important;
-    opacity: 1 !important;
-}
+    .invoice-balance {
+        color: #C04020 !important;
+        opacity: 1 !important;
+    }
 
-.invoice-paid {
-    color: #218739 !important;
-    opacity: 1 !important;
-}
+    .invoice-paid {
+        color: #218739 !important;
+        opacity: 1 !important;
+    }
 
-.delete-info-box {
-    padding: 10px;
+    .delete-info-box {
+        padding: 10px;
 
-    border: 1px solid var(--line);
-    border-radius: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
 
-    font-size: 13px;
-    opacity: 0.75;
-}
+        font-size: 13px;
+        opacity: 0.75;
+    }
 </style>
 
 <div>

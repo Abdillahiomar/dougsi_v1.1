@@ -184,7 +184,10 @@ public ?int   $confirmDeletePermId = null;
 
     public function openEditRole(int $id): void
     {
-        $role = Role::with('permissions')->find($id);
+        $role = Role::where('id', $id)
+            ->where('school_id', auth()->user()->school_id)   // ← garde tenant
+            ->with('permissions')
+            ->first();
         if (! $role) return;
 
         $this->editingRoleId = $id;
@@ -213,6 +216,7 @@ public ?int   $confirmDeletePermId = null;
                 'name'       => $this->roleName,
                 'guard_name' => 'web',
                 'label'      => $this->roleLabel ?: null,
+                'school_id'  => auth()->user()->school_id,   // ← rattacher à l'école
             ]);
         }
 
@@ -319,8 +323,13 @@ public ?int   $confirmDeletePermId = null;
             ->latest()
             ->paginate(15);
 
-        $roles       = Role::withCount('users')->get();
-        $permissions = \Spatie\Permission\Models\Permission::all()
+        $roles = Role::where('school_id', $schoolId)
+                ->withCount('users')
+                ->get();
+        $permissions = \Spatie\Permission\Models\Permission::with(['roles' => fn ($q) =>
+                $q->where('school_id', $schoolId)
+            ])
+            ->get()
             ->groupBy(fn ($p) => explode('.', $p->name)[0]);
 
         $totalUsers  = User::where('school_id', $schoolId)->count();
@@ -505,8 +514,13 @@ public ?int   $confirmDeletePermId = null;
         <button type="button" wire:click="$set('activeTab','roles')"
                 class="main-tab {{ $activeTab==='roles' ? 'active' : '' }}">
             <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-            Rôles & Permissions
+            Rôles
         </button>
+        <button type="button" wire:click="$set('activeTab','permissions')"
+            class="main-tab {{ $activeTab==='permissions' ? 'active' : '' }}">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+        Permissions
+    </button>
     </div>
 
     {{-- Toast --}}
@@ -763,120 +777,181 @@ public ?int   $confirmDeletePermId = null;
     
 
     {{-- ══════════════════════════════════════════════ --}}
-    {{-- TAB RÔLES & PERMISSIONS --}}
-    {{-- ══════════════════════════════════════════════ --}}
-    @if ($activeTab === 'roles')
+{{-- TAB RÔLES --}}
+{{-- ══════════════════════════════════════════════ --}}
+@if ($activeTab === 'roles')
 
-        @php
-            $moduleLabels = [
-                'students'=>'Élèves','classes'=>'Classes','subjects'=>'Matières',
-                'grades'=>'Notes','bulletins'=>'Bulletins','absences'=>'Absences',
-                'finance'=>'Finances','staff'=>'Personnel','academic_years'=>'Années académiques',
-                'school'=>'Configuration école','fees'=>'Frais','users'=>'Utilisateurs',
-                'announcements'=>'Annonces',
-            ];
-        @endphp
+    @php
+        $moduleLabels = [
+            'students'=>'Élèves','classes'=>'Classes','subjects'=>'Matières',
+            'grades'=>'Notes','bulletins'=>'Bulletins','absences'=>'Absences',
+            'finance'=>'Finances','staff'=>'Personnel','academic_years'=>'Années académiques',
+            'school'=>'Configuration école','fees'=>'Frais','users'=>'Utilisateurs',
+            'announcements'=>'Annonces',
+        ];
+    @endphp
 
-        <div class="page-toolbar">
-            <div></div>
-            <button wire:click="openCreateRole" class="btn-primary">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                Nouveau rôle
-            </button>
-        </div>
+    <div class="page-toolbar">
+        <div></div>
+        <button wire:click="openCreateRole" class="btn-primary">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Nouveau rôle
+        </button>
+    </div>
 
-        {{-- Formulaire rôle --}}
-        @if ($showRoleForm)
-            <div class="form-card" style="margin-bottom:1.5rem;">
-                <div class="form-card-header">
-                    <span class="form-card-title">{{ $editingRoleId ? 'Modifier le rôle' : 'Nouveau rôle' }}</span>
-                    <button wire:click="$set('showRoleForm',false)" style="background:none;border:none;cursor:pointer;opacity:.4;">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
+    {{-- Formulaire rôle --}}
+    @if ($showRoleForm)
+        <div class="form-card" style="margin-bottom:1.5rem;">
+            <div class="form-card-header">
+                <span class="form-card-title">{{ $editingRoleId ? 'Modifier le rôle' : 'Nouveau rôle' }}</span>
+                <button wire:click="$set('showRoleForm',false)" style="background:none;border:none;cursor:pointer;opacity:.4;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="form-card-body">
+                <div class="form-grid-2" style="margin-bottom:1.25rem;">
+                    <div class="form-field">
+                        <label class="form-label">Identifiant technique *</label>
+                        <input wire:model="roleName" type="text" class="form-input"
+                               placeholder="ex: responsable_financier"
+                               @if ($editingRoleId) readonly style="opacity:.6;" @endif>
+                        <span style="font-size:.75rem;color:var(--ink);opacity:.4;">Lettres, chiffres, tirets — non modifiable après création.</span>
+                        @error('roleName') <span class="form-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Libellé affiché</label>
+                        <input wire:model="roleLabel" type="text" class="form-input" placeholder="Responsable financier">
+                    </div>
                 </div>
-                <div class="form-card-body">
-                    <div class="form-grid-2" style="margin-bottom:1.25rem;">
-                        <div class="form-field">
-                            <label class="form-label">Identifiant technique *</label>
-                            <input wire:model="roleName" type="text" class="form-input"
-                                   placeholder="ex: responsable_financier"
-                                   @if ($editingRoleId) readonly style="opacity:.6;" @endif>
-                            <span style="font-size:.75rem;color:var(--ink);opacity:.4;">Lettres, chiffres, tirets — non modifiable après création.</span>
-                            @error('roleName') <span class="form-error">{{ $message }}</span> @enderror
+
+                {{-- Permissions par module --}}
+                <div class="form-label" style="margin-bottom:.75rem;">Permissions</div>
+                @foreach ($permissions as $module => $modulePerms)
+                    <div class="perm-section">
+                        <div class="perm-section-header">
+                            <span class="perm-section-title">{{ $moduleLabels[$module] ?? ucfirst($module) }}</span>
+                            <button type="button" class="btn-toggle-all"
+                                    wire:click="$set('rolePerms', array_merge(array_diff($rolePerms, $modulePerms->pluck('name')->toArray()), count(array_intersect($rolePerms, $modulePerms->pluck('name')->toArray())) === $modulePerms->count() ? [] : $modulePerms->pluck('name')->toArray()))">
+                                {{ count(array_intersect($rolePerms, $modulePerms->pluck('name')->toArray())) === $modulePerms->count() ? 'Tout décocher' : 'Tout cocher' }}
+                            </button>
                         </div>
-                        <div class="form-field">
-                            <label class="form-label">Libellé affiché</label>
-                            <input wire:model="roleLabel" type="text" class="form-input" placeholder="Responsable financier">
+                        <div class="perm-section-body">
+                            @foreach ($modulePerms as $perm)
+                                <label class="perm-check-row">
+                                    <input type="checkbox"
+                                           wire:model="rolePerms"
+                                           value="{{ $perm->name }}"
+                                           class="perm-checkbox">
+                                    <span class="perm-check-label">{{ $perm->label ?? $perm->name }}</span>
+                                </label>
+                            @endforeach
                         </div>
                     </div>
+                @endforeach
 
-                    {{-- Permissions par module --}}
-                    <div class="form-label" style="margin-bottom:.75rem;">Permissions</div>
-                    @foreach ($permissions as $module => $modulePerms)
-                        <div class="perm-section">
-                            <div class="perm-section-header">
-                                <span class="perm-section-title">{{ $moduleLabels[$module] ?? ucfirst($module) }}</span>
-                                <button type="button" class="btn-toggle-all"
-                                        wire:click="$set('rolePerms', array_merge(array_diff($rolePerms, $modulePerms->pluck('name')->toArray()), count(array_intersect($rolePerms, $modulePerms->pluck('name')->toArray())) === $modulePerms->count() ? [] : $modulePerms->pluck('name')->toArray()))">
-                                    {{ count(array_intersect($rolePerms, $modulePerms->pluck('name')->toArray())) === $modulePerms->count() ? 'Tout décocher' : 'Tout cocher' }}
-                                </button>
-                            </div>
-                            <div class="perm-section-body">
-                                @foreach ($modulePerms as $perm)
-                                    <label class="perm-check-row">
-                                        <input type="checkbox"
-                                               wire:model="rolePerms"
-                                               value="{{ $perm->name }}"
-                                               class="perm-checkbox">
-                                        <span class="perm-check-label">{{ $perm->label ?? $perm->name }}</span>
-                                    </label>
+                <div class="form-actions">
+                    <button wire:click="$set('showRoleForm',false)" class="btn-cancel-sm">Annuler</button>
+                    <button wire:click="saveRole" class="btn-save">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        {{ $editingRoleId ? 'Enregistrer' : 'Créer le rôle' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Grille des rôles --}}
+    <div class="roles-grid">
+        @foreach ($roles as $role)
+            @php
+                $isProtected = in_array($role->name, ['admin','directeur','comptable','enseignant','surveillant','parent']);
+                $rolePermsGrouped = $role->permissions->groupBy(fn ($p) => explode('.', $p->name)[0]);
+            @endphp
+            <div class="role-card">
+                <div class="role-card-header">
+                    <div>
+                        <div class="role-name-big">{{ $role->label ?? ucfirst($role->name) }}</div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink);opacity:.4;">{{ $role->name }}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="role-users-count">{{ $role->users_count }} utilisateur{{ $role->users_count > 1 ? 's' : '' }}</div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sidebar-soft);opacity:.7;">{{ $role->permissions->count() }} permissions</div>
+                    </div>
+                </div>
+                <div class="role-card-body">
+                    @foreach ($rolePermsGrouped as $module => $modulePerms)
+                        <div class="perms-group">
+                            <div class="perms-group-label">{{ $moduleLabels[$module] ?? ucfirst($module) }}</div>
+                            <div class="perms-list">
+                                @foreach ($modulePerms as $p)
+                                    <span class="perm-chip">{{ explode('.', $p->name)[1] ?? $p->name }}</span>
                                 @endforeach
                             </div>
                         </div>
                     @endforeach
-
-                    <div class="form-actions">
-                        <button wire:click="$set('showRoleForm',false)" class="btn-cancel-sm">Annuler</button>
-                        <button wire:click="saveRole" class="btn-save">
-                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                            {{ $editingRoleId ? 'Enregistrer' : 'Créer le rôle' }}
+                </div>
+                <div class="role-card-footer">
+                    @if ($isProtected)
+                        <span class="role-protected">Rôle système</span>
+                    @endif
+                    <button wire:click="openEditRole({{ $role->id }})" class="btn-action btn-edit-act">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        Modifier
+                    </button>
+                    @if (! $isProtected)
+                        <button wire:click="confirmDeleteRole({{ $role->id }})" class="btn-action btn-del-act">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16"/></svg>
+                            Supprimer
                         </button>
-                    </div>
+                    @endif
                 </div>
             </div>
-        @endif
+        @endforeach
+    </div>
 
-        {{-- ── Section permissions ── --}}
-    <div class="card" style="margin-bottom:1.5rem;">
-        <div class="card-header">
-            <span class="card-title">Permissions</span>
-            <button wire:click="$toggle('showPermForm')" class="btn-secondary">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                Nouvelle permission
-            </button>
+@endif
+
+
+{{-- ══════════════════════════════════════════════ --}}
+{{-- TAB PERMISSIONS --}}
+{{-- ══════════════════════════════════════════════ --}}
+@if ($activeTab === 'permissions')
+
+    @php
+        $moduleLabels = [
+            'students'=>'Élèves','classes'=>'Classes','subjects'=>'Matières',
+            'grades'=>'Notes','bulletins'=>'Bulletins','absences'=>'Absences',
+            'finance'=>'Finances','staff'=>'Personnel','academic_years'=>'Années académiques',
+            'school'=>'Configuration école','fees'=>'Frais','users'=>'Utilisateurs',
+            'announcements'=>'Annonces',
+        ];
+        $isSuper = auth()->user()->isSuperAdmin();
+    @endphp
+
+    <div class="card" style="border-radius:12px;border:1px solid var(--line);background:var(--paper-raised);overflow:hidden;margin-bottom:1.5rem;">
+        <div class="card-header" style="padding:.875rem 1.5rem;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;">
+            <span class="card-title" style="font-family:'Fraunces',serif;font-size:1rem;font-weight:600;color:var(--ink);">Catalogue des permissions</span>
+            @if ($isSuper)
+                <button wire:click="$toggle('showPermForm')" class="btn-primary">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    Nouvelle permission
+                </button>
+            @endif
         </div>
 
-        {{-- Formulaire création permission --}}
-        @if ($showPermForm)
+        {{-- Formulaire création permission (superadmin uniquement) --}}
+        @if ($showPermForm && $isSuper)
             <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--line);background:var(--paper);animation:slideDown .15s ease;">
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
                     <div class="form-field">
                         <label class="form-label">Identifiant technique *</label>
-                        <input wire:model="permName"
-                               type="text"
-                               class="form-input"
-                               placeholder="ex: reports.view">
-                        <span style="font-size:.75rem;color:var(--ink);opacity:.4;margin-top:2px;">
-                            Format : module.action
-                        </span>
+                        <input wire:model="permName" type="text" class="form-input" placeholder="ex: reports.view">
+                        <span style="font-size:.75rem;color:var(--ink);opacity:.4;margin-top:2px;">Format : module.action</span>
                         @error('permName') <span class="form-error">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-field">
                         <label class="form-label">Libellé affiché *</label>
-                        <input wire:model="permLabel"
-                               type="text"
-                               class="form-input"
-                               placeholder="ex: Voir les rapports">
+                        <input wire:model="permLabel" type="text" class="form-input" placeholder="ex: Voir les rapports">
                         @error('permLabel') <span class="form-error">{{ $message }}</span> @enderror
                     </div>
                     <div style="display:flex;align-items:flex-end;gap:.65rem;">
@@ -888,8 +963,7 @@ public ?int   $confirmDeletePermId = null;
                     </div>
                 </div>
                 <div style="font-size:.8rem;color:var(--ink);opacity:.45;padding:.65rem .875rem;background:rgba(42,63,126,.04);border-radius:7px;border:1px solid rgba(42,63,126,.1);">
-                    💡 La permission sera automatiquement disponible dans le formulaire d'édition des rôles.
-                    Pour l'attribuer, modifie ensuite le rôle concerné.
+                    💡 La permission sera disponible dans le formulaire d'édition des rôles de toutes les écoles.
                 </div>
             </div>
         @endif
@@ -907,7 +981,7 @@ public ?int   $confirmDeletePermId = null;
                                 $isProtected = \Illuminate\Support\Str::startsWith($perm->name, [
                                     'students.','classes.','grades.','bulletins.',
                                     'absences.','finance.','school.','fees.',
-                                    'users.','staff.','academic_years.',
+                                    'users.','staff.','academic_years.','subjects.','announcements.',
                                 ]);
                                 $rolesWithPerm = $perm->roles->count();
                             @endphp
@@ -916,14 +990,13 @@ public ?int   $confirmDeletePermId = null;
                                     {{ $perm->name }}
                                 </span>
                                 @if ($perm->label && $perm->label !== $perm->name)
-                                    <span style="font-size:.75rem;color:var(--ink);opacity:.45;">
-                                        — {{ $perm->label }}
-                                    </span>
+                                    <span style="font-size:.75rem;color:var(--ink);opacity:.45;">— {{ $perm->label }}</span>
                                 @endif
                                 <span style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(42,63,126,.07);color:var(--sidebar-soft);">
                                     {{ $rolesWithPerm }} rôle{{ $rolesWithPerm > 1 ? 's' : '' }}
                                 </span>
-                                @if (! $isProtected)
+                                {{-- Suppression réservée au superadmin ET aux permissions non protégées --}}
+                                @if ($isSuper && ! $isProtected)
                                     <button wire:click="confirmDeletePerm({{ $perm->id }})"
                                             style="width:16px;height:16px;border-radius:3px;background:none;border:none;cursor:pointer;color:var(--accent-red);opacity:.4;padding:0;display:flex;align-items:center;justify-content:center;"
                                             onmouseover="this.style.opacity='1'"
@@ -939,61 +1012,13 @@ public ?int   $confirmDeletePermId = null;
         </div>
     </div>
 
-    {{-- Suite normale : grille des rôles --}}
-    <div class="page-toolbar">
-
-    </div>
-
-        {{-- Grille des rôles --}}
-        <div class="roles-grid">
-            @foreach ($roles as $role)
-                @php
-                    $isProtected = in_array($role->name, ['admin','directeur','comptable','enseignant','surveillant','parent']);
-                    $rolePermsGrouped = $role->permissions->groupBy(fn ($p) => explode('.', $p->name)[0]);
-                @endphp
-                <div class="role-card">
-                    <div class="role-card-header">
-                        <div>
-                            <div class="role-name-big">{{ $role->label ?? ucfirst($role->name) }}</div>
-                            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink);opacity:.4;">{{ $role->name }}</div>
-                        </div>
-                        <div style="text-align:right;">
-                            <div class="role-users-count">{{ $role->users_count }} utilisateur{{ $role->users_count > 1 ? 's' : '' }}</div>
-                            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sidebar-soft);opacity:.7;">{{ $role->permissions->count() }} permissions</div>
-                        </div>
-                    </div>
-                    <div class="role-card-body">
-                        @foreach ($rolePermsGrouped as $module => $modulePerms)
-                            <div class="perms-group">
-                                <div class="perms-group-label">{{ $moduleLabels[$module] ?? ucfirst($module) }}</div>
-                                <div class="perms-list">
-                                    @foreach ($modulePerms as $p)
-                                        <span class="perm-chip">{{ explode('.', $p->name)[1] ?? $p->name }}</span>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                    <div class="role-card-footer">
-                        @if ($isProtected)
-                            <span class="role-protected">Rôle système</span>
-                        @endif
-                        <button wire:click="openEditRole({{ $role->id }})" class="btn-action btn-edit-act">
-                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                            Modifier
-                        </button>
-                        @if (! $isProtected)
-                            <button wire:click="confirmDeleteRole({{ $role->id }})" class="btn-action btn-del-act">
-                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16"/></svg>
-                                Supprimer
-                            </button>
-                        @endif
-                    </div>
-                </div>
-            @endforeach
+    @unless ($isSuper)
+        <div style="font-size:.8125rem;color:var(--ink);opacity:.5;text-align:center;padding:.5rem;">
+            Ce catalogue est géré par l'administration DUGSI. Vous pouvez attribuer ces permissions à vos rôles depuis l'onglet « Rôles ».
         </div>
+    @endunless
 
-    @endif
+@endif
 
     {{-- ── Modals ─────────────────────────────────────────────── --}}
 
