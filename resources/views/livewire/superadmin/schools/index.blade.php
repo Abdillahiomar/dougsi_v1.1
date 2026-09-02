@@ -58,15 +58,7 @@ $toggleActive = function ($id) {
                 <tr class="border-b">
                     <td class="py-2">{{ $school->name }}</td>
                     <td>{{ $school->users_count }}</td>
-                    <td>
-                        <span @class([
-                            'px-2 py-1 rounded text-xs',
-                            'bg-green-100 text-green-700' => $school->is_active,
-                            'bg-red-100 text-red-700' => ! $school->is_active,
-                        ])>
-                            {{ $school->is_active ? 'Active' : 'Inactive' }}
-                        </span>
-                    </td>
+                    
                     <td>
                         <span @class([
                             'px-2 py-1 rounded text-xs',
