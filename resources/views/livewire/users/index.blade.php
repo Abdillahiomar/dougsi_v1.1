@@ -247,6 +247,7 @@ public ?int   $confirmDeletePermId = null;
 
     public function savePermission(): void
     {
+        abort_unless(auth()->user()->isSuperAdmin(), 403);
         $this->validate([
             'permName'  => 'required|string|regex:/^[a-z_]+\.[a-z_]+$/|unique:permissions,name',
             'permLabel' => 'required|string|max:200',
@@ -277,6 +278,7 @@ public ?int   $confirmDeletePermId = null;
 
     public function deletePerm(): void
     {
+        abort_unless(auth()->user()->isSuperAdmin(), 403);
         if (! $this->confirmDeletePermId) return;
 
         $perm = \Spatie\Permission\Models\Permission::find($this->confirmDeletePermId);

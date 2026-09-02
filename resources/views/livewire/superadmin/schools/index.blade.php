@@ -17,8 +17,11 @@ $schools = computed(function () {
 });
 
 $toggleActive = function ($id) {
+    abort_unless(auth('superadmin')->check(), 403);
+
     $school = School::findOrFail($id);
-    $school->update(['is_active' => ! $school->is_active]);
+    $newStatus = $school->status === 'active' ? 'suspended' : 'active';
+    $school->update(['status' => $newStatus]);
 };
 
 ?>
@@ -64,12 +67,19 @@ $toggleActive = function ($id) {
                             {{ $school->is_active ? 'Active' : 'Inactive' }}
                         </span>
                     </td>
+                    <td>
+                        <span @class([
+                            'px-2 py-1 rounded text-xs',
+                            'bg-green-100 text-green-700' => $school->status === 'active',
+                            'bg-red-100 text-red-700'     => $school->status !== 'active',
+                        ])>
+                            {{ $school->status === 'active' ? 'Active' : 'Suspendue' }}
+                        </span>
+                    </td>
                     <td class="space-x-2">
-                        <a href="{{ route('superadmin.schools.show', $school) }}"
-                           class="text-blue-600">Voir</a>
-                        <button wire:click="toggleActive({{ $school->id }})"
-                                class="text-orange-600">
-                            {{ $school->is_active ? 'Désactiver' : 'Activer' }}
+                        <a href="{{ route('superadmin.schools.show', $school) }}" class="text-blue-600">Voir</a>
+                        <button wire:click="toggleActive({{ $school->id }})" class="text-orange-600">
+                            {{ $school->status === 'active' ? 'Désactiver' : 'Activer' }}
                         </button>
                     </td>
                 </tr>

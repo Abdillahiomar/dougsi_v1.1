@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Fortify;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -29,6 +31,38 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
+        $this->configureAuthentication(); 
+    }
+
+
+    private function configureAuthentication(): void
+    {
+        Fortify::authenticateUsing(function (Request $request) {
+            $user = \App\Models\User::where('email', $request->email)->first();
+
+            if (! $user || ! \Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+                return null;
+            }
+
+            // Statut du compte
+            if (($user->status ?? 'active') !== 'active') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'email' => 'Votre compte est désactivé. Contactez l\'administration de votre école.',
+                ]);
+            }
+
+            // Statut de l'école (sauf superadmin sans école)
+            if ($user->school_id) {
+                $school = $user->school;
+                if (! $school || $school->status !== 'active') {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'email' => 'L\'accès de votre école est suspendu. Contactez le support DUGSI.',
+                    ]);
+                }
+            }
+
+            return $user;
+        });
     }
 
     /**
