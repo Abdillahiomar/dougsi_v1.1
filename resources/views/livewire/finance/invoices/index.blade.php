@@ -37,6 +37,11 @@ new class extends Component {
 
     public array $statuses = ['unpaid', 'partial', 'paid', 'cancelled'];
 
+    public function mount(): void
+    {
+        abort_unless(auth()->user()->can('finance.manage'), 403);
+    }
+
     public function updatedSearch()  { $this->resetPage(); }
     public function updatedLevelId() { $this->classId = ''; $this->resetPage(); }
     public function updatedClassId() { $this->resetPage(); }
@@ -52,6 +57,8 @@ new class extends Component {
     {
         $this->viewingId = $id;
     }
+
+    
 
     // ── Edition ────────────────────────────────────────────────
     public function startEdit(int $id): void
@@ -72,6 +79,7 @@ new class extends Component {
 
     public function saveEdit(): void
     {
+        abort_unless(auth()->user()->can('finance.manage'), 403);
         $this->validate([
             'editLabel'         => 'required|string|max:150',
             'editAmountDue'     => 'required|integer|min:0',
@@ -82,22 +90,23 @@ new class extends Component {
             'editInvoiceNumber' => 'required|string|max:50',
         ]);
 
-        // Garde-fou : le dû ne peut pas être inférieur au déjà payé
-        if ((int) $this->editAmountDue < (int) $this->editAmountPaid) {
-            $this->addError('editAmountDue',
-                'Le montant dû ne peut pas être inférieur au montant déjà encaissé ('
-                . number_format((int) $this->editAmountPaid, 0, ',', ' ') . ' DJF).');
-            return;
-        }
+        // Après avoir mis à jour amount_due et amount_paid, recalculer le statut
+        $due  = (int) $this->editAmountDue;
+        $paid = (int) $this->editAmountPaid;
+
+        $computedStatus = $this->editStatus === 'cancelled'
+            ? 'cancelled'   // on respecte l'annulation manuelle
+            : ($paid <= 0 ? 'unpaid'
+                : ($paid >= $due ? 'paid' : 'partial'));
 
         StudentInvoice::withoutGlobalScopes()
             ->where('school_id', $this->schoolId())
             ->where('id', $this->editingId)
             ->update([
                 'label'          => trim($this->editLabel),
-                'amount_due'     => (int) $this->editAmountDue,
-                'amount_paid'    => (int) $this->editAmountPaid,
-                'status'         => $this->editStatus,
+                'amount_due'     => $due,
+                'amount_paid'    => $paid,
+                'status'         => $computedStatus,   // ← calculé, pas saisi
                 'issued_at'      => $this->editIssuedAt ?: null,
                 'due_at'         => $this->editDueAt ?: null,
                 'invoice_number' => trim($this->editInvoiceNumber),
@@ -115,7 +124,7 @@ new class extends Component {
             ->findOrFail($id);
 
         // Bloqué si un paiement a été alloué
-        $hasReceiptLine = DB::table('payment_receipt_lines')
+        $hasReceiptLine = DB::table('student_payments')
             ->where('student_invoice_id', $inv->id)
             ->exists();
 
@@ -134,14 +143,14 @@ new class extends Component {
 
     public function deleteInvoice(): void
     {
+         abort_unless(auth()->user()->can('finance.manage'), 403);
         if (! $this->confirmDeleteId) return;
 
         $inv = StudentInvoice::withoutGlobalScopes()
             ->where('school_id', $this->schoolId())
             ->findOrFail($this->confirmDeleteId);
 
-        // Re-vérification serveur (défense en profondeur)
-        $hasReceiptLine = DB::table('payment_receipt_lines')
+        $hasReceiptLine = DB::table('student_payments')
             ->where('student_invoice_id', $inv->id)
             ->exists();
 

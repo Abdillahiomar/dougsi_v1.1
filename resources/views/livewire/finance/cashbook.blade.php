@@ -82,33 +82,33 @@ new class extends Component
 
     // ── Ouvrir le modal de clôture ────────────────────────────────
     public function openCloseModal(): void
-{
-    $this->authorize('finance.close');
+    {
+        $this->authorize('finance.close');
 
-    $this->reset([
-        'countedCash',
-        'closingNotes',
-        'error'
-    ]);
+        $this->reset([
+            'countedCash',
+            'closingNotes',
+            'error'
+        ]);
 
-    $session = app(CashSessionService::class)->currentFor(
-        auth()->user()->school_id,
-        auth()->id()
-    );
+        $session = app(CashSessionService::class)->currentFor(
+            auth()->user()->school_id,
+            auth()->id()
+        );
 
-    if (! $session) {
-        $this->closing = false;
-        $this->closingSessionId = null;
-        $this->error = 'Aucune caisse ouverte à votre nom.';
-        return;
+        if (! $session) {
+            $this->closing = false;
+            $this->closingSessionId = null;
+            $this->error = 'Aucune caisse ouverte à votre nom.';
+            return;
+        }
+
+        // ✅ On définit d'abord l'ID de session
+        $this->closingSessionId = $session->id;
+        
+        // ✅ Ensuite on ouvre le modal
+        $this->closing = true;
     }
-
-    // ✅ On définit d'abord l'ID de session
-    $this->closingSessionId = $session->id;
-    
-    // ✅ Ensuite on ouvre le modal
-    $this->closing = true;
-}
 
     // ── Fermer le modal ───────────────────────────────────────────
     public function cancelCloseModal(): void
@@ -1070,7 +1070,7 @@ new class extends Component
 
                     <tr>
                         <th>Reçu</th>
-                        <th>Heure</th>
+                        <th>Date & Heure</th>
                         <th>Élève</th>
                         <th>Affectation</th>
                         <th>Mode</th>
@@ -1114,7 +1114,7 @@ new class extends Component
                                 class="mono"
                                 style="opacity:.6;"
                             >
-                                {{ $r->paid_at->format('H:i') }}
+                                {{ $r->paid_at->format('dmY H:i') }}
                             </td>
 
 

@@ -13,18 +13,22 @@ new class extends Component
 
     public function mount(Student $student): void
     {
+        abort_unless(auth()->user()->can('finance.view'), 403);
+
+        abort_unless($student->school_id === auth()->user()->school_id, 404);
         $this->student = $student;
         $this->yearId  = AcademicYearService::current()?->id;
     }
 
     public function with(): array
     {
-        $invoices = StudentInvoice::where('academic_year_id', $this->yearId)
-            ->whereHas('studentSchoolYear', fn ($q) => $q->where('student_id', $this->student->id))
-            ->where('status', '!=', 'cancelled')
-            ->with('feeStructure')
-            ->orderBy('due_at')->orderBy('id')
-            ->get();
+        $invoices = StudentInvoice::where('school_id', auth()->user()->school_id)
+        ->where('academic_year_id', $this->yearId)
+        ->whereHas('studentSchoolYear', fn ($q) => $q->where('student_id', $this->student->id))
+        ->where('status', '!=', 'cancelled')
+        ->with('feeStructure')
+        ->orderBy('due_at')->orderBy('id')
+        ->get();
 
         $receipts = PaymentReceipt::where('student_id', $this->student->id)
             ->where('academic_year_id', $this->yearId)
@@ -38,11 +42,12 @@ new class extends Component
         $rate = $due > 0 ? round($paid / $due * 100, 1) : 0.0;
 
         // Années précédentes non soldées : la dette qui traîne d'une année sur l'autre
-        $oldDebt = (int) StudentInvoice::where('academic_year_id', '!=', $this->yearId)
-            ->whereHas('studentSchoolYear', fn ($q) => $q->where('student_id', $this->student->id))
-            ->where('status', '!=', 'cancelled')
-            ->whereRaw('amount_paid < amount_due')
-            ->selectRaw('SUM(amount_due - amount_paid) AS d')->value('d');
+       $oldDebt = (int) StudentInvoice::where('school_id', auth()->user()->school_id)
+        ->where('academic_year_id', '!=', $this->yearId)
+        ->whereHas('studentSchoolYear', fn ($q) => $q->where('student_id', $this->student->id))
+        ->where('status', '!=', 'cancelled')
+        ->whereRaw('amount_paid < amount_due')
+        ->selectRaw('SUM(amount_due - amount_paid) AS d')->value('d');
 
         $years = AcademicYearService::current();
 

@@ -413,6 +413,8 @@ new class extends Component
                 Impayés
             </div>
 
+          
+
             <div class="page-sub">
 
                 {{ $rows->count() }} élève(s) ·
@@ -599,7 +601,7 @@ new class extends Component
                         <th class="num">Échéances</th>
                         <th class="num">Reste dû</th>
                         <th class="num">Ancienneté</th>
-                        <th></th>
+                        <th>Actions</th>
 
                     </tr>
 
@@ -752,6 +754,11 @@ new class extends Component
                                             />
                                         </svg>
 
+                                    </a>
+
+
+                                    <a href="{{ route('finances.student-ledger', ['student' => $r->student_id]) }}" wire:navigate>
+                                            Grand livre
                                     </a>
 
                                 @endcan
