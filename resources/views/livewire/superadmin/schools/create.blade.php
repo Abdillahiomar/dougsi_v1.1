@@ -27,39 +27,47 @@ rules([
 ]);
 
 $save = function () {
+    abort_unless(auth('superadmin')->check(), 403);
+
     $data = $this->validate();
 
     DB::transaction(function () use ($data) {
         // 1. Créer l'école
         $school = School::create([
-            'name'      => $data['school_name'],
-            'email'     => $data['school_email'],
-            'slug'      => Str::slug($data['school_name']),  // ← ligne à ajouter
-            'phone'     => $data['school_phone'],
-            'is_active' => true,
+            'name'   => $data['school_name'],
+            'email'  => $data['school_email'],
+            'slug'   => Str::slug($data['school_name']),
+            'phone'  => $data['school_phone'],
+            'status' => 'active',
         ]);
 
-        // 2. Créer le premier admin, rattaché à cette école
+        // 2. Créer les 6 rôles standards de cette école
+        \App\Services\RoleTemplateService::createForSchool($school->id);
+
+        // 3. Créer le premier admin
         $admin = User::create([
             'name'      => $data['admin_name'],
             'email'     => $data['admin_email'],
             'password'  => Hash::make($data['admin_password']),
             'school_id' => $school->id,
+            'status'    => 'active',
         ]);
 
-        // 3. Lui donner le rôle admin
-        //    → Version rôle GLOBAL :
+        // 4. Lui donner le rôle admin, dans le contexte de son école
+        app(\Spatie\Permission\PermissionRegistrar::class)
+            ->setPermissionsTeamId($school->id);
         $admin->assignRole('admin');
 
-        //    → Si tu es en mode "teams" Spatie, remplace par :
-        //    setPermissionsTeamId($school->id);
-        //    $admin->assignRole('admin');
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
     });
 
     session()->flash('status', "École « {$data['school_name']} » créée avec son administrateur.");
 
     return redirect()->route('superadmin.schools.index');
 };
+
+
+
 
 ?>
 
