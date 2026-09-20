@@ -19,6 +19,8 @@ new #[Layout('layouts.superadmin')] class extends Component
 
     public function mount(Subscription $subscription): void
     {
+        abort_unless(auth('superadmin')->check(), 403);
+
         $this->subscription          = $subscription;
         $this->plan_id               = $subscription->plan_id;
         $this->custom_monthly_amount = $subscription->custom_monthly_amount;
@@ -127,7 +129,7 @@ new #[Layout('layouts.superadmin')] class extends Component
                        class="w-full border rounded px-3 py-2">
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm mb-1">Périodicité de paiement</label>
                     <select wire:model.live="billing_cycle" class="w-full border rounded px-3 py-2">
@@ -167,7 +169,7 @@ new #[Layout('layouts.superadmin')] class extends Component
                 </select>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm mb-1">Date de début</label>
                     <input type="date" wire:model="starts_at" class="w-full border rounded px-3 py-2">

@@ -88,7 +88,7 @@ $save = function () {
                 @error('school_name') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm mb-1">Email</label>
                     <input type="email" wire:model="school_email" class="w-full border rounded px-3 py-2">
@@ -113,7 +113,7 @@ $save = function () {
                 @error('admin_name') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm mb-1">Email de connexion</label>
                     <input type="email" wire:model="admin_email" class="w-full border rounded px-3 py-2">

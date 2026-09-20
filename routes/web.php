@@ -20,7 +20,7 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
         Volt::route('/schools', 'superadmin.schools.index')->name('schools.index');
         Volt::route('/schools/create', 'superadmin.schools.create')->name('schools.create');
         Volt::route('/schools/{school}', 'superadmin.schools.show')->name('schools.show');
-    });
+    
 
     // routes/web.php, dans le groupe auth:superadmin
     Route::post('/logout', function () {
@@ -57,7 +57,7 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
     ->whereNumber('subscription');
 
     Volt::route('/invoices', 'superadmin.invoices.index')->name('invoices.index');
-
+    });
     
 });
 

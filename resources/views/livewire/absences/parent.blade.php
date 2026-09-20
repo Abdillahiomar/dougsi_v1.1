@@ -129,6 +129,7 @@ new class extends Component {
             @if ($child['records']->isEmpty())
                 <div class="ap-clean">Aucune absence ni retard enregistré. Parfait !</div>
             @else
+                <div style="overflow-x:auto;">
                 <table class="ap-table">
                     <thead>
                         <tr>
@@ -164,6 +165,7 @@ new class extends Component {
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             @endif
         </div>
     @empty

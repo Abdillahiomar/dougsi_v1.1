@@ -570,6 +570,7 @@ new class extends Component
                     Aucun document configuré. Ajoutez les pièces requises lors de l'inscription.
                 </div>
             @else
+                <div style="overflow-x:auto;">
                 <table>
                     <thead>
                         <tr>
@@ -627,6 +628,7 @@ new class extends Component
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             @endif
         </div>
 

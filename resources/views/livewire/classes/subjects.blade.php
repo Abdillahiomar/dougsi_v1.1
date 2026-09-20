@@ -391,6 +391,7 @@ new class extends Component
                         <div class="empty-assignments-sub">Utilise le formulaire pour assigner des matières et leurs enseignants.</div>
                     </div>
                 @else
+                    <div style="overflow-x:auto;">
                     <table>
                         <thead>
                             <tr>
@@ -469,6 +470,7 @@ new class extends Component
                             @endforeach
                         </tbody>
                     </table>
+                    </div>
                 @endif
             </div>
         </div>

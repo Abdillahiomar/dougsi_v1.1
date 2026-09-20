@@ -268,6 +268,7 @@ new class extends Component
 
             {{-- Tableau des matières --}}
             <div class="sheet-body">
+                <div style="overflow-x:auto;">
                 <table class="grades-table">
                     <thead>
                         <tr>
@@ -346,6 +347,7 @@ new class extends Component
                         @endif
                     </tbody>
                 </table>
+                </div>
             </div>
 
             {{-- Décision d'admission --}}

@@ -876,6 +876,7 @@ new class extends Component
                 <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink); opacity:0.4;">{{ $year?->label }}</span>
             </div>
             {{-- Remplace le <table class="fee-table"> dans la section fees --}}
+            <div style="overflow-x:auto;">
             <table class="fee-table">
                 <thead>
                     <tr>
@@ -932,6 +933,7 @@ new class extends Component
                     @endforeach
                 </tbody>
             </table>
+            </div>
             <div style="padding:1rem 1.5rem; border-top:1px solid var(--line); display:flex; justify-content:flex-end;">
                 <button wire:click="saveFees" class="btn-save">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -1213,6 +1215,7 @@ new class extends Component
                     Aucune remise configurée. Crée ton premier type de remise.
                 </div>
             @else
+                <div style="overflow-x:auto;">
                 <table class="discount-table">
                     <thead>
                         <tr>
@@ -1272,6 +1275,7 @@ new class extends Component
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             @endif
         </div>
 

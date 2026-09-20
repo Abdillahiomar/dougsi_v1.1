@@ -1023,6 +1023,7 @@ new class extends Component
             @if ($allInvoices->isEmpty())
                 <div class="empty-section">Aucune facture générée.</div>
             @else
+                <div style="overflow-x:auto;">
                 <table>
                     <thead>
                         <tr>
@@ -1100,6 +1101,7 @@ new class extends Component
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             @endif
         </div>
     @endif

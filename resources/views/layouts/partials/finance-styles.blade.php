@@ -5,7 +5,7 @@
     .fin-card-header { padding:.875rem 1.5rem; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:.65rem; }
     .fin-card-title { font-family:'Fraunces',serif; font-size:1rem; font-weight:600; color:var(--ink); }
     .fin-card-sub { font-size:.75rem; color:var(--ink); opacity:.45; margin-left:auto; font-family:'JetBrains Mono',monospace; }
-    .fin-card-body { padding:1.25rem 1.5rem; }
+    .fin-card-body { padding:1.25rem 1.5rem; overflow-x:auto; }
     .fin-icon { width:28px; height:28px; border-radius:7px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
     .fin-icon svg { width:15px; height:15px; }
 

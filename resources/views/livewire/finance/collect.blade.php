@@ -558,6 +558,7 @@ new class extends Component
                                 <button wire:click="$set('mode','manual')" class="mode-btn {{ $mode==='manual' ? 'active' : '' }}">Répartition manuelle</button>
                             </div>
 
+                            <div style="overflow-x:auto;">
                             <table class="inv-table">
                                 <thead>
                                     <tr>
@@ -604,6 +605,7 @@ new class extends Component
                                     @endforeach
                                 </tbody>
                             </table>
+                            </div>
                         @endif
                     </div>
                 </div>

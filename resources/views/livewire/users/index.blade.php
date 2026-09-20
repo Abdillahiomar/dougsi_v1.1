@@ -399,7 +399,7 @@ public ?int   $confirmDeletePermId = null;
     .pw-toggle svg { width:15px; height:15px; }
 
     /* ── Table ── */
-    .table-wrap { border-radius:12px; border:1px solid var(--line); background:var(--paper-raised); overflow:hidden; }
+    .table-wrap { border-radius:12px; border:1px solid var(--line); background:var(--paper-raised); overflow:hidden; overflow-x:auto; }
     table { width:100%; border-collapse:collapse; }
     thead tr { border-bottom:1px solid var(--line); background:var(--paper); }
     thead th { text-align:left; padding:.65rem 1.25rem; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--ink); opacity:.45; white-space:nowrap; }

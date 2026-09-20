@@ -32,18 +32,19 @@ $toggleActive = function ($id) {
         {{ session('status') }}
     </div>
 @endif
-    <div class="flex justify-between items-center mb-4">
+    <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
             <h1 class="text-2xl font-bold">Écoles</h1>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
                 <input wire:model.live.debounce.300ms="search"
                     placeholder="Rechercher..."
-                    class="border rounded px-3 py-2">
+                    class="border rounded px-3 py-2 min-w-0">
                 <a href="{{ route('superadmin.schools.create') }}"
                 class="bg-sky-600 hover:bg-sky-500 text-white rounded px-4 py-2 whitespace-nowrap">
                     Nouvelle école
                 </a>
             </div>
     </div>
+    <div class="overflow-x-auto">
     <table class="w-full">
         <thead>
             <tr class="border-b text-left">
@@ -78,6 +79,7 @@ $toggleActive = function ($id) {
             @endforeach
         </tbody>
     </table>
+    </div>
 
     <div class="mt-4">{{ $this->schools->links() }}</div>
 </div>

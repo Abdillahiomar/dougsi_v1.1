@@ -11,7 +11,13 @@ state([
     'statusFilter' => '',
 ]);
 
+$mount = function () {
+    abort_unless(auth('superadmin')->check(), 403);
+};
+
 $generateInvoice = function ($subscriptionId) {
+    abort_unless(auth('superadmin')->check(), 403);
+
     $sub = \App\Models\Subscription::withoutGlobalScopes()->findOrFail($subscriptionId);
 
     $invoice = app(InvoiceGenerator::class)->generateForSubscription($sub);
@@ -63,7 +69,7 @@ $subscriptions = computed(function () {
         </select>
     </div>
 
-    <div class="bg-white rounded-lg border overflow-hidden">
+    <div class="bg-white rounded-lg border overflow-hidden overflow-x-auto">
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left">
                 <tr class="border-b">

@@ -664,6 +664,7 @@ new class extends Component
                 @if ($students->isEmpty())
                     <div class="empty"><div class="empty-sub">Aucun élève inscrit dans cette classe.</div></div>
                 @else
+                    <div style="overflow-x:auto;">
                     <table>
                         <thead>
                             <tr>
@@ -799,6 +800,7 @@ new class extends Component
                             @endforeach
                         </tbody>
                     </table>
+                    </div>
                 @endif
             </div>
         </div>
@@ -844,6 +846,7 @@ new class extends Component
         @if ($students->isEmpty())
             <div class="empty"><div class="empty-sub">Aucun élève dans cette classe.</div></div>
         @else
+            <div style="overflow-x:auto;">
             <table>
                 <thead>
                     <tr>
@@ -895,6 +898,7 @@ new class extends Component
                     @endforeach
                 </tbody>
             </table>
+            </div>
         @endif
     </div>
 
@@ -912,6 +916,7 @@ new class extends Component
         @if ($students->isEmpty())
             <div class="empty"><div class="empty-sub">Aucun élève.</div></div>
         @else
+            <div style="overflow-x:auto;">
             <table>
                 <thead>
                     <tr>
@@ -970,6 +975,7 @@ new class extends Component
                     @endforeach
                 </tbody>
             </table>
+            </div>
         @endif
     </div>
 

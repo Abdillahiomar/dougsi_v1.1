@@ -25,6 +25,10 @@ state([
     'eSchoolId'      => null,   // école du user en cours d'édition (pour le contexte team)
 ]);
 
+$mount = function () {
+    abort_unless(auth('superadmin')->check(), 403);
+};
+
 // Écoles pour le filtre
 $schools = computed(fn () =>
     School::orderBy('name')->get(['id', 'name'])
@@ -228,7 +232,7 @@ $saveEdit = function () {
     @endif
 
     {{-- Table --}}
-    <div class="bg-white rounded-lg border overflow-hidden">
+    <div class="bg-white rounded-lg border overflow-hidden overflow-x-auto">
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left">
                 <tr class="border-b">

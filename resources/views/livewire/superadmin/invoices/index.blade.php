@@ -12,6 +12,11 @@ new #[Layout('layouts.superadmin')] class extends Component
     public string $search = '';
     public string $statusFilter = '';
 
+    public function mount(): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
+    }
+
     #[Computed]
     public function invoices()
     {
@@ -30,6 +35,8 @@ new #[Layout('layouts.superadmin')] class extends Component
 
     public function markAsPaid($invoiceId)
     {
+        abort_unless(auth('superadmin')->check(), 403);
+
         $invoice = Invoice::withoutGlobalScopes()->findOrFail($invoiceId);
         $invoice->update([
             'status'  => 'paid',
@@ -64,7 +71,7 @@ new #[Layout('layouts.superadmin')] class extends Component
         </select>
     </div>
 
-    <div class="bg-white rounded-lg border overflow-hidden">
+    <div class="bg-white rounded-lg border overflow-hidden overflow-x-auto">
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left">
                 <tr class="border-b">

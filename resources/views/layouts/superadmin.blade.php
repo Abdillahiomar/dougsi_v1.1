@@ -8,9 +8,17 @@
     <title>Superadmin — Dugsi</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100" x-data="{ sidebarOpen: false }">
     <div class="flex min-h-screen">
-        <aside class="w-64 bg-gray-900 text-gray-100 flex flex-col">
+        {{-- Overlay mobile --}}
+        <div x-show="sidebarOpen"
+             x-transition.opacity
+             @click="sidebarOpen = false"
+             class="fixed inset-0 bg-black/50 z-30 md:hidden"
+             style="display: none;"></div>
+
+        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+               class="fixed inset-y-0 left-0 z-40 w-64 bg-gray-900 text-gray-100 flex flex-col transform transition-transform duration-200 ease-in-out md:static md:translate-x-0">
             {{-- En-tête --}}
             <div class="px-6 py-5 border-b border-gray-800">
                 <div class="text-lg font-bold">Dugsi</div>
@@ -26,23 +34,27 @@
                 @endphp
 
                 <a href="{{ route('superadmin.dashboard') }}"
+                   @click="sidebarOpen = false"
                    class="{{ $link }} {{ request()->routeIs('superadmin.dashboard') ? $active : $idle }}">
                     <span>📊</span> Tableau de bord
                 </a>
 
                 <a href="{{ route('superadmin.schools.index') }}"
+                   @click="sidebarOpen = false"
                    class="{{ $link }} {{ request()->routeIs('superadmin.schools.*') ? $active : $idle }}">
                     <span>🏫</span> Écoles
                 </a>
 
                 {{-- Décommente au fur et à mesure que tu crées les pages --}}
-                
+
                 <a href="{{ route('superadmin.users.index') }}"
+                   @click="sidebarOpen = false"
                    class="{{ $link }} {{ request()->routeIs('superadmin.users.*') ? $active : $idle }}">
                     <span>👥</span> Utilisateurs
                 </a>
-                
+
                 <a href="{{ route('superadmin.subscriptions.index') }}"
+                   @click="sidebarOpen = false"
                    class="{{ $link }} {{ request()->routeIs('superadmin.subscriptions.*') ? $active : $idle }}">
                     <span>💳</span> Abonnements
                 </a>
@@ -74,7 +86,18 @@
             </div>
         </aside>
 
-        <main class="flex-1 overflow-auto">{{ $slot }}</main>
+        <div class="flex-1 flex flex-col min-w-0">
+            {{-- Barre mobile avec bouton menu --}}
+            <header class="md:hidden flex items-center gap-3 bg-gray-900 text-white px-4 py-3 shrink-0">
+                <button type="button"
+                        @click="sidebarOpen = true"
+                        aria-label="Ouvrir le menu"
+                        class="p-1 -ml-1 text-2xl leading-none">☰</button>
+                <span class="font-bold">Dugsi — Superadmin</span>
+            </header>
+
+            <main class="flex-1 overflow-auto">{{ $slot }}</main>
+        </div>
     </div>
 </body>
 </html>

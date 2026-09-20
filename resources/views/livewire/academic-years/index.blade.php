@@ -211,7 +211,7 @@ new class extends Component
     /* Table */
     .table-wrap {
         border-radius: 12px; border: 1px solid var(--line);
-        background: var(--paper-raised); overflow: hidden;
+        background: var(--paper-raised); overflow: hidden; overflow-x: auto;
     }
     table { width: 100%; border-collapse: collapse; }
     thead tr { border-bottom: 1px solid var(--line); background: var(--paper); }

@@ -68,7 +68,7 @@ new class extends Component
         </div>
     @endif
 
-    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);">
+    <div class="kpi-grid">
         <div class="kpi">
             <div class="lbl">Total dû</div>
             <div class="kpi-val">{{ number_format($due, 0, ',', ' ') }}</div>
