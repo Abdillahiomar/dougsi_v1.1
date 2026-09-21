@@ -58,11 +58,12 @@
                    class="{{ $link }} {{ request()->routeIs('superadmin.subscriptions.*') ? $active : $idle }}">
                     <span>💳</span> Abonnements
                 </a>
-                {{--
                 <a href="{{ route('superadmin.activity.index') }}"
+                   @click="sidebarOpen = false"
                    class="{{ $link }} {{ request()->routeIs('superadmin.activity.*') ? $active : $idle }}">
                     <span>📋</span> Journal d'activité
                 </a>
+                {{--
                 <a href="{{ route('superadmin.settings') }}"
                    class="{{ $link }} {{ request()->routeIs('superadmin.settings') ? $active : $idle }}">
                     <span>⚙️</span> Paramètres
