@@ -1,5 +1,5 @@
 <?php
-use function Livewire\Volt\{state, computed, layout, usesPagination};
+use function Livewire\Volt\{state, computed, layout, usesPagination, mount};
 use App\Models\User;
 use App\Models\School;
 use Illuminate\Support\Facades\Hash;
@@ -25,9 +25,9 @@ state([
     'eSchoolId'      => null,   // école du user en cours d'édition (pour le contexte team)
 ]);
 
-$mount = function () {
+mount(function () {
     abort_unless(auth('superadmin')->check(), 403);
-};
+});
 
 // Écoles pour le filtre
 $schools = computed(fn () =>

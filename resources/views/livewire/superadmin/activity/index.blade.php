@@ -1,5 +1,5 @@
 <?php
-use function Livewire\Volt\{state, computed, layout, usesPagination};
+use function Livewire\Volt\{state, computed, layout, usesPagination, mount};
 use App\Models\AuditLog;
 
 layout('layouts.superadmin');
@@ -11,9 +11,9 @@ state([
     'eventFilter'  => '',
 ]);
 
-$mount = function () {
+mount(function () {
     abort_unless(auth('superadmin')->check(), 403);
-};
+});
 
 $logs = computed(function () {
     return AuditLog::query()

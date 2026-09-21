@@ -1,5 +1,5 @@
 <?php
-use function Livewire\Volt\{state, computed, layout, usesPagination};
+use function Livewire\Volt\{state, computed, layout, usesPagination, mount};
 use App\Models\Subscription;
 use App\Services\InvoiceGenerator;
 
@@ -11,9 +11,9 @@ state([
     'statusFilter' => '',
 ]);
 
-$mount = function () {
+mount(function () {
     abort_unless(auth('superadmin')->check(), 403);
-};
+});
 
 $generateInvoice = function ($subscriptionId) {
     abort_unless(auth('superadmin')->check(), 403);
