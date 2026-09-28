@@ -1,8 +1,8 @@
 <?php
 use function Livewire\Volt\{state, layout, rules};
 use Illuminate\Support\Facades\{DB, Hash};
+use Illuminate\Support\Str;
 use App\Models\{School, User};
-use Spatie\Permission\Models\Role;
 
 layout('layouts.superadmin');
 
@@ -66,76 +66,88 @@ $save = function () {
     return redirect()->route('superadmin.schools.index');
 };
 
-
-
-
 ?>
 
-<div class="p-6 max-w-2xl">
-    <div class="flex items-center gap-3 mb-6">
-        <a href="{{ route('superadmin.schools.index') }}" class="text-slate-500 hover:text-slate-800">← Retour</a>
-        <h1 class="text-2xl font-bold">Nouvelle école</h1>
+@include('layouts.partials.finance-styles')
+
+<div class="p-6" style="max-width:640px;">
+    <div class="page-head">
+        <div>
+            <div class="page-title">Nouvelle école</div>
+            <div class="page-sub">Créer une école et son premier administrateur</div>
+        </div>
+        <a href="{{ route('superadmin.schools.index') }}" class="btn">← Retour</a>
     </div>
 
-    <form wire:submit="save" class="space-y-8">
+    <form wire:submit="save">
         {{-- Bloc école --}}
-        <div class="bg-white rounded-lg border p-6 space-y-4">
-            <h2 class="font-semibold text-slate-700">Informations de l'école</h2>
-
-            <div>
-                <label class="block text-sm mb-1">Nom de l'école</label>
-                <input wire:model="school_name" class="w-full border rounded px-3 py-2">
-                @error('school_name') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+        <div class="fin-card">
+            <div class="fin-card-header">
+                <span class="fin-card-title">Informations de l'école</span>
             </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm mb-1">Email</label>
-                    <input type="email" wire:model="school_email" class="w-full border rounded px-3 py-2">
-                    @error('school_email') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+            <div class="fin-card-body" style="display:flex;flex-direction:column;gap:1rem;">
+                <div class="filter-field">
+                    <span class="lbl">Nom de l'école</span>
+                    <input wire:model="school_name" class="fin-input">
+                    @error('school_name') <span class="fin-error">{{ $message }}</span> @enderror
                 </div>
-                <div>
-                    <label class="block text-sm mb-1">Téléphone</label>
-                    <input wire:model="school_phone" placeholder="+253 ..." class="w-full border rounded px-3 py-2">
-                    @error('school_phone') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+
+                <div style="display:grid;grid-template-columns:1fr;gap:1rem;" class="sm-grid-2">
+                    <div class="filter-field">
+                        <span class="lbl">Email</span>
+                        <input type="email" wire:model="school_email" class="fin-input">
+                        @error('school_email') <span class="fin-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="filter-field">
+                        <span class="lbl">Téléphone</span>
+                        <input wire:model="school_phone" placeholder="+253 ..." class="fin-input">
+                        @error('school_phone') <span class="fin-error">{{ $message }}</span> @enderror
+                    </div>
                 </div>
             </div>
         </div>
 
         {{-- Bloc admin --}}
-        <div class="bg-white rounded-lg border p-6 space-y-4">
-            <h2 class="font-semibold text-slate-700">Premier administrateur</h2>
-            <p class="text-sm text-slate-500">Ce compte pourra se connecter et gérer l'école.</p>
-
-            <div>
-                <label class="block text-sm mb-1">Nom complet</label>
-                <input wire:model="admin_name" class="w-full border rounded px-3 py-2">
-                @error('admin_name') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+        <div class="fin-card">
+            <div class="fin-card-header">
+                <span class="fin-card-title">Premier administrateur</span>
+                <span class="fin-card-sub">pourra se connecter et gérer l'école</span>
             </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm mb-1">Email de connexion</label>
-                    <input type="email" wire:model="admin_email" class="w-full border rounded px-3 py-2">
-                    @error('admin_email') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+            <div class="fin-card-body" style="display:flex;flex-direction:column;gap:1rem;">
+                <div class="filter-field">
+                    <span class="lbl">Nom complet</span>
+                    <input wire:model="admin_name" class="fin-input">
+                    @error('admin_name') <span class="fin-error">{{ $message }}</span> @enderror
                 </div>
-                <div>
-                    <label class="block text-sm mb-1">Mot de passe</label>
-                    <input type="password" wire:model="admin_password" class="w-full border rounded px-3 py-2">
-                    @error('admin_password') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+
+                <div style="display:grid;grid-template-columns:1fr;gap:1rem;" class="sm-grid-2">
+                    <div class="filter-field">
+                        <span class="lbl">Email de connexion</span>
+                        <input type="email" wire:model="admin_email" class="fin-input">
+                        @error('admin_email') <span class="fin-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="filter-field">
+                        <span class="lbl">Mot de passe</span>
+                        <input type="password" wire:model="admin_password" class="fin-input">
+                        @error('admin_password') <span class="fin-error">{{ $message }}</span> @enderror
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="flex gap-3">
-            <button type="submit"
-                    class="bg-sky-600 hover:bg-sky-500 text-white rounded px-5 py-2.5 font-medium"
-                    wire:loading.attr="disabled" wire:target="save">
+        <div style="display:flex;gap:.75rem;">
+            <button type="submit" class="btn btn-primary" wire:loading.attr="disabled" wire:target="save">
                 <span wire:loading.remove wire:target="save">Créer l'école</span>
                 <span wire:loading wire:target="save">Création…</span>
             </button>
-            <a href="{{ route('superadmin.schools.index') }}"
-               class="px-5 py-2.5 text-slate-600 hover:text-slate-900">Annuler</a>
+            <a href="{{ route('superadmin.schools.index') }}" class="btn">Annuler</a>
         </div>
     </form>
 </div>
+
+<style>
+    .fin-error { display:block; font-size:.75rem; color:var(--accent-red); margin-top:.25rem; }
+    @media (min-width: 640px) {
+        .sm-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+</style>

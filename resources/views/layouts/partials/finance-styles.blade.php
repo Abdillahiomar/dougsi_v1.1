@@ -46,6 +46,10 @@
     .st-overdue { background:rgba(224,92,58,.12);  color:#C04020; }
     .st-paid    { background:rgba(30,120,80,.1);   color:#166534; }
     .st-voided  { background:rgba(120,120,120,.12); color:#555; }
+    .st-active  { background:rgba(30,120,80,.1);   color:#166534; }
+    .st-suspended, .st-expired, .st-inactive { background:rgba(224,92,58,.12); color:#C04020; }
+    .st-trial     { background:rgba(42,63,126,.1);  color:var(--sidebar-soft); }
+    .st-cancelled { background:rgba(120,120,120,.12); color:#555; }
 
     /* ── Barres de progression ── */
     .bar-row { display:grid; grid-template-columns:150px 1fr 140px; gap:.85rem; align-items:center; padding:.5rem 0; }

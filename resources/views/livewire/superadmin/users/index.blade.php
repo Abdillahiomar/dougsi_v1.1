@@ -140,155 +140,169 @@ $saveEdit = function () {
 
 ?>
 
+@include('layouts.partials.finance-styles')
+
 <div class="p-6">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold">Utilisateurs</h1>
-        <p class="text-sm text-slate-500">Tous les utilisateurs, toutes écoles confondues.</p>
+    <div class="page-head">
+        <div>
+            <div class="page-title">Utilisateurs</div>
+            <div class="page-sub">Tous les utilisateurs, toutes écoles confondues</div>
+        </div>
     </div>
 
     @if (session('status'))
-        <div class="mb-4 rounded bg-green-100 text-green-800 px-4 py-2">{{ session('status') }}</div>
+        <div class="fin-alert ok">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {{ session('status') }}
+        </div>
     @endif
 
     {{-- Filtres --}}
-    <div class="flex flex-wrap gap-3 mb-4">
-        <input wire:model.live.debounce.300ms="search"
-               placeholder="Rechercher par nom ou email..."
-               class="border rounded px-3 py-2 flex-1 min-w-[240px]">
-
-        <select wire:model.live="schoolFilter" class="border rounded px-3 py-2">
-            <option value="">Toutes les écoles</option>
-            @foreach ($this->schools as $school)
-                <option value="{{ $school->id }}">{{ $school->name }}</option>
-            @endforeach
-        </select>
+    <div class="filters">
+        <div class="filter-field" style="flex:1;min-width:240px;">
+            <span class="lbl">Recherche</span>
+            <input wire:model.live.debounce.300ms="search"
+                   placeholder="Nom ou email..."
+                   class="fin-input">
+        </div>
+        <div class="filter-field">
+            <span class="lbl">École</span>
+            <select wire:model.live="schoolFilter" class="fin-select">
+                <option value="">Toutes les écoles</option>
+                @foreach ($this->schools as $school)
+                    <option value="{{ $school->id }}">{{ $school->name }}</option>
+                @endforeach
+            </select>
+        </div>
     </div>
 
     {{-- Bandeau mot de passe généré --}}
     @if ($generatedPassword)
-        <div class="mb-4 rounded-lg bg-green-50 border border-green-200 p-4">
-            <div class="flex items-start justify-between">
+        <div class="fin-alert ok" style="align-items:flex-start;justify-content:space-between;">
+            <div style="display:flex;gap:.65rem;align-items:flex-start;">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <div>
-                    <p class="text-sm text-green-800 font-medium">Mot de passe réinitialisé</p>
-                    <p class="text-sm text-green-700 mt-1">
+                    <p style="font-weight:600;">Mot de passe réinitialisé</p>
+                    <p style="margin-top:.25rem;">
                         Nouveau mot de passe temporaire :
-                        <code class="bg-white px-2 py-1 rounded font-mono border">{{ $generatedPassword }}</code>
+                        <code class="mono" style="background:var(--paper-raised);padding:2px 8px;border-radius:6px;border:1px solid var(--line);">{{ $generatedPassword }}</code>
                     </p>
-                    <p class="text-xs text-green-600 mt-1">
+                    <p style="margin-top:.25rem;opacity:.8;font-size:.75rem;">
                         Communiquez-le à l'utilisateur. Il ne sera plus affiché après fermeture.
                     </p>
                 </div>
-                <button wire:click="closeReset" class="text-green-700 hover:text-green-900">✕</button>
             </div>
+            <button wire:click="closeReset" class="btn btn-icon">✕</button>
         </div>
     @endif
 
     {{-- Formulaire d'édition --}}
     @if ($editingUserId)
-        <div class="mb-4 rounded-lg bg-white border border-sky-200 p-5 shadow-sm">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-semibold text-lg">Modifier l'utilisateur</h2>
-                <button wire:click="cancelEdit" class="text-slate-400 hover:text-slate-600">✕</button>
+        <div class="fin-card">
+            <div class="fin-card-header">
+                <span class="fin-card-title">Modifier l'utilisateur</span>
+                <button wire:click="cancelEdit" class="btn btn-icon" style="margin-left:auto;">✕</button>
             </div>
+            <div class="fin-card-body">
+                <div style="display:grid;grid-template-columns:1fr;gap:1rem;" class="sm-grid-2">
+                    <div class="filter-field">
+                        <span class="lbl">Nom complet</span>
+                        <input wire:model="eName" type="text" class="fin-input">
+                        @error('eName') <span class="fin-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="filter-field">
+                        <span class="lbl">Email</span>
+                        <input wire:model="eEmail" type="email" class="fin-input">
+                        @error('eEmail') <span class="fin-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="filter-field">
+                        <span class="lbl">Statut</span>
+                        <select wire:model="eStatus" class="fin-select">
+                            <option value="active">Actif</option>
+                            <option value="inactive">Inactif</option>
+                            <option value="suspended">Suspendu</option>
+                        </select>
+                    </div>
+                    <div class="filter-field">
+                        <span class="lbl">Rôle (dans son école)</span>
+                        <select wire:model="eRole" class="fin-select">
+                            <option value="">— Choisir —</option>
+                            @foreach ($this->availableRoles as $role)
+                                <option value="{{ $role->name }}">{{ ucfirst($role->name) }}</option>
+                            @endforeach
+                        </select>
+                        @error('eRole') <span class="fin-error">{{ $message }}</span> @enderror
+                    </div>
+                </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">Nom complet</label>
-                    <input wire:model="eName" type="text" class="border rounded px-3 py-2 w-full">
-                    @error('eName') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
+                <div style="display:flex;justify-content:flex-end;gap:.75rem;margin-top:1.25rem;">
+                    <button wire:click="cancelEdit" class="btn">Annuler</button>
+                    <button wire:click="saveEdit" class="btn btn-primary">Enregistrer</button>
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">Email</label>
-                    <input wire:model="eEmail" type="email" class="border rounded px-3 py-2 w-full">
-                    @error('eEmail') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">Statut</label>
-                    <select wire:model="eStatus" class="border rounded px-3 py-2 w-full">
-                        <option value="active">Actif</option>
-                        <option value="inactive">Inactif</option>
-                        <option value="suspended">Suspendu</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">Rôle (dans son école)</label>
-                    <select wire:model="eRole" class="border rounded px-3 py-2 w-full">
-                        <option value="">— Choisir —</option>
-                        @foreach ($this->availableRoles as $role)
-                            <option value="{{ $role->name }}">{{ ucfirst($role->name) }}</option>
-                        @endforeach
-                    </select>
-                    @error('eRole') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
-                </div>
-            </div>
-
-            <div class="flex justify-end gap-3 mt-5">
-                <button wire:click="cancelEdit" class="px-4 py-2 border rounded text-slate-600">Annuler</button>
-                <button wire:click="saveEdit" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded">
-                    Enregistrer
-                </button>
             </div>
         </div>
     @endif
 
     {{-- Table --}}
-    <div class="bg-white rounded-lg border overflow-hidden overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-slate-50 text-left">
-                <tr class="border-b">
-                    <th class="px-4 py-3">Nom</th>
-                    <th class="px-4 py-3">Email</th>
-                    <th class="px-4 py-3">École</th>
-                    <th class="px-4 py-3">Rôle</th>
-                    <th class="px-4 py-3">Statut</th>
-                    <th class="px-4 py-3 text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($this->users as $user)
-                    <tr class="border-b last:border-0 hover:bg-slate-50">
-                        <td class="px-4 py-3 font-medium">{{ $user->name }}</td>
-                        <td class="px-4 py-3 text-slate-600">{{ $user->email }}</td>
-                        <td class="px-4 py-3 text-slate-600">{{ $user->school?->name ?? '—' }}</td>
-                        <td class="px-4 py-3">
-                            @foreach ($user->roles as $role)
-                                <span class="inline-block bg-slate-100 text-slate-700 rounded px-2 py-0.5 text-xs">
-                                    {{ $role->name }}
-                                </span>
-                            @endforeach
-                        </td>
-                        <td class="px-4 py-3">
-                            <span @class([
-                                'rounded px-2 py-0.5 text-xs',
-                                'bg-green-100 text-green-700' => ($user->status ?? 'active') === 'active',
-                                'bg-slate-100 text-slate-500' => ($user->status ?? 'active') === 'inactive',
-                                'bg-red-100 text-red-700'     => ($user->status ?? 'active') === 'suspended',
-                            ])>
-                                {{ match($user->status ?? 'active') { 'active'=>'Actif','inactive'=>'Inactif','suspended'=>'Suspendu',default=>'Actif' } }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 text-right space-x-3">
-                            <button wire:click="startEdit({{ $user->id }})"
-                                    class="text-sky-600 hover:text-sky-800 text-sm">
-                                Modifier
-                            </button>
-                            <button wire:click="resetPassword({{ $user->id }})"
-                                    wire:confirm="Réinitialiser le mot de passe de {{ $user->name }} ?"
-                                    class="text-orange-600 hover:text-orange-800 text-sm">
-                                Réinit. mot de passe
-                            </button>
-                        </td>
-                    </tr>
-                @empty
+    <div class="fin-card">
+        <div class="fin-card-body">
+            <table class="fin-table">
+                <thead>
                     <tr>
-                        <td colspan="6" class="px-4 py-8 text-center text-slate-400">
-                            Aucun utilisateur trouvé.
-                        </td>
+                        <th>Nom</th>
+                        <th>Email</th>
+                        <th>École</th>
+                        <th>Rôle</th>
+                        <th>Statut</th>
+                        <th class="num">Actions</th>
                     </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @forelse ($this->users as $user)
+                        <tr>
+                            <td style="font-weight:600;">{{ $user->name }}</td>
+                            <td>{{ $user->email }}</td>
+                            <td>{{ $user->school?->name ?? '—' }}</td>
+                            <td>
+                                @foreach ($user->roles as $role)
+                                    <span class="st st-trial">{{ $role->name }}</span>
+                                @endforeach
+                            </td>
+                            <td>
+                                <span @class([
+                                    'st',
+                                    'st-active'   => ($user->status ?? 'active') === 'active',
+                                    'st-voided'   => ($user->status ?? 'active') === 'inactive',
+                                    'st-suspended'=> ($user->status ?? 'active') === 'suspended',
+                                ])>
+                                    {{ match($user->status ?? 'active') { 'active'=>'Actif','inactive'=>'Inactif','suspended'=>'Suspendu',default=>'Actif' } }}
+                                </span>
+                            </td>
+                            <td class="num" style="white-space:nowrap;">
+                                <button wire:click="startEdit({{ $user->id }})" class="btn btn-icon" title="Modifier">
+                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+                                </button>
+                                <button wire:click="resetPassword({{ $user->id }})"
+                                        wire:confirm="Réinitialiser le mot de passe de {{ $user->name }} ?"
+                                        class="btn btn-icon" title="Réinitialiser le mot de passe">
+                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.412-.083-.849.005-1.15.306L9.5 17.25l-1.5 1.5m0 0l-2.25 2.25M8 18.75l-1.5-1.5m0 0l-1.5-1.5m1.5 1.5l1.5-1.5"/></svg>
+                                </button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="fin-empty">Aucun utilisateur trouvé.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <div class="mt-4">{{ $this->users->links() }}</div>
 </div>
+
+<style>
+    .fin-error { display:block; font-size:.75rem; color:var(--accent-red); margin-top:.25rem; }
+    @media (min-width: 640px) {
+        .sm-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+</style>

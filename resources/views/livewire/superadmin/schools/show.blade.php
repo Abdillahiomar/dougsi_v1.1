@@ -30,106 +30,113 @@ $admin = computed(function () {
 });
 
 $toggleActive = function () {
-    $this->school->update(['is_active' => ! $this->school->is_active]);
+    $this->school->update(['status' => $this->school->status === 'active' ? 'suspended' : 'active']);
     $this->school->refresh();
 };
 
 ?>
 
-<div class="p-6 max-w-4xl">
-    {{-- En-tête --}}
-    <div class="flex items-center gap-3 mb-6">
-        <a href="{{ route('superadmin.schools.index') }}"
-           class="text-slate-500 hover:text-slate-800">← Retour</a>
-        <h1 class="text-2xl font-bold">{{ $school->name }}</h1>
-        <span @class([
-            'px-2 py-1 rounded text-xs font-medium',
-            'bg-green-100 text-green-700' => $school->is_active,
-            'bg-red-100 text-red-700' => ! $school->is_active,
-        ])>
-            {{ $school->is_active ? 'Active' : 'Inactive' }}
-        </span>
-    </div>
+@include('layouts.partials.finance-styles')
 
-    {{-- Cartes de stats --}}
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-lg border p-4">
-            <div class="text-sm text-slate-500">Élèves</div>
-            <div class="text-3xl font-bold text-slate-800">{{ $this->stats['students'] }}</div>
-        </div>
-        <div class="bg-white rounded-lg border p-4">
-            <div class="text-sm text-slate-500">Classes</div>
-            <div class="text-3xl font-bold text-slate-800">{{ $this->stats['classes'] }}</div>
-        </div>
-        <div class="bg-white rounded-lg border p-4">
-            <div class="text-sm text-slate-500">Personnel</div>
-            <div class="text-3xl font-bold text-slate-800">{{ $this->stats['staff'] }}</div>
-        </div>
-        <div class="bg-white rounded-lg border p-4">
-            <div class="text-sm text-slate-500">Utilisateurs</div>
-            <div class="text-3xl font-bold text-slate-800">{{ $this->stats['users'] }}</div>
+<div class="p-6" style="max-width:960px;">
+    <div class="page-head">
+        <div style="display:flex;align-items:center;gap:.75rem;">
+            <a href="{{ route('superadmin.schools.index') }}" class="btn btn-icon" title="Retour">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
+            </a>
+            <div>
+                <div class="page-title">{{ $school->name }}</div>
+                <div class="page-sub">
+                    <span class="st {{ $school->status === 'active' ? 'st-active' : 'st-suspended' }}">
+                        {{ $school->status === 'active' ? 'Active' : 'Suspendue' }}
+                    </span>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="grid md:grid-cols-2 gap-6">
+    <div class="kpi-grid">
+        <div class="kpi">
+            <div class="lbl">Élèves</div>
+            <div class="kpi-val">{{ $this->stats['students'] }}</div>
+        </div>
+        <div class="kpi">
+            <div class="lbl">Classes</div>
+            <div class="kpi-val">{{ $this->stats['classes'] }}</div>
+        </div>
+        <div class="kpi">
+            <div class="lbl">Personnel</div>
+            <div class="kpi-val">{{ $this->stats['staff'] }}</div>
+        </div>
+        <div class="kpi">
+            <div class="lbl">Utilisateurs</div>
+            <div class="kpi-val">{{ $this->stats['users'] }}</div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr;gap:1.25rem;" class="sm-grid-2">
         {{-- Infos école --}}
-        <div class="bg-white rounded-lg border p-6">
-            <h2 class="font-semibold text-slate-700 mb-4">Informations</h2>
-            <dl class="space-y-3 text-sm">
-                <div class="flex justify-between">
-                    <dt class="text-slate-500">Email</dt>
-                    <dd>{{ $school->email ?? '—' }}</dd>
-                </div>
-                <div class="flex justify-between">
-                    <dt class="text-slate-500">Téléphone</dt>
-                    <dd>{{ $school->phone ?? '—' }}</dd>
-                </div>
-                <div class="flex justify-between">
-                    <dt class="text-slate-500">Créée le</dt>
-                    <dd>{{ $school->created_at?->format('d/m/Y') }}</dd>
-                </div>
-            </dl>
+        <div class="fin-card">
+            <div class="fin-card-header"><span class="fin-card-title">Informations</span></div>
+            <div class="fin-card-body">
+                <dl style="display:flex;flex-direction:column;gap:.75rem;font-size:.875rem;">
+                    <div style="display:flex;justify-content:space-between;">
+                        <dt class="lbl" style="text-transform:none;letter-spacing:normal;font-size:.8125rem;opacity:.6;">Email</dt>
+                        <dd>{{ $school->email ?? '—' }}</dd>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;">
+                        <dt class="lbl" style="text-transform:none;letter-spacing:normal;font-size:.8125rem;opacity:.6;">Téléphone</dt>
+                        <dd>{{ $school->phone ?? '—' }}</dd>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;">
+                        <dt class="lbl" style="text-transform:none;letter-spacing:normal;font-size:.8125rem;opacity:.6;">Créée le</dt>
+                        <dd>{{ $school->created_at?->format('d/m/Y') }}</dd>
+                    </div>
+                </dl>
+            </div>
         </div>
 
         {{-- Admin principal --}}
-        <div class="bg-white rounded-lg border p-6">
-            <h2 class="font-semibold text-slate-700 mb-4">Administrateur</h2>
-            @if ($this->admin)
-                <dl class="space-y-3 text-sm">
-                    <div class="flex justify-between">
-                        <dt class="text-slate-500">Nom</dt>
-                        <dd>{{ $this->admin->name }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-slate-500">Email</dt>
-                        <dd>{{ $this->admin->email }}</dd>
-                    </div>
-                </dl>
-            @else
-                <p class="text-sm text-slate-400">Aucun administrateur défini.</p>
-            @endif
+        <div class="fin-card">
+            <div class="fin-card-header"><span class="fin-card-title">Administrateur</span></div>
+            <div class="fin-card-body">
+                @if ($this->admin)
+                    <dl style="display:flex;flex-direction:column;gap:.75rem;font-size:.875rem;">
+                        <div style="display:flex;justify-content:space-between;">
+                            <dt class="lbl" style="text-transform:none;letter-spacing:normal;font-size:.8125rem;opacity:.6;">Nom</dt>
+                            <dd>{{ $this->admin->name }}</dd>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;">
+                            <dt class="lbl" style="text-transform:none;letter-spacing:normal;font-size:.8125rem;opacity:.6;">Email</dt>
+                            <dd>{{ $this->admin->email }}</dd>
+                        </div>
+                    </dl>
+                @else
+                    <p class="fin-empty" style="padding:.5rem 0;">Aucun administrateur défini.</p>
+                @endif
+            </div>
         </div>
     </div>
 
     {{-- Actions --}}
-    <div class="flex items-center gap-3 mt-6">
-        <button wire:click="toggleActive"
-                @class([
-                    'rounded px-4 py-2 text-white',
-                    'bg-red-600 hover:bg-red-500' => $school->is_active,
-                    'bg-green-600 hover:bg-green-500' => ! $school->is_active,
-                ])>
-            {{ $school->is_active ? 'Désactiver l\'école' : 'Activer l\'école' }}
+    <div style="display:flex;align-items:center;gap:.75rem;margin-top:1.25rem;">
+        <button wire:click="toggleActive" class="btn {{ $school->status === 'active' ? 'btn-danger' : 'btn-green' }}">
+            {{ $school->status === 'active' ? "Désactiver l'école" : "Activer l'école" }}
         </button>
 
         @if ($this->admin)
             <form method="POST" action="{{ route('superadmin.schools.impersonate', $school) }}">
                 @csrf
-                <button type="submit"
-                        class="bg-amber-600 hover:bg-amber-500 text-white rounded px-4 py-2">
+                <button type="submit" class="btn" style="border-color:#E8A838;color:#8A6010;">
                     🔑 Se connecter en tant que cette école
                 </button>
             </form>
         @endif
     </div>
 </div>
+
+<style>
+    @media (min-width: 640px) {
+        .sm-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+</style>

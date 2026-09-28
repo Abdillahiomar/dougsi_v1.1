@@ -96,102 +96,110 @@ new #[Layout('layouts.superadmin')] class extends Component
     
 } ?>
 
-<div class="p-6 max-w-2xl">
-    <div class="flex items-center gap-3 mb-6">
-        <a href="{{ route('superadmin.subscriptions.index') }}"
-           class="text-slate-500 hover:text-slate-800">← Retour</a>
-        <h1 class="text-2xl font-bold">Modifier l'abonnement</h1>
+@include('layouts.partials.finance-styles')
+
+<div class="p-6" style="max-width:640px;">
+    <div class="page-head">
+        <div style="display:flex;align-items:center;gap:.75rem;">
+            <a href="{{ route('superadmin.subscriptions.index') }}" class="btn btn-icon" title="Retour">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
+            </a>
+            <div>
+                <div class="page-title">Modifier l'abonnement</div>
+                <div class="page-sub">École : {{ $subscription->school?->name }}</div>
+            </div>
+        </div>
     </div>
 
-    <div class="mb-4 text-sm text-slate-500">
-        École : <strong class="text-slate-800">{{ $subscription->school?->name }}</strong>
-    </div>
+    <form wire:submit="save">
+        <div class="fin-card">
+            <div class="fin-card-body" style="display:flex;flex-direction:column;gap:1rem;">
+                <div class="filter-field">
+                    <span class="lbl">Plan de référence (optionnel)</span>
+                    <select wire:model.live="plan_id" class="fin-select">
+                        <option value="">— Aucun (montant 100% négocié) —</option>
+                        @foreach ($this->plans as $plan)
+                            <option value="{{ $plan->id }}">
+                                {{ $plan->name }} ({{ number_format($plan->price, 0, ',', ' ') }} FDJ/mois)
+                            </option>
+                        @endforeach
+                    </select>
+                    <p style="font-size:.75rem;opacity:.55;margin-top:.35rem;">Sert de point de départ. Le montant ci-dessous prime s'il est renseigné.</p>
+                </div>
 
-    <form wire:submit="save" class="space-y-6">
-        <div class="bg-white rounded-lg border p-6 space-y-4">
-            <div>
-                <label class="block text-sm mb-1">Plan de référence (optionnel)</label>
-                <select wire:model.live="plan_id" class="w-full border rounded px-3 py-2">
-                    <option value="">— Aucun (montant 100% négocié) —</option>
-                    @foreach ($this->plans as $plan)
-                        <option value="{{ $plan->id }}">
-                            {{ $plan->name }} ({{ number_format($plan->price, 0, ',', ' ') }} FDJ/mois)
-                        </option>
-                    @endforeach
-                </select>
-                <p class="text-xs text-slate-400 mt-1">Sert de point de départ. Le montant ci-dessous prime s'il est renseigné.</p>
+                <div class="filter-field">
+                    <span class="lbl">Montant mensuel négocié (FDJ)</span>
+                    <input type="number" wire:model.live="custom_monthly_amount"
+                           placeholder="Laisser vide pour utiliser le prix du plan"
+                           class="fin-input">
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr;gap:1rem;" class="sm-grid-2">
+                    <div class="filter-field">
+                        <span class="lbl">Périodicité de paiement</span>
+                        <select wire:model.live="billing_cycle" class="fin-select">
+                            <option value="monthly">Mensuel</option>
+                            <option value="quarterly">Trimestriel (3 mois)</option>
+                            <option value="semiannual">Semestriel (6 mois)</option>
+                            <option value="annual">Annuel (12 mois)</option>
+                        </select>
+                    </div>
+                    <div class="filter-field">
+                        <span class="lbl">Remise (%)</span>
+                        <input type="number" step="0.01" wire:model.live="discount_percent" class="fin-input">
+                    </div>
+                </div>
+
+                <div class="kpi dark">
+                    <div class="lbl">Montant à facturer par cycle</div>
+                    <div class="kpi-val">{{ number_format($this->cyclePreview, 0, ',', ' ') }}<span class="kpi-unit">FDJ</span></div>
+                    <div class="kpi-foot">
+                        {{ number_format($this->monthly, 0, ',', ' ') }} FDJ × {{ $this->months }} mois
+                        @if ((float) $discount_percent > 0) − {{ $discount_percent }}% de remise @endif
+                    </div>
+                </div>
             </div>
+        </div>
 
-            <div>
-                <label class="block text-sm mb-1">Montant mensuel négocié (FDJ)</label>
-                <input type="number" wire:model.live="custom_monthly_amount"
-                       placeholder="Laisser vide pour utiliser le prix du plan"
-                       class="w-full border rounded px-3 py-2">
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm mb-1">Périodicité de paiement</label>
-                    <select wire:model.live="billing_cycle" class="w-full border rounded px-3 py-2">
-                        <option value="monthly">Mensuel</option>
-                        <option value="quarterly">Trimestriel (3 mois)</option>
-                        <option value="semiannual">Semestriel (6 mois)</option>
-                        <option value="annual">Annuel (12 mois)</option>
+        <div class="fin-card">
+            <div class="fin-card-body" style="display:flex;flex-direction:column;gap:1rem;">
+                <div class="filter-field">
+                    <span class="lbl">Statut</span>
+                    <select wire:model="status" class="fin-select">
+                        <option value="active">Actif</option>
+                        <option value="trial">Essai</option>
+                        <option value="suspended">Suspendu</option>
+                        <option value="expired">Expiré</option>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-sm mb-1">Remise (%)</label>
-                    <input type="number" step="0.01" wire:model.live="discount_percent"
-                           class="w-full border rounded px-3 py-2">
-                </div>
-            </div>
 
-            <div class="rounded-lg bg-indigo-50 border border-indigo-100 p-4">
-                <div class="text-sm text-indigo-600">Montant à facturer par cycle</div>
-                <div class="text-2xl font-bold text-indigo-800">
-                    {{ number_format($this->cyclePreview, 0, ',', ' ') }} FDJ
+                <div style="display:grid;grid-template-columns:1fr;gap:1rem;" class="sm-grid-2">
+                    <div class="filter-field">
+                        <span class="lbl">Date de début</span>
+                        <input type="date" wire:model="starts_at" class="fin-input">
+                    </div>
+                    <div class="filter-field">
+                        <span class="lbl">Date de fin</span>
+                        <input type="date" wire:model="ends_at" class="fin-input">
+                    </div>
                 </div>
-                <div class="text-xs text-indigo-500 mt-1">
-                    {{ number_format($this->monthly, 0, ',', ' ') }} FDJ × {{ $this->months }} mois
-                    @if ((float) $discount_percent > 0) − {{ $discount_percent }}% de remise @endif
-                </div>
+
+                <label style="display:flex;align-items:center;gap:.5rem;font-size:.875rem;">
+                    <input type="checkbox" wire:model="auto_renew">
+                    Renouvellement automatique
+                </label>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg border p-6 space-y-4">
-            <div>
-                <label class="block text-sm mb-1">Statut</label>
-                <select wire:model="status" class="w-full border rounded px-3 py-2">
-                    <option value="active">Actif</option>
-                    <option value="trial">Essai</option>
-                    <option value="suspended">Suspendu</option>
-                    <option value="expired">Expiré</option>
-                </select>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm mb-1">Date de début</label>
-                    <input type="date" wire:model="starts_at" class="w-full border rounded px-3 py-2">
-                </div>
-                <div>
-                    <label class="block text-sm mb-1">Date de fin</label>
-                    <input type="date" wire:model="ends_at" class="w-full border rounded px-3 py-2">
-                </div>
-            </div>
-
-            <label class="flex items-center gap-2 text-sm">
-                <input type="checkbox" wire:model="auto_renew" class="rounded">
-                Renouvellement automatique
-            </label>
-        </div>
-
-        <div class="flex gap-3">
-            <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white rounded px-5 py-2.5 font-medium">
-                Enregistrer
-            </button>
-            <a href="{{ route('superadmin.subscriptions.index') }}"
-               class="px-5 py-2.5 text-slate-600 hover:text-slate-900">Annuler</a>
+        <div style="display:flex;gap:.75rem;">
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+            <a href="{{ route('superadmin.subscriptions.index') }}" class="btn">Annuler</a>
         </div>
     </form>
 </div>
+
+<style>
+    @media (min-width: 640px) {
+        .sm-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+</style>

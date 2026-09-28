@@ -44,96 +44,97 @@ $subscriptions = computed(function () {
 
 ?>
 
+@include('layouts.partials.finance-styles')
+
 <div class="p-6">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold">Abonnements</h1>
-        <p class="text-sm text-slate-500">Les abonnements négociés par école.</p>
-        @if (session('status'))
-            <div class="mb-4 rounded bg-green-100 text-green-800 px-4 py-2">
-                {{ session('status') }}
-            </div>
-        @endif
+    <div class="page-head">
+        <div>
+            <div class="page-title">Abonnements</div>
+            <div class="page-sub">Les abonnements négociés par école</div>
+        </div>
     </div>
 
-    <div class="flex flex-wrap gap-3 mb-4">
-        <input wire:model.live.debounce.300ms="search"
-               placeholder="Rechercher une école..."
-               class="border rounded px-3 py-2 flex-1 min-w-[240px]">
+    @if (session('status'))
+        <div class="fin-alert ok">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {{ session('status') }}
+        </div>
+    @endif
 
-        <select wire:model.live="statusFilter" class="border rounded px-3 py-2">
-            <option value="">Tous les statuts</option>
-            <option value="active">Actif</option>
-            <option value="trial">Essai</option>
-            <option value="suspended">Suspendu</option>
-            <option value="expired">Expiré</option>
-        </select>
+    <div class="filters">
+        <div class="filter-field" style="flex:1;min-width:240px;">
+            <span class="lbl">Recherche</span>
+            <input wire:model.live.debounce.300ms="search"
+                   placeholder="Nom de l'école..."
+                   class="fin-input">
+        </div>
+        <div class="filter-field">
+            <span class="lbl">Statut</span>
+            <select wire:model.live="statusFilter" class="fin-select">
+                <option value="">Tous les statuts</option>
+                <option value="active">Actif</option>
+                <option value="trial">Essai</option>
+                <option value="suspended">Suspendu</option>
+                <option value="expired">Expiré</option>
+            </select>
+        </div>
     </div>
 
-    <div class="bg-white rounded-lg border overflow-hidden overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-slate-50 text-left">
-                <tr class="border-b">
-                    <th class="px-4 py-3">École</th>
-                    <th class="px-4 py-3">Plan</th>
-                    <th class="px-4 py-3 text-right">Mensuel</th>
-                    <th class="px-4 py-3 text-center">Remise</th>
-                    <th class="px-4 py-3">Périodicité</th>
-                    <th class="px-4 py-3 text-right">Montant / cycle</th>
-                    <th class="px-4 py-3 text-center">Statut</th>
-                    <th class="px-4 py-3">Échéance</th>
-                    <th class="px-4 py-3">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($this->subscriptions as $sub)
-                    <tr class="border-b last:border-0 hover:bg-slate-50">
-                        <td class="px-4 py-3 font-medium">{{ $sub->school?->name ?? '—' }}</td>
-                        <td class="px-4 py-3 text-slate-600">{{ $sub->plan?->name ?? '—' }}</td>
-                        <td class="px-4 py-3 text-right">
-                            {{ number_format($sub->effectiveMonthlyAmount(), 0, ',', ' ') }} FDJ
-                        </td>
-                        <td class="px-4 py-3 text-center">
-                            {{ $sub->discount_percent > 0 ? $sub->discount_percent . ' %' : '—' }}
-                        </td>
-                        <td class="px-4 py-3">{{ $sub->cycleLabel() }}</td>
-                        <td class="px-4 py-3 text-right font-medium">
-                            {{ number_format($sub->cycleAmount(), 0, ',', ' ') }} FDJ
-                        </td>
-                        <td class="px-4 py-3 text-center">
-                            <span @class([
-                                'px-2 py-1 rounded text-xs font-medium',
-                                'bg-green-100 text-green-700'  => $sub->status === 'active',
-                                'bg-blue-100 text-blue-700'    => $sub->status === 'trial',
-                                'bg-amber-100 text-amber-700'  => $sub->status === 'suspended',
-                                'bg-red-100 text-red-700'      => $sub->status === 'expired',
-                            ])>
-                                {{ ucfirst($sub->status) }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 text-slate-600">
-                            {{ $sub->ends_at?->format('d/m/Y') ?? '—' }}
-                        </td>
-                        <td class="px-4 py-3 text-right space-x-3">
-                            <a href="{{ route('superadmin.subscriptions.edit', $sub->id) }}"
-                            class="text-sky-600 hover:text-sky-800">Modifier</a>
-                            <button wire:click="generateInvoice({{ $sub->id }})"
-                                    wire:confirm="Générer la facture du cycle courant pour {{ $sub->school?->name }} ?"
-                                    class="text-emerald-600 hover:text-emerald-800">
-                                Générer facture
-                            </button>
-                            <a href="{{ route('superadmin.invoices.index') }}"
-                            class="text-slate-600 hover:text-slate-900">🧾 Factures</a>
-                        </td>
-                    </tr>
-                @empty
+    <div class="fin-card">
+        <div class="fin-card-body">
+            <table class="fin-table">
+                <thead>
                     <tr>
-                        <td colspan="8" class="px-4 py-8 text-center text-slate-400">
-                            Aucun abonnement trouvé.
-                        </td>
+                        <th>École</th>
+                        <th>Plan</th>
+                        <th class="num">Mensuel</th>
+                        <th class="num">Remise</th>
+                        <th>Périodicité</th>
+                        <th class="num">Montant / cycle</th>
+                        <th>Statut</th>
+                        <th>Échéance</th>
+                        <th class="num">Actions</th>
                     </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @forelse ($this->subscriptions as $sub)
+                        <tr>
+                            <td style="font-weight:600;">{{ $sub->school?->name ?? '—' }}</td>
+                            <td>{{ $sub->plan?->name ?? '—' }}</td>
+                            <td class="num mono">{{ number_format($sub->effectiveMonthlyAmount(), 0, ',', ' ') }} FDJ</td>
+                            <td class="num mono">{{ $sub->discount_percent > 0 ? $sub->discount_percent . ' %' : '—' }}</td>
+                            <td>{{ $sub->cycleLabel() }}</td>
+                            <td class="num mono" style="font-weight:700;">{{ number_format($sub->cycleAmount(), 0, ',', ' ') }} FDJ</td>
+                            <td>
+                                <span @class([
+                                    'st',
+                                    'st-active'    => $sub->status === 'active',
+                                    'st-trial'     => $sub->status === 'trial',
+                                    'st-suspended' => $sub->status === 'suspended',
+                                    'st-expired'   => $sub->status === 'expired',
+                                ])>
+                                    {{ ucfirst($sub->status) }}
+                                </span>
+                            </td>
+                            <td>{{ $sub->ends_at?->format('d/m/Y') ?? '—' }}</td>
+                            <td class="num" style="white-space:nowrap;">
+                                <a href="{{ route('superadmin.subscriptions.edit', $sub->id) }}" class="btn btn-icon" title="Modifier">
+                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+                                </a>
+                                <button wire:click="generateInvoice({{ $sub->id }})"
+                                        wire:confirm="Générer la facture du cycle courant pour {{ $sub->school?->name }} ?"
+                                        class="btn btn-icon" title="Générer facture">
+                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                </button>
+                                <a href="{{ route('superadmin.invoices.index') }}" class="btn btn-icon" title="Factures">🧾</a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="9" class="fin-empty">Aucun abonnement trouvé.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <div class="mt-4">{{ $this->subscriptions->links() }}</div>

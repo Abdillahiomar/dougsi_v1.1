@@ -26,59 +26,76 @@ $toggleActive = function ($id) {
 
 ?>
 
+@include('layouts.partials.finance-styles')
+
 <div class="p-6">
     @if (session('status'))
-    <div class="mb-4 rounded bg-green-100 text-green-800 px-4 py-2">
-        {{ session('status') }}
+        <div class="fin-alert ok">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {{ session('status') }}
+        </div>
+    @endif
+
+    <div class="page-head">
+        <div>
+            <div class="page-title">Écoles</div>
+            <div class="page-sub">{{ $this->schools->total() }} école(s) sur la plateforme</div>
+        </div>
+        <a href="{{ route('superadmin.schools.create') }}" class="btn btn-primary">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Nouvelle école
+        </a>
     </div>
-@endif
-    <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
-            <h1 class="text-2xl font-bold">Écoles</h1>
-            <div class="flex flex-wrap items-center gap-3">
-                <input wire:model.live.debounce.300ms="search"
-                    placeholder="Rechercher..."
-                    class="border rounded px-3 py-2 min-w-0">
-                <a href="{{ route('superadmin.schools.create') }}"
-                class="bg-sky-600 hover:bg-sky-500 text-white rounded px-4 py-2 whitespace-nowrap">
-                    Nouvelle école
-                </a>
-            </div>
+
+    <div class="filters">
+        <div class="filter-field">
+            <span class="lbl">Recherche</span>
+            <input type="text" wire:model.live.debounce.300ms="search"
+                   placeholder="Nom de l'école..."
+                   class="fin-input">
+        </div>
     </div>
-    <div class="overflow-x-auto">
-    <table class="w-full">
-        <thead>
-            <tr class="border-b text-left">
-                <th class="py-2">Nom</th>
-                <th>Utilisateurs</th>
-                <th>Statut</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($this->schools as $school)
-                <tr class="border-b">
-                    <td class="py-2">{{ $school->name }}</td>
-                    <td>{{ $school->users_count }}</td>
-                    
-                    <td>
-                        <span @class([
-                            'px-2 py-1 rounded text-xs',
-                            'bg-green-100 text-green-700' => $school->status === 'active',
-                            'bg-red-100 text-red-700'     => $school->status !== 'active',
-                        ])>
-                            {{ $school->status === 'active' ? 'Active' : 'Suspendue' }}
-                        </span>
-                    </td>
-                    <td class="space-x-2">
-                        <a href="{{ route('superadmin.schools.show', $school) }}" class="text-blue-600">Voir</a>
-                        <button wire:click="toggleActive({{ $school->id }})" class="text-orange-600">
-                            {{ $school->status === 'active' ? 'Désactiver' : 'Activer' }}
-                        </button>
-                    </td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+
+    <div class="fin-card">
+        <div class="fin-card-body">
+            <table class="fin-table">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th class="num">Utilisateurs</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($this->schools as $school)
+                        <tr>
+                            <td style="font-weight:600;">{{ $school->name }}</td>
+                            <td class="num mono">{{ $school->users_count }}</td>
+                            <td>
+                                <span class="st {{ $school->status === 'active' ? 'st-active' : 'st-suspended' }}">
+                                    {{ $school->status === 'active' ? 'Active' : 'Suspendue' }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ route('superadmin.schools.show', $school) }}" class="btn btn-icon" title="Voir">
+                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0Z"/></svg>
+                                </a>
+                                <button wire:click="toggleActive({{ $school->id }})" class="btn btn-icon" title="{{ $school->status === 'active' ? 'Désactiver' : 'Activer' }}">
+                                    @if ($school->status === 'active')
+                                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                                    @else
+                                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    @endif
+                                </button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="4" class="fin-empty">Aucune école trouvée.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <div class="mt-4">{{ $this->schools->links() }}</div>
