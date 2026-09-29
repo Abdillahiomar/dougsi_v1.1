@@ -4,6 +4,7 @@ use App\Models\Attendance;
 use App\Models\SchoolClass;
 use App\Models\Subject;
 use App\Models\StudentSchoolYear;
+use App\Notifications\AttendanceRecorded;
 use App\Services\AcademicYearService;
 use App\Services\AccessService;
 use Illuminate\Support\Facades\Storage;
@@ -200,7 +201,7 @@ new class extends Component
                 $data['justification_path'] = $docPath;
             }
 
-            Attendance::updateOrCreate(
+            $attendance = Attendance::updateOrCreate(
                 [
                     'student_school_year_id' => $ssyId,
                     'date'                   => $this->date,
@@ -208,10 +209,44 @@ new class extends Component
                 ],
                 $data
             );
+
+            // Notifier les tuteurs uniquement pour une absence/retard nouveau
+            // ou qui vient de changer (évite de spammer à chaque ré-enregistrement).
+            if (
+                in_array($status, ['absent', 'late'], true)
+                && ($attendance->wasRecentlyCreated || $attendance->wasChanged('status'))
+            ) {
+                $this->notifyGuardians($attendance);
+            }
         }
 
         $this->documents = [];
         $this->saved     = true;
+    }
+
+    private function notifyGuardians(Attendance $attendance): void
+    {
+        $attendance->loadMissing([
+            'studentSchoolYear.student.guardians',
+            'studentSchoolYear.student.school',
+            'studentSchoolYear.schoolClass',
+        ]);
+
+        $guardians = $attendance->studentSchoolYear->student->guardians
+            ->whereNotNull('email')
+            ->where('email', '!=', '');
+
+        foreach ($guardians as $guardian) {
+            try {
+                $guardian->notify(new AttendanceRecorded($attendance));
+            } catch (\Throwable $e) {
+                \Log::error('Échec de la notification d\'absence/retard au tuteur', [
+                    'attendance_id' => $attendance->id,
+                    'guardian_id'   => $guardian->id,
+                    'error'         => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     public function deleteAttendance(int $id): void

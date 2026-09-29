@@ -234,7 +234,12 @@ new class extends Component
         // Gérer le mot de passe
         $password = null;
         if (!empty($this->smtp_password)) {
-            $password = $this->smtp_password; // Nouveau mot de passe
+            $password = trim($this->smtp_password); // Nouveau mot de passe
+            // Gmail affiche le mot de passe d'application avec des espaces
+            // ("abcd efgh ijkl mnop") mais le mot de passe réel n'en a pas.
+            if (str_contains($this->smtp_host, 'gmail.com')) {
+                $password = str_replace(' ', '', $password);
+            }
         } elseif ($existingConfig && $existingConfig->password) {
             $password = $existingConfig->password; // Garder l'ancien
         }
@@ -286,14 +291,17 @@ public function testSmtp(): void
 
         // Nettoyer le mot de passe
         $smtpPassword = trim($smtpPassword);
-        
-        // Vérifier la longueur pour Gmail
+
+        // Gmail affiche le mot de passe d'application avec des espaces
+        // (ex: "abcd efgh ijkl mnop") mais le mot de passe réel n'en contient
+        // pas — on les retire donc avant de vérifier la longueur ET avant de
+        // s'en servir pour se connecter (sinon Gmail refuse la connexion).
         if (strpos($this->smtp_host, 'gmail.com') !== false) {
-            $cleanPassword = str_replace(' ', '', $smtpPassword);
-            if (strlen($cleanPassword) !== 16) {
+            $smtpPassword = str_replace(' ', '', $smtpPassword);
+            if (strlen($smtpPassword) !== 16) {
                 throw new \Exception(
                     "⚠️ Mot de passe d'application Gmail invalide !\n\n" .
-                    "Longueur actuelle : " . strlen($cleanPassword) . " caractères\n" .
+                    "Longueur actuelle : " . strlen($smtpPassword) . " caractères\n" .
                     "Longueur attendue : 16 caractères\n\n" .
                     "Exemple valide : abcd efgh ijkl mnop\n" .
                     "Générez-en un nouveau sur :\n" .

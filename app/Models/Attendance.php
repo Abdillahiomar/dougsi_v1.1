@@ -13,6 +13,7 @@ class Attendance extends Model
         'session_end',
         'subject_id',
         'status',
+        'late_minutes',
         'justification',
         'justification_path',
         'recorded_by',

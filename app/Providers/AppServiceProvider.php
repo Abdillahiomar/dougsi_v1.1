@@ -40,27 +40,6 @@ class AppServiceProvider extends ServiceProvider
         Livewire::component('dashboard.widgets.enrollment-chart', \App\Livewire\Dashboard\Widgets\EnrollmentChart::class);
         Livewire::component('dashboard.widgets.recent-payments',  \App\Livewire\Dashboard\Widgets\RecentPayments::class);
         Livewire::component('dashboard.widgets.top-debtors',      \App\Livewire\Dashboard\Widgets\TopDebtors::class);
-
-        // app/Providers/AppServiceProvider.php — dans boot()
-        if (auth()->check() && auth()->user()->school_id) {
-            $smtp = \App\Models\SchoolSmtpConfig::where('school_id', auth()->user()->school_id)
-                ->where('is_active', true)
-                ->first();
-
-            if ($smtp) {
-                config([
-                    'mail.mailers.smtp.host'       => $smtp->host,
-                    'mail.mailers.smtp.port'       => $smtp->port,
-                    'mail.mailers.smtp.encryption' => $smtp->encryption !== 'none' ? $smtp->encryption : null,
-                    'mail.mailers.smtp.username'   => $smtp->username,
-                    'mail.mailers.smtp.password'   => $smtp->password,
-                    'mail.from.address'            => $smtp->from_email,
-                    'mail.from.name'               => $smtp->from_name,
-                ]);
-            }
-        }
-
-
     }
 
     /**

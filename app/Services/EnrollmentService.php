@@ -136,8 +136,10 @@ class EnrollmentService
                 ->first();
 
         if ($usedPlan && $usedPlan->items->isNotEmpty()) {
-            foreach ($usedPlan->items as $item) {
-                $amount  = (int) round($tuitionAmount * $item->percentage / 100);
+            $amounts = $this->splitAmountAcrossTranches($tuitionAmount, $usedPlan->items);
+
+            foreach ($usedPlan->items as $i => $item) {
+                $amount  = $amounts[$i];
                 $dueDate = $this->resolveDueDate($item->due_month, $item->due_day, $year);
 
                 StudentInvoice::create([
@@ -240,8 +242,10 @@ class EnrollmentService
 
         if ($tuitionDiscounted > 0) {
             if ($usedPlan && $usedPlan->items->isNotEmpty()) {
-                foreach ($usedPlan->items as $item) {
-                    $amount  = (int) round($tuitionDiscounted * $item->percentage / 100);
+                $amounts = $this->splitAmountAcrossTranches($tuitionDiscounted, $usedPlan->items);
+
+                foreach ($usedPlan->items as $i => $item) {
+                    $amount  = $amounts[$i];
                     $dueDate = $this->resolveDueDate($item->due_month, $item->due_day, $year);
                     $preview[] = [
                         'label'  => $item->label,
@@ -276,6 +280,41 @@ class EnrollmentService
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Répartit un montant entre les tranches d'un plan.
+     *
+     * Le pourcentage de chaque tranche est un entier (0-100) : quand le nombre
+     * de tranches ne divise pas 100 exactement (ex: 9 tranches → 11,11 % par
+     * tranche), la répartition auto-générée arrondit les pourcentages, ce qui
+     * produit des montants inégaux même pour un total qui se divise pourtant
+     * parfaitement (90 000 / 9 = 10 000 pile).
+     *
+     * On détecte ce cas (pourcentages quasi égaux, écart max 1 point — la
+     * signature d'une répartition « tranches égales ») et on divise alors le
+     * montant directement par le nombre de tranches, le reste éventuel étant
+     * ajouté à la dernière tranche. Un plan aux pourcentages volontairement
+     * différents (ex: 20/30/50) garde le calcul par pourcentage habituel.
+     *
+     * @return array<int, int> montant par index (même ordre que $items)
+     */
+    private function splitAmountAcrossTranches(int $totalAmount, \Illuminate\Support\Collection $items): array
+    {
+        $percentages = $items->pluck('percentage')->map(fn ($p) => (int) $p);
+        $isEqualSplit = $percentages->max() - $percentages->min() <= 1;
+
+        if (! $isEqualSplit) {
+            return $items->map(fn ($item) => (int) round($totalAmount * $item->percentage / 100))->all();
+        }
+
+        $count     = $items->count();
+        $base      = intdiv($totalAmount, $count);
+        $remainder = $totalAmount - ($base * $count);
+
+        return $items->values()
+            ->map(fn ($item, $i) => $i === $count - 1 ? $base + $remainder : $base)
+            ->all();
+    }
 
     private function applyDiscounts(int $amount, $discounts, string $appliesTo): float
     {
