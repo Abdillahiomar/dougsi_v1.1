@@ -25,73 +25,59 @@ $login = function () {
 
 ?>
 
-<div class="w-full max-w-md" x-data="{ show: false }">
-    <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-400/30 mb-4">
-            <svg class="w-7 h-7 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.44 60.44 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
-            </svg>
+<div class="auth-form-wrap" x-data="{ showPw: false }">
+
+    <div class="form-title">Espace Superadmin</div>
+    <div class="form-subtitle">Accès réservé à l'administration de la plateforme Dugsi.</div>
+
+    <form wire:submit="login">
+        <div class="field">
+            <label for="sa-email" class="field-label">Adresse e-mail</label>
+            <input id="sa-email" type="email" wire:model="email" autofocus
+                   class="field-input"
+                   placeholder="admin@dugsi.dj"
+                   autocomplete="username">
+            @error('email')
+                <div class="field-error">{{ $message }}</div>
+            @enderror
         </div>
-        <h1 class="text-2xl font-semibold text-white tracking-tight">Espace Superadmin</h1>
-        <p class="text-sm text-slate-400 mt-1">Dugsi — administration de la plateforme</p>
-    </div>
 
-    <div class="bg-white/5 backdrop-blur-xl ring-1 ring-white/10 rounded-2xl p-8 shadow-2xl">
-        <form wire:submit="login" class="space-y-5">
-            <div>
-                <label class="block text-sm font-medium text-slate-200 mb-1.5">Adresse e-mail</label>
-                <input type="email" wire:model="email" autofocus
-                       placeholder="admin@dugsi.dj"
-                       class="w-full rounded-lg bg-white/5 border border-white/10 px-3.5 py-2.5 text-white placeholder-slate-500 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 focus:outline-none transition">
-                @error('email')
-                    <p class="text-red-400 text-sm mt-1.5">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-slate-200 mb-1.5">Mot de passe</label>
-                <div class="relative">
-                    <input :type="show ? 'text' : 'password'" wire:model="password"
-                           placeholder="••••••••"
-                           class="w-full rounded-lg bg-white/5 border border-white/10 px-3.5 py-2.5 pr-11 text-white placeholder-slate-500 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 focus:outline-none transition">
-                    <button type="button" @click="show = !show"
-                            class="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-white transition">
-                        <svg x-show="!show" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                        </svg>
-                        <svg x-show="show" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
-                        </svg>
-                    </button>
-                </div>
-                @error('password')
-                    <p class="text-red-400 text-sm mt-1.5">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <label class="flex items-center gap-2 text-sm text-slate-300 select-none">
-                <input type="checkbox" wire:model="remember"
-                       class="rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-emerald-400/30">
-                Rester connecté
-            </label>
-
-            <button type="submit"
-                    class="w-full rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-2.5 transition focus:ring-2 focus:ring-emerald-400/50 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-                    wire:loading.attr="disabled" wire:target="login">
-                <span wire:loading.remove wire:target="login">Se connecter</span>
-                <span wire:loading wire:target="login" class="inline-flex items-center gap-2">
-                    <svg class="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"/>
+        <div class="field">
+            <label for="sa-password" class="field-label">Mot de passe</label>
+            <div class="pw-wrap">
+                <input id="sa-password" :type="showPw ? 'text' : 'password'" wire:model="password"
+                       class="field-input"
+                       placeholder="••••••••"
+                       autocomplete="current-password"
+                       style="padding-right:2.75rem;">
+                <button type="button" class="pw-toggle" @click="showPw = !showPw">
+                    <svg x-show="!showPw" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                     </svg>
-                    Connexion…
-                </span>
-            </button>
-        </form>
-    </div>
+                    <svg x-show="showPw" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="display:none;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                    </svg>
+                </button>
+            </div>
+            @error('password')
+                <div class="field-error">{{ $message }}</div>
+            @enderror
+        </div>
 
-    <p class="text-center text-xs text-slate-500 mt-6">
-        Accès réservé à l'administration Dugsi
-    </p>
+        <div class="auth-row">
+            <label class="checkbox-wrap">
+                <input type="checkbox" wire:model="remember" class="checkbox-input">
+                <span class="checkbox-label">Rester connecté</span>
+            </label>
+        </div>
+
+        <button type="submit" class="btn-submit" wire:loading.attr="disabled" wire:target="login">
+            <span wire:loading.remove wire:target="login" style="display:flex;align-items:center;gap:.5rem;">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                Se connecter
+            </span>
+            <span wire:loading wire:target="login">Connexion…</span>
+        </button>
+    </form>
 </div>

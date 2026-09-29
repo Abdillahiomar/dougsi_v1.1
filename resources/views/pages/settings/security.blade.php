@@ -1,19 +1,22 @@
 <?php
 
 use App\Concerns\PasswordValidationRules;
+use App\Models\AuditLog;
+use App\Models\User;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Actions\DisableTwoFactorAuthentication;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Laravel\Passkeys\Actions\DeletePasskey;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 
-new #[Title('Security settings')] class extends Component {
+new #[Layout('layouts.app')] #[Title('Security settings')] class extends Component {
     use PasswordValidationRules;
 
     public string $current_password = '';
@@ -40,6 +43,18 @@ new #[Title('Security settings')] class extends Component {
     #[Locked]
     public string $deletingPasskeyName = '';
 
+    #[Locked]
+    public ?string $userRole = null;
+
+    #[Locked]
+    public ?string $userSchool = null;
+
+    #[Locked]
+    public ?string $userStatus = null;
+
+    #[Locked]
+    public ?AuditLog $lastLogin = null;
+
     /**
      * Mount the component.
      */
@@ -61,6 +76,26 @@ new #[Title('Security settings')] class extends Component {
         if ($this->canManagePasskeys) {
             $this->loadPasskeys();
         }
+
+        $this->userRole   = auth()->user()->roles->first()?->label ?? auth()->user()->roles->first()?->name;
+        $this->userSchool = auth()->user()->school?->name;
+        $this->userStatus = auth()->user()->status ?? 'active';
+
+        $this->lastLogin = AuditLog::query()
+            ->where('user_type', User::class)
+            ->where('user_id', auth()->id())
+            ->where('guard', 'web')
+            ->where('event', 'login')
+            ->orderByDesc('created_at')
+            ->skip(1) // la plus récente est la connexion en cours
+            ->first()
+            ?? AuditLog::query()
+                ->where('user_type', User::class)
+                ->where('user_id', auth()->id())
+                ->where('guard', 'web')
+                ->where('event', 'login')
+                ->orderByDesc('created_at')
+                ->first();
     }
 
     /**
@@ -166,46 +201,94 @@ new #[Title('Security settings')] class extends Component {
     }
 }; ?>
 
+@include('layouts.partials.finance-styles')
+
 <section class="w-full">
     @include('partials.settings-heading')
 
     <flux:heading class="sr-only">{{ __('Security settings') }}</flux:heading>
 
-    <x-pages::settings.layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
-        <form method="POST" wire:submit="updatePassword" class="mt-6 space-y-6">
-            <flux:input
-                wire:model="current_password"
-                :label="__('Current password')"
-                type="password"
-                required
-                autocomplete="current-password"
-                viewable
-            />
-            <flux:input
-                wire:model="password"
-                :label="__('New password')"
-                type="password"
-                required
-                autocomplete="new-password"
-                passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}"
-                viewable
-            />
-            <flux:input
-                wire:model="password_confirmation"
-                :label="__('Confirm password')"
-                type="password"
-                required
-                autocomplete="new-password"
-                passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}"
-                viewable
-            />
+    <x-pages::settings.layout :heading="__('Security')" :subheading="__('Your account, password and connection security')">
 
-            <div class="flex items-center gap-4">
-                <flux:button variant="primary" type="submit" data-test="update-password-button">
+    {{-- Identité --}}
+    <div class="fin-card">
+        <div class="fin-card-header"><span class="fin-card-title">Mon compte</span></div>
+        <div class="fin-card-body">
+            <dl style="display:grid;grid-template-columns:1fr;gap:.85rem;font-size:.875rem;" class="sm-grid-2">
+                <div>
+                    <dt class="lbl">Nom</dt>
+                    <dd style="margin-top:.2rem;font-weight:600;">{{ auth()->user()->name }}</dd>
+                </div>
+                <div>
+                    <dt class="lbl">Email</dt>
+                    <dd style="margin-top:.2rem;">{{ auth()->user()->email }}</dd>
+                </div>
+                <div>
+                    <dt class="lbl">Rôle</dt>
+                    <dd style="margin-top:.3rem;"><span class="st st-trial">{{ $userRole ?? '—' }}</span></dd>
+                </div>
+                <div>
+                    <dt class="lbl">École</dt>
+                    <dd style="margin-top:.2rem;">{{ $userSchool ?? '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="lbl">Statut du compte</dt>
+                    <dd style="margin-top:.3rem;">
+                        <span @class([
+                            'st',
+                            'st-active'    => $userStatus === 'active',
+                            'st-voided'    => $userStatus === 'inactive',
+                            'st-suspended' => $userStatus === 'suspended',
+                        ])>
+                            {{ match($userStatus) { 'active' => 'Actif', 'inactive' => 'Inactif', 'suspended' => 'Suspendu', default => ucfirst($userStatus) } }}
+                        </span>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="lbl">Dernière connexion</dt>
+                    <dd style="margin-top:.2rem;">
+                        @if ($lastLogin)
+                            {{ $lastLogin->created_at?->format('d/m/Y H:i') }}
+                            <span class="mono" style="opacity:.55;font-size:.75rem;">· {{ $lastLogin->ip_address ?? '—' }}</span>
+                        @else
+                            Première connexion
+                        @endif
+                    </dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+
+    <div class="fin-card">
+        <div class="fin-card-header">
+            <span class="fin-card-title">{{ __('Update password') }}</span>
+            <span class="fin-card-sub">{{ __('Ensure your account is using a long, random password to stay secure') }}</span>
+        </div>
+        <div class="fin-card-body">
+        <form method="POST" wire:submit="updatePassword" style="display:flex;flex-direction:column;gap:1rem;max-width:420px;">
+            <div class="filter-field">
+                <span class="lbl">{{ __('Current password') }}</span>
+                <input wire:model="current_password" type="password" required autocomplete="current-password" class="fin-input">
+                @error('current_password') <span class="fin-error">{{ $message }}</span> @enderror
+            </div>
+            <div class="filter-field">
+                <span class="lbl">{{ __('New password') }}</span>
+                <input wire:model="password" type="password" required autocomplete="new-password" class="fin-input">
+                @error('password') <span class="fin-error">{{ $message }}</span> @enderror
+            </div>
+            <div class="filter-field">
+                <span class="lbl">{{ __('Confirm password') }}</span>
+                <input wire:model="password_confirmation" type="password" required autocomplete="new-password" class="fin-input">
+            </div>
+
+            <div style="display:flex;align-items:center;gap:1rem;">
+                <button type="submit" class="btn btn-primary" data-test="update-password-button">
                     {{ __('Save') }}
-                </flux:button>
+                </button>
             </div>
         </form>
+        </div>
+    </div>
 
         @if ($canManageTwoFactor)
             <section class="mt-12">
@@ -339,3 +422,10 @@ new #[Title('Security settings')] class extends Component {
         </div>
     </flux:modal>
 </section>
+
+<style>
+    .fin-error { display:block; font-size:.75rem; color:var(--accent-red); margin-top:.25rem; }
+    @media (min-width: 640px) {
+        .sm-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+</style>
