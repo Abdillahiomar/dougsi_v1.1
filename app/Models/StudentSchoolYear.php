@@ -10,7 +10,7 @@ class StudentSchoolYear extends Model
     use HasFactory;
 
     protected $fillable = [
-        'student_id', 'academic_year_id', 'school_class_id', 'enrolled_at', 'status',
+        'student_id', 'academic_year_id', 'school_class_id', 'installment_plan_id', 'enrolled_at', 'status',
     ];
 
     protected $casts = [
@@ -60,5 +60,16 @@ class StudentSchoolYear extends Model
     public function documents()
     {
         return $this->hasMany(StudentDocument::class);
+    }
+
+    public function installmentPlan()
+    {
+        return $this->belongsTo(InstallmentPlan::class);
+    }
+
+    public function discounts()
+    {
+        return $this->belongsToMany(DiscountType::class, 'student_school_year_discounts')
+            ->withTimestamps();
     }
 }

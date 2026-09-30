@@ -5,6 +5,8 @@ use App\Models\Guardian;
 use App\Models\Level;
 use App\Models\SchoolClass;
 use App\Models\AcademicYear;
+use App\Models\DiscountType;
+use App\Models\InstallmentPlan;
 use App\Models\RequiredDocument;
 use App\Models\StudentDocument;
 use App\Models\StudentSchoolYear;
@@ -35,6 +37,10 @@ new class extends Component
     // ── Scolarité ─────────────────────────────────────────────────
     public string $level_id        = '';
     public string $school_class_id = '';
+
+    // ── Plan de paiement & remises ───────────────────────────────
+    public string $installment_plan_id = '';
+    public array  $discount_ids        = [];
 
     // ── Édition d'un tuteur (inline) ─────────────────────────────
     public ?int   $editingGuardianId = null;
@@ -82,6 +88,11 @@ new class extends Component
 
         $this->school_class_id = (string) ($schoolYear?->school_class_id ?? '');
         $this->level_id        = (string) ($schoolYear?->schoolClass?->level_id ?? '');
+
+        $this->installment_plan_id = (string) ($schoolYear?->installment_plan_id ?? '');
+        $this->discount_ids = $schoolYear
+            ? $schoolYear->discounts()->pluck('discount_types.id')->map(fn ($id) => (string) $id)->all()
+            : [];
     }
 
     public function updatedLevelId(): void
@@ -134,6 +145,13 @@ new class extends Component
             );
         } elseif ($year) {
             $ssy = $this->student->schoolYears()->where('academic_year_id', $year->id)->first();
+        }
+
+        // Plan de paiement & remises — mémorisés pour référence, sans toucher
+        // aux factures déjà émises.
+        if ($ssy) {
+            $ssy->update(['installment_plan_id' => $this->installment_plan_id ?: null]);
+            $ssy->discounts()->sync($this->discount_ids);
         }
 
         // Documents fournis/remplacés
@@ -345,7 +363,18 @@ new class extends Component
                 ->keyBy('required_document_id');
         }
 
-        return compact('classes', 'levels', 'studentGuardians', 'availableGuardians', 'requiredDocs', 'existingDocs', 'year');
+        $plans = InstallmentPlan::where('school_id', $schoolId)
+            ->where('is_active', true)
+            ->with('items')
+            ->get();
+
+        $discountTypes = DiscountType::where('school_id', $schoolId)
+            ->where('is_active', true)
+            ->get();
+
+        $currentInvoices = $ssy ? $ssy->invoices()->orderBy('due_at')->get() : collect();
+
+        return compact('classes', 'levels', 'studentGuardians', 'availableGuardians', 'requiredDocs', 'existingDocs', 'plans', 'discountTypes', 'currentInvoices', 'year');
     }
 }; ?>
 
@@ -806,6 +835,68 @@ new class extends Component
                             @error('status') <span class="form-error">{{ $message }}</span> @enderror
                         </div>
                     </div>
+
+                </div>
+            </div>
+
+            {{-- Plan de paiement & remises --}}
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-icon" style="background:rgba(99,102,241,.1); color:#3730A3;">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    </div>
+                    <span class="card-title">Plan de paiement & remises</span>
+                </div>
+                <div class="card-body">
+
+                    <p class="form-hint" style="margin-bottom:1rem;">
+                        Ce choix sert de référence pour les prochaines factures — il ne modifie pas les factures déjà émises ci-dessous.
+                    </p>
+
+                    <div class="form-row single">
+                        <div class="form-field">
+                            <label class="form-label">Plan de paiement</label>
+                            <select wire:model="installment_plan_id" class="form-select">
+                                <option value="">— Facture unique (aucun plan) —</option>
+                                @foreach ($plans as $plan)
+                                    <option value="{{ $plan->id }}">{{ $plan->name }} ({{ $plan->installments_count }} tranche{{ $plan->installments_count > 1 ? 's' : '' }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    @if ($discountTypes->isNotEmpty())
+                        <div class="form-field" style="margin-bottom:1rem;">
+                            <label class="form-label">Remises actives</label>
+                            <div style="display:flex; flex-direction:column; gap:.5rem; margin-top:.4rem;">
+                                @foreach ($discountTypes as $discount)
+                                    <label style="display:flex; align-items:center; gap:.5rem; font-size:.875rem; cursor:pointer;">
+                                        <input type="checkbox" wire:model="discount_ids" value="{{ $discount->id }}">
+                                        {{ $discount->name }} ({{ $discount->formatted_value }})
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    @if ($currentInvoices->isNotEmpty())
+                        <div class="form-field">
+                            <label class="form-label">Factures de l'année en cours</label>
+                            <div style="display:flex; flex-direction:column; gap:.4rem; margin-top:.4rem;">
+                                @foreach ($currentInvoices as $invoice)
+                                    <div style="display:flex; align-items:center; justify-content:space-between; padding:.5rem .75rem; border:1px solid var(--line); border-radius:8px; font-size:.8125rem;">
+                                        <span>{{ $invoice->label ?: $invoice->invoice_number }}</span>
+                                        <span style="display:flex; align-items:center; gap:.5rem;">
+                                            <span style="font-family:'JetBrains Mono',monospace;">{{ number_format($invoice->amount_due, 0, ',', ' ') }} DJF</span>
+                                            <span class="badge {{ $invoice->status === 'paid' ? 'badge-active' : ($invoice->status === 'overdue' ? 'badge-dropped' : 'badge-transferred') }}">
+                                                {{ match($invoice->status) { 'paid'=>'Payée','partially_paid'=>'Partielle','overdue'=>'En retard',default=>'Impayée' } }}
+                                            </span>
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
 
                 </div>
             </div>

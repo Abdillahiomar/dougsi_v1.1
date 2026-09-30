@@ -13,7 +13,7 @@ class StudentInvoice extends Model
 
     protected $fillable = [
         'school_id', 'academic_year_id', 'student_school_year_id', 'fee_structure_id',
-        'invoice_number', 'amount_due', 'amount_paid', 'issued_at', 'due_at', 'status',
+        'invoice_number', 'label', 'amount_due', 'amount_paid', 'issued_at', 'due_at', 'status',
     ];
 
     protected $casts = [

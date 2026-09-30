@@ -27,12 +27,17 @@ class EnrollmentService
         bool             $isReinscription = false
     ): StudentSchoolYear {
         $ssy = StudentSchoolYear::create([
-            'student_id'       => $student->id,
-            'academic_year_id' => $year->id,
-            'school_class_id'  => $schoolClassId,
-            'enrolled_at'      => now(),
-            'status'           => 'enrolled',
+            'student_id'          => $student->id,
+            'academic_year_id'    => $year->id,
+            'school_class_id'     => $schoolClassId,
+            'installment_plan_id' => $plan?->id,
+            'enrolled_at'         => now(),
+            'status'              => 'enrolled',
         ]);
+
+        if (! empty($discountIds)) {
+            $ssy->discounts()->sync($discountIds);
+        }
 
         // Charger explicitement après create() — les relations ne sont pas chargées automatiquement
         $ssy->load(['schoolClass.level']);
