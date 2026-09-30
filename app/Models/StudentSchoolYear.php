@@ -56,4 +56,9 @@ class StudentSchoolYear extends Model
     {
         return $this->hasMany(HomeworkSubmission::class);
     }
+
+    public function documents()
+    {
+        return $this->hasMany(StudentDocument::class);
+    }
 }
