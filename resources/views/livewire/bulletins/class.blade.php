@@ -4,6 +4,7 @@ use App\Models\Bulletin;
 use App\Models\SchoolClass;
 use App\Models\StudentSchoolYear;
 use App\Services\AcademicYearService;
+use App\Services\AccessService;
 use App\Services\BulletinService;
 use App\Services\GradingConfigService;
 use Livewire\Attributes\Layout;
@@ -23,6 +24,14 @@ new class extends Component
 
     public function mount(SchoolClass $schoolClass): void
     {
+        // Périmètre : la classe appartient-elle à l'école + au périmètre de l'utilisateur ?
+        $myClassIds = AccessService::myClassIds();
+        abort_unless(
+            $schoolClass->school_id === auth()->user()->school_id
+                && ($myClassIds === null || in_array($schoolClass->id, $myClassIds)),
+            403
+        );
+
         $this->schoolClass = $schoolClass;
 
         // Initialiser la période depuis la config de l'école
@@ -79,6 +88,18 @@ new class extends Component
 
     public function generateAll(): void
     {
+        // Permission
+        abort_unless(auth()->user()->can('bulletins.generate'), 403);
+
+        // Périmètre : re-vérifié à chaque appel (la propriété de classe est
+        // exposée au client, comme toute propriété publique Livewire).
+        $myClassIds = AccessService::myClassIds();
+        $classOk = SchoolClass::where('id', $this->schoolClass->id)
+            ->where('school_id', auth()->user()->school_id)
+            ->when($myClassIds !== null, fn ($q) => $q->whereIn('id', $myClassIds))
+            ->exists();
+        abort_unless($classOk, 403);
+
         $year     = AcademicYearService::current();
         $service  = new BulletinService();
 
@@ -101,6 +122,15 @@ new class extends Component
 
     public function saveDecision(string $ssyId, string $decision): void
     {
+        // Permission
+        abort_unless(auth()->user()->can('bulletins.generate'), 403);
+
+        // Périmètre : l'élève appartient-il bien à cette classe ?
+        $ssyInScope = StudentSchoolYear::where('id', $ssyId)
+            ->where('school_class_id', $this->schoolClass->id)
+            ->exists();
+        abort_unless($ssyInScope, 403);
+
         $this->decisions[$ssyId] = $decision;
 
         // Sauvegarder immédiatement si le bulletin existe

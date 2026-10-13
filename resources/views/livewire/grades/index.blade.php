@@ -79,16 +79,52 @@ new class extends Component
     {
         if (! $this->evalId) return;
 
+        $eval = Evaluation::find($this->evalId);
+        if (! $eval || ! $this->evaluationInScope($eval)) {
+            $this->evalId = '';
+            return;
+        }
+
         $existing = Grade::where('evaluation_id', $this->evalId)->get();
         foreach ($existing as $g) {
             $this->scores[(string) $g->student_school_year_id] = (string) $g->score;
         }
     }
 
+    /**
+     * L'évaluation appartient-elle à l'école + au périmètre (classe/matière)
+     * de l'utilisateur ? Même règle que pour l'écriture (saveGrades), utilisée
+     * aussi en lecture pour qu'un evalId forgé ne révèle pas de données d'une
+     * autre classe/matière.
+     */
+    private function evaluationInScope(Evaluation $eval): bool
+    {
+        $myClassIds = AccessService::myClassIds();
+        $classOk = SchoolClass::where('id', $eval->school_class_id)
+            ->where('school_id', auth()->user()->school_id)
+            ->when($myClassIds !== null, fn ($q) => $q->whereIn('id', $myClassIds))
+            ->exists();
+
+        if (! $classOk) return false;
+
+        $mySubjectIds = AccessService::mySubjectIds();
+        if ($mySubjectIds !== null) {
+            return \App\Models\ClassSubjectTeacher::where('school_class_id', $eval->school_class_id)
+                ->where('subject_id', $eval->subject_id)
+                ->where('staff_id', auth()->user()->staff?->id)
+                ->exists();
+        }
+
+        return true;
+    }
+
     public function createEvaluation(): void
     {
         // Permission
         abort_unless(auth()->user()->can('grades.enter'), 403);
+
+        // La période est-elle ouverte à la saisie ?
+        abort_unless($this->isGradingOpen(), 403);
 
         $this->validate([
             'evalType'     => 'required|string',
@@ -160,6 +196,9 @@ new class extends Component
         // Permission
         abort_unless(auth()->user()->can('grades.enter'), 403);
 
+        // La période est-elle ouverte à la saisie ?
+        abort_unless($this->isGradingOpen(), 403);
+
         if (! $this->evalId) return;
 
         $eval = Evaluation::find($this->evalId);
@@ -167,23 +206,8 @@ new class extends Component
 
         $year = AcademicYearService::current();
 
-        // La classe de l'évaluation est-elle dans le périmètre + l'école ?
-        $myClassIds = AccessService::myClassIds();
-        $classOk = SchoolClass::where('id', $eval->school_class_id)
-            ->where('school_id', auth()->user()->school_id)
-            ->when($myClassIds !== null, fn ($q) => $q->whereIn('id', $myClassIds))
-            ->exists();
-        abort_unless($classOk, 403);
-
-        // La matière de l'évaluation fait-elle partie des matières de l'utilisateur ?
-        $mySubjectIds = AccessService::mySubjectIds();
-        if ($mySubjectIds !== null) {
-            $subjectOk = \App\Models\ClassSubjectTeacher::where('school_class_id', $eval->school_class_id)
-                ->where('subject_id', $eval->subject_id)
-                ->where('staff_id', auth()->user()->staff?->id)
-                ->exists();
-            abort_unless($subjectOk, 403);
-        }
+        // La classe + la matière de l'évaluation sont-elles dans le périmètre de l'utilisateur ?
+        abort_unless($this->evaluationInScope($eval), 403);
 
         // Les élèves notés appartiennent-ils bien à la classe de l'évaluation ?
         $validSsyIds = StudentSchoolYear::where('school_class_id', $eval->school_class_id)
@@ -326,10 +350,13 @@ new class extends Component
                 ->get();
         }
 
-        // Évaluation courante
+        // Évaluation courante — ignorée si hors du périmètre de l'utilisateur
         $currentEval = $this->evalId
             ? Evaluation::find($this->evalId)
             : null;
+        if ($currentEval && ! $this->evaluationInScope($currentEval)) {
+            $currentEval = null;
+        }
 
         // Élèves de la classe
         $students = collect();
@@ -556,15 +583,23 @@ new class extends Component
                 <div class="card">
                     <div class="card-header">
                         <span class="card-title">Évaluation — {{ $period }}</span>
-                        <button wire:click="$toggle('showEvalForm')" class="btn-secondary">
-                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                            Nouvelle évaluation
-                        </button>
+                        @if ($gradingPeriodOpen)
+                            <button wire:click="$toggle('showEvalForm')" class="btn-secondary">
+                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                Nouvelle évaluation
+                            </button>
+                        @endif
                     </div>
                     <div class="card-body">
 
+                        @if (! $gradingPeriodOpen)
+                            <div style="font-size:.8125rem;color:var(--accent-red);background:rgba(224,92,58,.08);border:1px solid rgba(224,92,58,.2);border-radius:8px;padding:.6rem .9rem;margin-bottom:1rem;">
+                                La saisie est fermée pour cette période — la création d'évaluations est désactivée.
+                            </div>
+                        @endif
+
                         {{-- Formulaire nouvelle évaluation --}}
-                        @if ($showEvalForm)
+                        @if ($showEvalForm && $gradingPeriodOpen)
                             <div class="eval-form">
                                 <div class="eval-form-grid">
                                     <div class="form-field">
