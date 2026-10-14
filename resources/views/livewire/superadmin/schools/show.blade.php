@@ -1,10 +1,21 @@
 <?php
 use function Livewire\Volt\{state, mount, layout, computed};
 use App\Models\{School, User, Student, SchoolClass, Staff};
+use App\Services\RoleTemplateService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Spatie\Permission\PermissionRegistrar;
 
 layout('layouts.superadmin');
 
-state(['school' => null]);
+state([
+    'school'                 => null,
+    'showAddAdmin'           => false,
+    'newAdminName'           => '',
+    'newAdminEmail'          => '',
+    'generatedAdminPassword' => null,
+]);
 
 mount(function (School $school) {
     $this->school = $school;
@@ -32,6 +43,46 @@ $admin = computed(function () {
 $toggleActive = function () {
     $this->school->update(['status' => $this->school->status === 'active' ? 'suspended' : 'active']);
     $this->school->refresh();
+};
+
+$toggleAddAdmin = function () {
+    $this->showAddAdmin = ! $this->showAddAdmin;
+    $this->reset(['newAdminName', 'newAdminEmail']);
+};
+
+$createAdmin = function () {
+    abort_unless(auth('superadmin')->check(), 403);
+
+    $this->validate([
+        'newAdminName'  => 'required|string|max:200',
+        'newAdminEmail' => 'required|email|max:200|unique:users,email',
+    ]);
+
+    $password = Str::password(10);
+
+    DB::transaction(function () use ($password) {
+        $admin = User::create([
+            'name'      => $this->newAdminName,
+            'email'     => $this->newAdminEmail,
+            'password'  => Hash::make($password),
+            'school_id' => $this->school->id,
+            'status'    => 'active',
+        ]);
+
+        // S'assure que les rôles standards existent pour cette école (réparation
+        // idempotente — utile si l'école a été créée avant la mise en place des
+        // rôles, ou si son rôle "admin" a été supprimé par erreur).
+        RoleTemplateService::createForSchool($this->school->id);
+
+        app(PermissionRegistrar::class)->setPermissionsTeamId($this->school->id);
+        $admin->assignRole('admin');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    });
+
+    $this->generatedAdminPassword = $password;
+    $this->reset(['newAdminName', 'newAdminEmail', 'showAddAdmin']);
+
+    unset($this->admin);
 };
 
 ?>
@@ -100,6 +151,22 @@ $toggleActive = function () {
         <div class="fin-card">
             <div class="fin-card-header"><span class="fin-card-title">Administrateur</span></div>
             <div class="fin-card-body">
+                @if ($generatedAdminPassword)
+                    <div class="fin-alert ok" style="align-items:flex-start;margin-bottom:1rem;">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div>
+                            <p style="font-weight:600;">Administrateur créé.</p>
+                            <p style="margin-top:.25rem;">
+                                Mot de passe temporaire :
+                                <code class="mono" style="background:var(--paper-raised);padding:2px 8px;border-radius:6px;border:1px solid var(--line);">{{ $generatedAdminPassword }}</code>
+                            </p>
+                            <p style="margin-top:.25rem;opacity:.8;font-size:.75rem;">
+                                Communiquez-le à l'école. Il ne sera plus affiché après fermeture.
+                            </p>
+                        </div>
+                    </div>
+                @endif
+
                 @if ($this->admin)
                     <dl style="display:flex;flex-direction:column;gap:.75rem;font-size:.875rem;">
                         <div style="display:flex;justify-content:space-between;">
@@ -111,8 +178,29 @@ $toggleActive = function () {
                             <dd>{{ $this->admin->email }}</dd>
                         </div>
                     </dl>
+                @elseif ($showAddAdmin)
+                    <form wire:submit="createAdmin" style="display:flex;flex-direction:column;gap:.75rem;">
+                        <div class="filter-field">
+                            <span class="lbl">Nom complet</span>
+                            <input wire:model="newAdminName" type="text" class="fin-input" placeholder="Ex: Amina Hassan">
+                            @error('newAdminName') <span class="fin-error">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="filter-field">
+                            <span class="lbl">Email de connexion</span>
+                            <input wire:model="newAdminEmail" type="email" class="fin-input" placeholder="admin@ecole.dj">
+                            @error('newAdminEmail') <span class="fin-error">{{ $message }}</span> @enderror
+                        </div>
+                        <p class="form-hint" style="font-size:.75rem;opacity:.6;">
+                            Un mot de passe temporaire sera généré automatiquement et affiché une seule fois.
+                        </p>
+                        <div style="display:flex;gap:.5rem;">
+                            <button type="submit" class="btn btn-primary">Créer l'administrateur</button>
+                            <button type="button" wire:click="toggleAddAdmin" class="btn">Annuler</button>
+                        </div>
+                    </form>
                 @else
-                    <p class="fin-empty" style="padding:.5rem 0;">Aucun administrateur défini.</p>
+                    <p class="fin-empty" style="padding:.5rem 0 1rem;">Aucun administrateur défini.</p>
+                    <button wire:click="toggleAddAdmin" class="btn btn-primary">+ Créer un administrateur</button>
                 @endif
             </div>
         </div>
@@ -136,6 +224,7 @@ $toggleActive = function () {
 </div>
 
 <style>
+    .fin-error { display:block; font-size:.75rem; color:var(--accent-red); margin-top:.25rem; }
     @media (min-width: 640px) {
         .sm-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
     }

@@ -107,6 +107,8 @@ class RoleTemplateService
         $registrar = app(PermissionRegistrar::class);
         $registrar->setPermissionsTeamId($schoolId);
 
+        self::ensurePermissionsExist();
+
         foreach (self::template() as $roleName => $permissions) {
             $role = Role::firstOrCreate([
                 'name'       => $roleName,
@@ -114,11 +116,30 @@ class RoleTemplateService
                 'school_id'  => $schoolId,
             ]);
 
-            // syncPermissions ne pose que les permissions qui existent réellement.
-            // (Si une permission du template n'existe pas en base, elle est ignorée.)
             $role->syncPermissions($permissions);
         }
 
         $registrar->forgetCachedPermissions();
+    }
+
+    /**
+     * Crée les éventuelles permissions du template qui n'existent pas encore
+     * en base (Spatie refuse de les assigner à un rôle sinon). Idempotent.
+     */
+    private static function ensurePermissionsExist(): void
+    {
+        $allPermissions = collect(self::template())->flatten()->unique();
+
+        $existing = \Spatie\Permission\Models\Permission::where('guard_name', 'web')
+            ->pluck('name');
+
+        $missing = $allPermissions->diff($existing);
+
+        foreach ($missing as $permissionName) {
+            \Spatie\Permission\Models\Permission::firstOrCreate([
+                'name'       => $permissionName,
+                'guard_name' => 'web',
+            ]);
+        }
     }
 }

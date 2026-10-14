@@ -8,7 +8,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Inter:opsz,wght@14..32,400..700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Inter:opsz,wght@14..32,400..700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
     /* ---------- RESET & BASE ---------- */
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -22,7 +22,7 @@
     a { text-decoration: none; color: inherit; }
     .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 
-    /* ---------- COULEURS ---------- */
+    /* ---------- COULEURS (identiques à l'application) ---------- */
     :root {
       --primary: #10B981;
       --primary-dark: #059669;
@@ -33,6 +33,8 @@
       --slate-text: #475569;
       --border: #E2E8F0;
       --white: #FFFFFF;
+      --amber: #E8A838;
+      --red: #E05C3A;
     }
 
     /* ---------- BOUTONS ---------- */
@@ -81,18 +83,18 @@
     }
     .nav-login:hover { background: rgba(255,255,255,0.08); }
 
-    /* ---------- HERO (Pitch principal) ---------- */
+    /* ---------- HERO ---------- */
     .hero {
       background: var(--navy); color: var(--white);
-      position: relative; overflow: hidden; padding: 80px 0 100px;
+      position: relative; overflow: hidden; padding: 84px 0 110px;
     }
     .hero .blob {
-      position: absolute; border-radius: 50%; filter: blur(60px);
-      opacity: 0.15;
+      position: absolute; border-radius: 50%; filter: blur(70px);
+      opacity: 0.16;
     }
-    .blob-1 { width: 500px; height: 500px; background: var(--primary); top: -200px; right: -100px; }
-    .blob-2 { width: 400px; height: 400px; background: var(--primary); bottom: -200px; left: -100px; }
-    .hero .container { position: relative; z-index: 2; display: grid; grid-template-columns: 1.1fr 1fr; gap: 60px; align-items: center; }
+    .blob-1 { width: 520px; height: 520px; background: var(--primary); top: -220px; right: -120px; }
+    .blob-2 { width: 420px; height: 420px; background: var(--primary); bottom: -220px; left: -120px; }
+    .hero .container { position: relative; z-index: 2; display: grid; grid-template-columns: 1.05fr 1fr; gap: 64px; align-items: center; }
     .hero-badge {
       display: inline-flex; align-items: center; gap: 8px;
       background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3);
@@ -100,17 +102,17 @@
       font-size: 13px; font-weight: 600; margin-bottom: 24px;
     }
     .hero h1 {
-      font-family: 'Fraunces', serif; font-weight: 900; font-size: 48px;
-      line-height: 1.1; letter-spacing: -1px;
+      font-family: 'Fraunces', serif; font-weight: 900; font-size: 50px;
+      line-height: 1.08; letter-spacing: -1.2px;
     }
     .hero h1 em { color: var(--primary); font-style: normal; }
     .hero p {
       font-size: 18px; color: rgba(255,255,255,0.85);
-      max-width: 520px; margin: 20px 0 32px;
+      max-width: 520px; margin: 22px 0 32px;
     }
     .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; }
     .hero-stats {
-      display: flex; gap: 40px; margin-top: 38px;
+      display: flex; gap: 40px; margin-top: 40px;
       padding-top: 28px; border-top: 1px solid rgba(255,255,255,0.08);
     }
     .hero-stats .num {
@@ -119,75 +121,108 @@
     }
     .hero-stats .lbl { font-size: 13px; color: rgba(255,255,255,0.6); }
 
-    /* Hero visuel (mockup avec overlay play) */
-    .hero-visual { perspective: 1200px; }
-    .hero-mock {
+    /* ---------- MOCKUP D'INTERFACE (construit en CSS, fidèle au vrai design) ---------- */
+    .app-mockup {
       border-radius: 18px; overflow: hidden;
       box-shadow: 0 30px 70px rgba(0,0,0,0.5);
       transform: rotateY(-6deg) rotateX(4deg);
       transition: transform 0.5s ease;
-      position: relative;
+      background: var(--white);
+      border: 1px solid rgba(255,255,255,0.08);
     }
-    .hero-mock:hover { transform: rotateY(-2deg) rotateX(2deg); }
-    .hero-mock img { display: block; width: 100%; height: auto; }
-    .play-overlay {
-      position: absolute; inset: 0;
-      background: rgba(15,23,42,0.5);
-      display: flex; align-items: center; justify-content: center;
-      opacity: 0; transition: opacity 0.3s ease;
-      cursor: pointer;
+    .app-mockup:hover { transform: rotateY(-2deg) rotateX(2deg); }
+    .mock-topbar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 16px; background: #E2E8F0;
     }
-    .hero-mock:hover .play-overlay { opacity: 1; }
-    .play-btn {
-      width: 70px; height: 70px; border-radius: 50%;
-      background: var(--primary); display: flex; align-items: center; justify-content: center;
-      font-size: 30px; color: white; box-shadow: 0 0 0 12px rgba(16,185,129,0.3);
-      transition: transform 0.2s;
+    .mock-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .mock-dot.r { background: #F87171; } .mock-dot.y { background: #FBBF24; } .mock-dot.g { background: #34D399; }
+    .mock-url {
+      margin-left: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: #64748B; background: #F8FAFC; border-radius: 6px; padding: 4px 12px;
+      flex: 1;
     }
-    .play-btn:hover { transform: scale(1.08); }
+    .mock-app-body { display: flex; min-height: 300px; }
+    .mock-sidebar {
+      width: 150px; background: var(--navy); padding: 18px 0; flex-shrink: 0;
+    }
+    .mock-brand {
+      font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px;
+      color: white; padding: 0 16px 16px; border-bottom: 1px solid rgba(255,255,255,.08); margin-bottom: 12px;
+    }
+    .mock-brand span { color: var(--primary); }
+    .mock-nav-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px; font-size: 11.5px; font-weight: 500;
+      color: rgba(255,255,255,.55);
+    }
+    .mock-nav-item.active { background: rgba(255,255,255,.08); color: white; position: relative; }
+    .mock-nav-item.active::before {
+      content: ''; position: absolute; left: 0; top: 4px; bottom: 4px; width: 3px;
+      background: var(--primary); border-radius: 0 2px 2px 0;
+    }
+    .mock-main { flex: 1; padding: 20px; background: var(--slate); }
+    .mock-kpis { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
+    .mock-kpi {
+      background: white; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+    }
+    .mock-kpi.good { background: var(--navy); border-color: var(--navy); }
+    .mock-kpi .k-lbl {
+      font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .06em; color: #64748B; opacity: .7;
+    }
+    .mock-kpi.good .k-lbl { color: rgba(255,255,255,.55); }
+    .mock-kpi .k-val {
+      font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 17px;
+      color: var(--navy); margin-top: 3px;
+    }
+    .mock-kpi.good .k-val { color: white; }
+    .mock-table { background: white; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .mock-row {
+      display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px;
+      padding: 9px 12px; font-size: 11px; border-bottom: 1px solid var(--border);
+      align-items: center;
+    }
+    .mock-row:last-child { border-bottom: none; }
+    .mock-row.header {
+      font-family: 'JetBrains Mono', monospace; font-size: 8.5px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em; color: #94A3B8; background: #F8FAFC;
+    }
+    .mock-badge {
+      display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 8.5px; font-weight: 700;
+      padding: 2px 8px; border-radius: 4px; width: fit-content;
+    }
+    .mock-badge.good { background: rgba(16,185,129,.12); color: #047857; }
+    .mock-badge.warn { background: rgba(232,168,56,.18); color: #8A6010; }
 
-    /* ---------- PREUVE SOCIALE ---------- */
-    .proof {
-      background: var(--white); padding: 32px 0;
-      border-bottom: 1px solid var(--border);
+    /* ---------- PREUVE SOCIALE : écoles qui utilisent Dougsi ---------- */
+    .proof { background: var(--white); padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .proof .label {
+      display: block; text-align: center; color: var(--slate-text); font-size: 13px; font-weight: 600;
+      letter-spacing: 1px; text-transform: uppercase; margin-bottom: 22px;
     }
-    .proof .container { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
-    .proof .label { color: var(--slate-text); font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
-    .pilot-card {
-      display: flex; align-items: center; gap: 16px;
-      background: var(--slate); border: 1px solid var(--border); border-radius: 16px;
-      padding: 12px 24px;
+    .school-strip {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 14px;
     }
-    .pilot-card .avatar {
-      width: 48px; height: 48px; border-radius: 12px;
-      background: var(--primary); display: flex; align-items: center; justify-content: center;
-      font-family: 'Fraunces', serif; font-weight: 900; font-size: 22px; color: white;
+    .school-chip {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--slate); border: 1px solid var(--border); border-radius: 14px;
+      padding: 10px 18px;
     }
-    .pilot-card strong { display: block; font-size: 15px; }
-    .pilot-card span { font-size: 13px; color: var(--slate-text); }
-    .pilot-badge {
-      background: var(--primary-soft); color: var(--primary-dark);
-      font-size: 11px; font-weight: 700; padding: 2px 12px; border-radius: 999px;
+    .school-chip .avatar {
+      width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+      background: var(--navy); display: flex; align-items: center; justify-content: center;
+      font-family: 'Fraunces', serif; font-weight: 800; font-size: 15px; color: var(--primary);
     }
+    .school-chip span { font-size: 14px; font-weight: 600; color: var(--navy); }
 
     /* ---------- SECTIONS ---------- */
     .section { padding: 90px 0; }
-    .section-header {
-      text-align: center; max-width: 700px; margin: 0 auto 56px;
-    }
-    .eyebrow {
-      color: var(--primary); font-weight: 700; font-size: 14px;
-      letter-spacing: 1px; text-transform: uppercase;
-    }
-    .section-header h2 {
-      font-family: 'Fraunces', serif; font-weight: 700; font-size: 38px;
-      margin-top: 8px; line-height: 1.15;
-    }
-    .section-header p {
-      color: var(--slate-text); font-size: 17px; margin-top: 12px;
-    }
+    .section-header { text-align: center; max-width: 700px; margin: 0 auto 56px; }
+    .eyebrow { color: var(--primary); font-weight: 700; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
+    .section-header h2 { font-family: 'Fraunces', serif; font-weight: 700; font-size: 38px; margin-top: 8px; line-height: 1.15; }
+    .section-header p { color: var(--slate-text); font-size: 17px; margin-top: 12px; }
 
-    /* Grille fonctionnalités */
     .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 28px; }
     .card {
       background: var(--white); border: 1px solid var(--border);
@@ -203,61 +238,43 @@
     .card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
     .card p { color: var(--slate-text); font-size: 14.5px; }
 
-    /* ---------- DÉMONSTRATION VIDÉO (remplace la 2e capture) ---------- */
-    .video-section { background: var(--slate); }
-    .video-wrapper {
-      max-width: 900px; margin: 0 auto;
-      background: var(--navy); border-radius: 24px; overflow: hidden;
-      box-shadow: 0 24px 60px rgba(15,23,42,0.15);
-      position: relative;
-    }
-    .video-wrapper img { display: block; width: 100%; height: auto; }
-    .video-play {
-      position: absolute; inset: 0;
-      background: rgba(15,23,42,0.4);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      cursor: pointer; transition: background 0.3s;
-    }
-    .video-play:hover { background: rgba(15,23,42,0.25); }
-    .video-play .big-play {
-      width: 80px; height: 80px; border-radius: 50%;
-      background: var(--primary); display: flex; align-items: center; justify-content: center;
-      font-size: 36px; color: white; box-shadow: 0 0 0 16px rgba(16,185,129,0.25);
-      transition: transform 0.2s;
-    }
-    .video-play .big-play:hover { transform: scale(1.06); }
-    .video-play p { color: white; font-weight: 600; margin-top: 20px; font-size: 18px; }
+    /* ---------- APERÇU BULLETIN (2e mockup, section "Voir Dougsi en action") ---------- */
+    .demo-section { background: var(--slate); }
+    .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; max-width: 1000px; margin: 0 auto; }
+    .demo-text h3 { font-family: 'Fraunces', serif; font-size: 24px; margin-bottom: 12px; }
+    .demo-text p { color: var(--slate-text); font-size: 15.5px; margin-bottom: 20px; }
+    .demo-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .demo-list li { display: flex; align-items: center; gap: 10px; font-size: 14.5px; color: var(--navy); font-weight: 500; }
+    .demo-list li::before { content: '✓'; color: var(--primary); font-weight: 900; }
 
-    /* ---------- ROI / CHIFFRES CLÉS ---------- */
-    .roi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 24px; }
-    .roi-item {
-      text-align: center; padding: 24px; background: var(--slate); border-radius: 20px;
+    .bulletin-mock {
+      background: white; border: 1px solid var(--border); border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(15,23,42,0.1); overflow: hidden;
+    }
+    .bulletin-mock-head { background: var(--navy); color: white; padding: 16px 20px; }
+    .bulletin-mock-head .bname { font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px; }
+    .bulletin-mock-head .bsub { font-size: 11px; opacity: .6; margin-top: 2px; }
+    .bulletin-mock-body { padding: 16px 20px; }
+    .bm-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12.5px;
+    }
+    .bm-row:last-child { border-bottom: none; }
+    .bm-subject { font-weight: 600; color: var(--navy); }
+    .bm-avg { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--primary-dark); }
+    .bm-footer { background: var(--slate); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .bm-footer .glabel { font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #64748B; }
+    .bm-footer .gval { font-family: 'Fraunces', serif; font-weight: 800; font-size: 20px; color: var(--navy); }
+
+    /* ---------- CE QUI CHANGE POUR VOUS ---------- */
+    .benefits-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 24px; }
+    .benefit-item {
+      text-align: center; padding: 28px 20px; background: var(--slate); border-radius: 20px;
       border: 1px solid var(--border);
     }
-    .roi-item .number {
-      font-family: 'Fraunces', serif; font-weight: 900; font-size: 36px;
-      color: var(--primary);
-    }
-    .roi-item .label { font-size: 14px; color: var(--slate-text); margin-top: 4px; }
-
-    /* ---------- TÉMOIGNAGE ---------- */
-    .testimonial {
-      background: var(--navy); color: var(--white); border-radius: 24px;
-      padding: 48px 56px; max-width: 800px; margin: 0 auto;
-      position: relative;
-    }
-    .testimonial .quote {
-      font-family: 'Fraunces', serif; font-size: 24px; font-weight: 600;
-      line-height: 1.4;
-    }
-    .testimonial .author { margin-top: 20px; display: flex; align-items: center; gap: 16px; }
-    .testimonial .author .photo {
-      width: 52px; height: 52px; border-radius: 50%;
-      background: var(--primary); display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 20px; color: white;
-    }
-    .testimonial .author .name { font-weight: 700; }
-    .testimonial .author .title { font-size: 14px; color: rgba(255,255,255,0.7); }
+    .benefit-item .bi { font-size: 30px; margin-bottom: 10px; }
+    .benefit-item h4 { font-size: 15.5px; font-weight: 700; margin-bottom: 6px; }
+    .benefit-item p { font-size: 13.5px; color: var(--slate-text); }
 
     /* ---------- ÉTAPES ---------- */
     .steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 24px; }
@@ -296,30 +313,34 @@
       display: flex; justify-content: space-between; align-items: center;
     }
     details summary::-webkit-details-marker { display: none; }
-    details summary::after {
-      content: "+"; font-size: 24px; color: var(--primary);
-      transition: transform 0.2s;
-    }
+    details summary::after { content: "+"; font-size: 24px; color: var(--primary); transition: transform 0.2s; }
     details[open] summary::after { content: "−"; }
     details .answer { padding: 0 24px 20px; color: var(--slate-text); font-size: 14.5px; }
+
+    /* ---------- TARIFS ---------- */
+    .pricing-box {
+      max-width: 680px; margin: 0 auto; background: var(--navy); color: white;
+      border-radius: 24px; padding: 48px 36px; text-align: center; position: relative; overflow: hidden;
+    }
+    .pricing-box h3 { font-family: 'Fraunces', serif; font-size: 28px; }
+    .pricing-box > p { margin: 16px 0 24px; color: rgba(255,255,255,0.8); }
+    .pricing-tags { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+    .pricing-tags span {
+      background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: var(--primary-soft);
+      padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    }
 
     /* ---------- CTA FINAL ---------- */
     .cta-final {
       background: var(--navy); color: var(--white); text-align: center;
       border-radius: 28px; padding: 72px 40px; position: relative; overflow: hidden;
     }
-    .cta-final h2 {
-      font-family: 'Fraunces', serif; font-weight: 700; font-size: 38px;
-      line-height: 1.15;
-    }
+    .cta-final h2 { font-family: 'Fraunces', serif; font-weight: 700; font-size: 38px; line-height: 1.15; }
     .cta-final h2 em { color: var(--primary); font-style: normal; }
     .cta-final p { font-size: 18px; color: rgba(255,255,255,0.82); margin: 16px auto 30px; max-width: 520px; }
 
     /* ---------- FOOTER ---------- */
-    footer {
-      background: var(--navy); color: rgba(255,255,255,0.7);
-      padding: 48px 0 28px; border-top: 1px solid var(--navy-light);
-    }
+    footer { background: var(--navy); color: rgba(255,255,255,0.7); padding: 48px 0 28px; border-top: 1px solid var(--navy-light); }
     footer .container { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 32px; }
     .footer-logo { font-family: 'Fraunces', serif; font-weight: 900; font-size: 26px; color: var(--white); }
     .footer-logo span { color: var(--primary); }
@@ -332,10 +353,7 @@
       color: rgba(255,255,255,0.7); transition: all 0.15s;
     }
     .social-icon:hover { background: var(--primary); color: white; transform: translateY(-2px); }
-    .footer-bottom {
-      border-top: 1px solid var(--navy-light); margin-top: 32px;
-      padding-top: 20px; text-align: center; font-size: 13px; opacity: 0.6;
-    }
+    .footer-bottom { border-top: 1px solid var(--navy-light); margin-top: 32px; padding-top: 20px; text-align: center; font-size: 13px; opacity: 0.6; }
 
     /* ---------- ANIMATIONS ---------- */
     .reveal { opacity: 0; transform: translateY(40px); transition: all 0.8s ease; }
@@ -349,18 +367,21 @@
       .hero .container { grid-template-columns: 1fr; text-align: center; }
       .hero p { margin-left: auto; margin-right: auto; }
       .hero-cta, .hero-stats { justify-content: center; }
-      .hero-mock { transform: none; }
-      .grid-3, .roles-grid, .steps, .roi-grid { grid-template-columns: 1fr 1fr; }
+      .app-mockup { transform: none; }
+      .grid-3, .roles-grid, .steps, .benefits-grid { grid-template-columns: 1fr 1fr; }
       .nav-links { display: none; }
+      .demo-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 640px) {
       .hero h1 { font-size: 32px; }
       .section-header h2 { font-size: 28px; }
-      .grid-3, .roles-grid, .steps, .roi-grid { grid-template-columns: 1fr; }
-      .testimonial { padding: 28px 20px; }
+      .grid-3, .roles-grid, .steps, .benefits-grid { grid-template-columns: 1fr; }
       .cta-final { padding: 40px 20px; }
       .cta-final h2 { font-size: 28px; }
       .hero-stats { gap: 20px; flex-wrap: wrap; }
+      .mock-app-body { flex-direction: column; }
+      .mock-sidebar { width: 100%; display: flex; overflow-x: auto; padding: 10px; }
+      .mock-brand { display: none; }
     }
   </style>
 </head>
@@ -372,7 +393,7 @@
     <div class="logo">DUG<span>SI</span></div>
     <div class="nav-links">
       <a href="#features">Fonctionnalités</a>
-      <a href="#demo">Démo</a>
+      <a href="#demo">Aperçu</a>
       <a href="#how">Comment ça marche</a>
       <a href="#faq">FAQ</a>
     </div>
@@ -396,35 +417,64 @@
         <a href="/login" class="btn btn-outline">Se connecter</a>
       </div>
       <div class="hero-stats">
-        <div class="stat"><div class="num" id="stat1">0</div><div class="lbl">écoles pilotes</div></div>
-        <div class="stat"><div class="num" id="stat2">0</div><div class="lbl">francs djiboutiens</div></div>
-        <div class="stat"><div class="num" id="stat3">0</div><div class="lbl">modules intégrés</div></div>
+        <div class="stat"><div class="num" id="stat1">0</div><div class="lbl">écoles utilisent Dougsi</div></div>
+        <div class="stat"><div class="num" id="stat2">0</div><div class="lbl">modules intégrés</div></div>
+        <div class="stat"><div class="num">DJ</div><div class="lbl">conçu pour Djibouti</div></div>
       </div>
     </div>
     <div class="hero-visual">
-      <div class="hero-mock">
-        <img src="{{ asset('images/dashboard.png') }}" alt="Tableau de bord Dugsi">
-        <div class="play-overlay" onclick="alert('🎬 Vidéo de démonstration — contactez-nous pour une présentation personnalisée.')">
-          <div class="play-btn">▶</div>
+      <div class="app-mockup">
+        <div class="mock-topbar">
+          <span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span>
+          <div class="mock-url">dougsi.tech/dashboard</div>
+        </div>
+        <div class="mock-app-body">
+          <div class="mock-sidebar">
+            <div class="mock-brand">DUG<span>SI</span></div>
+            <div class="mock-nav-item active">📊 Tableau de bord</div>
+            <div class="mock-nav-item">🎓 Élèves</div>
+            <div class="mock-nav-item">📄 Bulletins</div>
+            <div class="mock-nav-item">💰 Finances</div>
+            <div class="mock-nav-item">📅 Absences</div>
+          </div>
+          <div class="mock-main">
+            <div class="mock-kpis">
+              <div class="mock-kpi"><div class="k-lbl">Élèves</div><div class="k-val">340</div></div>
+              <div class="mock-kpi good"><div class="k-lbl">Encaissé</div><div class="k-val">2,4M FDJ</div></div>
+              <div class="mock-kpi"><div class="k-lbl">Recouvrement</div><div class="k-val">94%</div></div>
+            </div>
+            <div class="mock-table">
+              <div class="mock-row header"><span>Élève</span><span>Classe</span><span>Statut</span></div>
+              <div class="mock-row"><span>Ayan D.</span><span>CM2-A</span><span class="mock-badge good">Payé</span></div>
+              <div class="mock-row"><span>Hamza O.</span><span>6ème-B</span><span class="mock-badge warn">Partiel</span></div>
+              <div class="mock-row"><span>Sagal M.</span><span>CE1-C</span><span class="mock-badge good">Payé</span></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </header>
 
-<!-- ====== PREUVE SOCIALE ====== -->
+<!-- ====== PREUVE SOCIALE : écoles qui utilisent Dougsi ====== -->
 <section class="proof">
   <div class="container">
-    <span class="label">Déjà adopté sur le terrain</span>
-    <div class="pilot-card">
-      <div class="avatar">E</div>
-      <div>
-        <strong>École Les Petits Futés</strong>
-        <span>École pilote — Djibouti</span>
-        <div class="pilot-badge">✓ Utilise Dougsi au quotidien</div>
-      </div>
+    <span class="label">Déjà adopté par 6 écoles à Djibouti</span>
+    <div class="school-strip">
+      @foreach ([
+        'Ecole Les Elites', 'Ecole Privée Maryama', 'Ecole Les Petits Futés',
+        'Ecole Bien Grandir', 'Ecole Privée Iftin', 'Ecole Le Jardin des Enfants',
+      ] as $schoolName)
+        @php
+          $shortName = trim(preg_replace('/^Ecole\s*(Priv[ée]e)?\s*(Le |Les |La )?/ui', '', $schoolName));
+          $initial   = mb_strtoupper(mb_substr($shortName, 0, 1));
+        @endphp
+        <div class="school-chip">
+          <div class="avatar">{{ $initial }}</div>
+          <span>{{ $schoolName }}</span>
+        </div>
+      @endforeach
     </div>
-    <span style="font-size:14px; color:var(--slate-text);">+ d'autres écoles nous rejoignent chaque mois</span>
   </div>
 </section>
 
@@ -437,62 +487,65 @@
       <p>Fini les cahiers, les fichiers Excel éparpillés et les calculs manuels. Dougsi centralise votre gestion quotidienne.</p>
     </div>
     <div class="grid-3">
-      <div class="card reveal"><div class="ico">🎓</div><h3>Inscriptions & élèves</h3><p>Gérez les dossiers élèves, les classes et les années scolaires en quelques clics.</p></div>
-      <div class="card reveal d1"><div class="ico">📄</div><h3>Bulletins automatiques</h3><p>Saisissez les notes, Dougsi génère les bulletins et calcule les moyennes automatiquement.</p></div>
-      <div class="card reveal d2"><div class="ico">💰</div><h3>Paiements & impayés</h3><p>Suivez chaque encaissement, identifiez les impayés et éditez les reçus en temps réel.</p></div>
-      <div class="card reveal"><div class="ico">📅</div><h3>Absences & emploi du temps</h3><p>Enregistrez les présences et gardez le planning des classes toujours à jour.</p></div>
-      <div class="card reveal d1"><div class="ico">👨‍👩‍👧</div><h3>Espace parents</h3><p>Les parents consultent notes, absences et annonces depuis leur propre espace.</p></div>
-      <div class="card reveal d2"><div class="ico">🔐</div><h3>Rôles & sécurité</h3><p>Chaque membre du personnel accède uniquement à ce qui le concerne. Vos données sont protégées.</p></div>
+      <div class="card reveal"><div class="ico">🎓</div><h3>Inscriptions & élèves</h3><p>Gérez les dossiers élèves, les classes, les tuteurs et les documents requis en quelques clics.</p></div>
+      <div class="card reveal d1"><div class="ico">📄</div><h3>Notes & bulletins</h3><p>Saisissez les notes, Dougsi calcule les moyennes, le classement et génère les bulletins automatiquement.</p></div>
+      <div class="card reveal d2"><div class="ico">💰</div><h3>Paiements & impayés</h3><p>Plans de paiement par tranches, remises, suivi des impayés et reçus en temps réel.</p></div>
+      <div class="card reveal"><div class="ico">📅</div><h3>Absences & retards</h3><p>Enregistrez les présences — les parents sont notifiés automatiquement par email en cas d'absence.</p></div>
+      <div class="card reveal d1"><div class="ico">👨‍👩‍👧</div><h3>Espace parents</h3><p>Les parents consultent notes, absences, devoirs et annonces depuis leur propre espace.</p></div>
+      <div class="card reveal d2"><div class="ico">🔐</div><h3>Rôles & sécurité</h3><p>Chaque membre du personnel accède uniquement à ce qui le concerne. Vos données sont isolées et protégées.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ====== DÉMONSTRATION VIDÉO (remplace la 2e capture) ====== -->
-<section class="section video-section" id="demo">
+<!-- ====== APERÇU — BULLETIN ====== -->
+<section class="section demo-section" id="demo">
   <div class="container">
-    <div class="section-header reveal">
-      <div class="eyebrow">Voir Dougsi en action</div>
-      <h2>Une démonstration vidéo de 2 minutes</h2>
-      <p>Découvrez comment Dougsi transforme la gestion quotidienne de votre école.</p>
-    </div>
-    <div class="video-wrapper reveal">
-      <img src="{{ asset('images/paiements.png') }}" alt="Aperçu de la gestion des paiements">
-      <div class="video-play" onclick="alert('🎬 Vidéo de démonstration — Contactez-nous pour une présentation personnalisée en direct.')">
-        <div class="big-play">▶</div>
-        <p>▶ Regarder la démo (2 min)</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ====== ROI / CHIFFRES CLÉS ====== -->
-<section class="section" style="background:var(--slate);">
-  <div class="container">
-    <div class="section-header reveal">
-      <div class="eyebrow">Résultats concrets</div>
-      <h2>Ce que Dougsi apporte à votre école</h2>
-    </div>
-    <div class="roi-grid">
-      <div class="roi-item reveal"><div class="number">70%</div><div class="label">de temps gagné sur la gestion</div></div>
-      <div class="roi-item reveal d1"><div class="number">100%</div><div class="label">de visibilité sur les impayés</div></div>
-      <div class="roi-item reveal d2"><div class="number">5x</div><div class="label">plus rapide pour les bulletins</div></div>
-      <div class="roi-item reveal d3"><div class="number">24/7</div><div class="label">accès pour les parents</div></div>
-    </div>
-  </div>
-</section>
-
-<!-- ====== TÉMOIGNAGE ====== -->
-<section class="section">
-  <div class="container">
-    <div class="testimonial reveal">
-      <div class="quote">“Dougsi nous a permis de passer de la paperasse à une gestion fluide. Les parents adorent l'espace en ligne et nous avons réduit de 80 % le temps passé sur les relevés de notes.”</div>
-      <div class="author">
-        <div class="photo">M</div>
-        <div>
-          <div class="name">M. Hassan Ali</div>
-          <div class="title">Directeur, École Les Petits Futés — Djibouti</div>
+    <div class="demo-grid">
+      <div class="demo-text reveal">
+        <div class="eyebrow">Voir Dougsi en action</div>
+        <h3>Des bulletins calculés et générés automatiquement</h3>
+        <p>Vous saisissez les notes, Dougsi fait le reste : moyennes par matière, moyenne générale pondérée par coefficient, classement, mentions — selon les règles que vous configurez pour votre école.</p>
+        <ul class="demo-list">
+          <li>Moyennes et classement calculés automatiquement</li>
+          <li>Mentions et appréciations personnalisables</li>
+          <li>Export PDF prêt à imprimer ou envoyer</li>
+        </ul>
+        <div style="margin-top:24px;">
+          <a href="https://wa.me/25377825892?text=Bonjour%2C%20je%20souhaite%20voir%20une%20d%C3%A9mo%20de%20Dugsi%20en%20direct." target="_blank" class="btn btn-primary" style="background:var(--navy);box-shadow:none;">💬 Demander une démo en direct</a>
         </div>
       </div>
+      <div class="bulletin-mock reveal d1">
+        <div class="bulletin-mock-head">
+          <div class="bname">Bulletin — Trimestre 1</div>
+          <div class="bsub">Ayan Dirieh · CM2-A</div>
+        </div>
+        <div class="bulletin-mock-body">
+          <div class="bm-row"><span class="bm-subject">Mathématiques</span><span class="bm-avg">16,5 / 20</span></div>
+          <div class="bm-row"><span class="bm-subject">Français</span><span class="bm-avg">14,2 / 20</span></div>
+          <div class="bm-row"><span class="bm-subject">Sciences</span><span class="bm-avg">17,0 / 20</span></div>
+          <div class="bm-row"><span class="bm-subject">Histoire-Géo</span><span class="bm-avg">13,8 / 20</span></div>
+        </div>
+        <div class="bm-footer">
+          <div><div class="glabel">Moyenne générale</div><div class="gval">15,4 / 20</div></div>
+          <span class="mock-badge good" style="font-size:10px;padding:4px 10px;">2ᵉ / 28</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== CE QUI CHANGE POUR VOUS ====== -->
+<section class="section">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="eyebrow">Pourquoi Dougsi</div>
+      <h2>Ce que ça change pour votre école</h2>
+    </div>
+    <div class="benefits-grid">
+      <div class="benefit-item reveal"><div class="bi">🇩🇯</div><h4>Conçu pour Djibouti</h4><p>Franc djiboutien, cycles scolaires et bulletins adaptés localement.</p></div>
+      <div class="benefit-item reveal d1"><div class="bi">📧</div><h4>Communication automatique</h4><p>Les parents sont notifiés par email, depuis l'adresse de votre école.</p></div>
+      <div class="benefit-item reveal d2"><div class="bi">🗂️</div><h4>Vos données vous appartiennent</h4><p>Export à tout moment des élèves, paiements et bulletins.</p></div>
+      <div class="benefit-item reveal d3"><div class="bi">🇫🇷</div><h4>Support en français</h4><p>Interface simple et accompagnement en français, à chaque étape.</p></div>
     </div>
   </div>
 </section>
@@ -537,13 +590,13 @@
       <h2>Un tarif adapté à votre école</h2>
       <p>Le prix dépend de la taille de votre établissement. Contactez-nous pour un devis personnalisé et une démo gratuite.</p>
     </div>
-    <div style="max-width:680px; margin:0 auto; background:var(--navy); color:white; border-radius:24px; padding:48px 36px; text-align:center; position:relative; overflow:hidden;">
-      <h3 style="font-family:'Fraunces',serif; font-size:28px;">Sur devis, selon vos besoins</h3>
-      <p style="margin:16px 0 24px; color:rgba(255,255,255,0.8);">Nous établissons ensemble une offre adaptée au nombre d'élèves et aux fonctionnalités qui comptent pour vous.</p>
-      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:28px;">
-        <span style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:var(--primary-soft); padding:6px 16px; border-radius:999px; font-size:13px; font-weight:600;">✓ Mise en place incluse</span>
-        <span style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:var(--primary-soft); padding:6px 16px; border-radius:999px; font-size:13px; font-weight:600;">✓ Formation du personnel</span>
-        <span style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:var(--primary-soft); padding:6px 16px; border-radius:999px; font-size:13px; font-weight:600;">✓ Support en français</span>
+    <div class="pricing-box reveal">
+      <h3>Sur devis, selon vos besoins</h3>
+      <p>Nous établissons ensemble une offre adaptée au nombre d'élèves et aux fonctionnalités qui comptent pour vous.</p>
+      <div class="pricing-tags">
+        <span>✓ Mise en place incluse</span>
+        <span>✓ Formation du personnel</span>
+        <span>✓ Support en français</span>
       </div>
       <a href="https://wa.me/25377825892?text=Bonjour%2C%20je%20souhaite%20un%20devis%20pour%20Dugsi%20pour%20mon%20%C3%A9cole." target="_blank" class="btn btn-primary">📊 Demander un devis gratuit</a>
     </div>
@@ -589,22 +642,16 @@
         <a href="https://wa.me/25377825892" target="_blank" class="social-icon">
           <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
         </a>
-        <a href="#" class="social-icon">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073Z"/></svg>
-        </a>
-        <a href="#" class="social-icon">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-        </a>
       </div>
     </div>
     <div class="footer-contact">
       <strong style="color:var(--white);">Contact</strong><br>
-      📞 <a href="tel:+25377825892">77 33 40 40</a><br>
+      📞 <a href="tel:+25377825892">77 82 58 92</a><br>
       ✉️ <a href="mailto:contact@dougsi.tech">contact@dougsi.tech</a><br>
       🌐 www.dougsi.tech
     </div>
   </div>
-  <div class="footer-bottom">© 2025 DOUGSI — Tous droits réservés.</div>
+  <div class="footer-bottom">© {{ date('Y') }} DOUGSI — Tous droits réservés.</div>
 </footer>
 
 <!-- ====== SCRIPTS ====== -->
@@ -628,15 +675,14 @@
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         const el = entry.target;
-        if (el.id === 'stat1') animateCounter(el, 1, ' école');
-        else if (el.id === 'stat2') animateCounter(el, 100, '%');
-        else if (el.id === 'stat3') animateCounter(el, 5, ' modules');
+        if (el.id === 'stat1') animateCounter(el, 6, ' écoles');
+        else if (el.id === 'stat2') animateCounter(el, 10, ' modules');
         obs.unobserve(el);
       }
     });
   }, { threshold: 0.5 });
 
-  document.querySelectorAll('.stat .num').forEach(el => obs.observe(el));
+  document.querySelectorAll('.stat .num').forEach(el => { if (el.id) obs.observe(el); });
 
   // Reveal au scroll
   const revealObs = new IntersectionObserver((entries) => {
@@ -654,9 +700,8 @@
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
     document.querySelectorAll('.stat .num').forEach(el => {
-      if (el.id === 'stat1') el.textContent = '1 école';
-      else if (el.id === 'stat2') el.textContent = '100%';
-      else if (el.id === 'stat3') el.textContent = '5 modules';
+      if (el.id === 'stat1') el.textContent = '6 écoles';
+      else if (el.id === 'stat2') el.textContent = '10 modules';
     });
   }
 </script>
