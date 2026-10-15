@@ -1,95 +1,103 @@
 <?php
-use function Livewire\Volt\{state, mount, layout, computed};
 use App\Models\{School, User, Student, SchoolClass, Staff};
 use App\Services\RoleTemplateService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
+use Livewire\Volt\Component;
+use Livewire\Attributes\{Computed, Layout};
 
-layout('layouts.superadmin');
+new #[Layout('layouts.superadmin')] class extends Component
+{
+    public School $school;
+    public bool $showAddAdmin = false;
+    public string $newAdminName = '';
+    public string $newAdminEmail = '';
+    public ?string $generatedAdminPassword = null;
 
-state([
-    'school'                 => null,
-    'showAddAdmin'           => false,
-    'newAdminName'           => '',
-    'newAdminEmail'          => '',
-    'generatedAdminPassword' => null,
-]);
+    public function mount(School $school): void
+    {
+        $this->school = $school;
+    }
 
-mount(function (School $school) {
-    $this->school = $school;
-});
+    // Compteurs — filtrés explicitement par school_id (le superadmin n'a pas de scope tenant)
+    #[Computed]
+    public function stats(): array
+    {
+        $id = $this->school->id;
 
-// Compteurs — filtrés explicitement par school_id (le superadmin n'a pas de scope tenant)
-$stats = computed(function () {
-    $id = $this->school->id;
+        return [
+            'users'    => User::where('school_id', $id)->count(),
+            'students' => Student::where('school_id', $id)->count(),
+            'classes'  => SchoolClass::where('school_id', $id)->count(),
+            'staff'    => Staff::where('school_id', $id)->count(),
+        ];
+    }
 
-    return [
-        'users'    => User::where('school_id', $id)->count(),
-        'students' => Student::where('school_id', $id)->count(),
-        'classes'  => SchoolClass::where('school_id', $id)->count(),
-        'staff'    => Staff::where('school_id', $id)->count(),
-    ];
-});
+    // L'admin principal de l'école
+    #[Computed]
+    public function admin(): ?User
+    {
+        return User::where('school_id', $this->school->id)
+            ->whereHas('roles', fn ($q) => $q->where('name', 'admin'))
+            ->first();
+    }
 
-// L'admin principal de l'école
-$admin = computed(function () {
-    return User::where('school_id', $this->school->id)
-        ->whereHas('roles', fn ($q) => $q->where('name', 'admin'))
-        ->first();
-});
+    public function toggleActive(): void
+    {
+        $this->school->update(['status' => $this->school->status === 'active' ? 'suspended' : 'active']);
+        $this->school->refresh();
+    }
 
-$toggleActive = function () {
-    $this->school->update(['status' => $this->school->status === 'active' ? 'suspended' : 'active']);
-    $this->school->refresh();
-};
+    public function toggleAddAdmin(): void
+    {
+        $this->showAddAdmin = ! $this->showAddAdmin;
+        $this->reset(['newAdminName', 'newAdminEmail']);
+    }
 
-$toggleAddAdmin = function () {
-    $this->showAddAdmin = ! $this->showAddAdmin;
-    $this->reset(['newAdminName', 'newAdminEmail']);
-};
+    public function createAdmin(): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
 
-$createAdmin = function () {
-    abort_unless(auth('superadmin')->check(), 403);
-
-    $this->validate([
-        'newAdminName'  => 'required|string|max:200',
-        'newAdminEmail' => 'required|email|max:200|unique:users,email',
-    ]);
-
-    $password = Str::password(10);
-
-    DB::transaction(function () use ($password) {
-        $admin = User::create([
-            'name'      => $this->newAdminName,
-            'email'     => $this->newAdminEmail,
-            'password'  => Hash::make($password),
-            'school_id' => $this->school->id,
-            'status'    => 'active',
+        $this->validate([
+            'newAdminName'  => 'required|string|max:200',
+            'newAdminEmail' => 'required|email|max:200|unique:users,email',
         ]);
 
-        // S'assure que les rôles standards existent pour cette école (réparation
-        // idempotente — utile si l'école a été créée avant la mise en place des
-        // rôles, ou si son rôle "admin" a été supprimé par erreur).
-        RoleTemplateService::createForSchool($this->school->id);
+        $password = Str::password(10);
 
-        app(PermissionRegistrar::class)->setPermissionsTeamId($this->school->id);
-        $admin->assignRole('admin');
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-    });
+        DB::transaction(function () use ($password) {
+            $admin = User::create([
+                'name'      => $this->newAdminName,
+                'email'     => $this->newAdminEmail,
+                'password'  => Hash::make($password),
+                'school_id' => $this->school->id,
+                'status'    => 'active',
+            ]);
 
-    $this->generatedAdminPassword = $password;
-    $this->reset(['newAdminName', 'newAdminEmail', 'showAddAdmin']);
+            // S'assure que les rôles standards existent pour cette école (réparation
+            // idempotente — utile si l'école a été créée avant la mise en place des
+            // rôles, ou si son rôle "admin" a été supprimé par erreur).
+            RoleTemplateService::createForSchool($this->school->id);
 
-    unset($this->admin);
+            app(PermissionRegistrar::class)->setPermissionsTeamId($this->school->id);
+            $admin->assignRole('admin');
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+        });
+
+        $this->generatedAdminPassword = $password;
+        $this->reset(['newAdminName', 'newAdminEmail', 'showAddAdmin']);
+
+        unset($this->admin);
+    }
 };
-
 ?>
 
-@include('layouts.partials.finance-styles')
+
 
 <div class="p-6" style="max-width:960px;">
+    @include('layouts.partials.finance-styles')
     <div class="page-head">
         <div style="display:flex;align-items:center;gap:.75rem;">
             <a href="{{ route('superadmin.schools.index') }}" class="btn btn-icon" title="Retour">

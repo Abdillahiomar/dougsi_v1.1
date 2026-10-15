@@ -1,28 +1,32 @@
 <?php
-use function Livewire\Volt\{state, layout};
 use Illuminate\Support\Facades\Auth;
+use Livewire\Volt\Component;
+use Livewire\Attributes\Layout;
 
-layout('layouts.superadmin-guest');
+new #[Layout('layouts.superadmin-guest')] class extends Component
+{
+    public string $email = '';
+    public string $password = '';
+    public bool $remember = false;
 
-state(['email' => '', 'password' => '', 'remember' => false]);
+    public function login()
+    {
+        $this->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
 
-$login = function () {
-    $this->validate([
-        'email' => 'required|email',
-        'password' => 'required',
-    ]);
+        if (Auth::guard('superadmin')->attempt(
+            ['email' => $this->email, 'password' => $this->password],
+            $this->remember
+        )) {
+            session()->regenerate();
+            return redirect()->route('superadmin.dashboard');
+        }
 
-    if (Auth::guard('superadmin')->attempt(
-        ['email' => $this->email, 'password' => $this->password],
-        $this->remember
-    )) {
-        session()->regenerate();
-        return redirect()->route('superadmin.dashboard');
+        $this->addError('email', 'Ces identifiants ne correspondent à aucun compte superadmin.');
     }
-
-    $this->addError('email', 'Ces identifiants ne correspondent à aucun compte superadmin.');
 };
-
 ?>
 
 <div class="auth-form-wrap" x-data="{ showPw: false }">

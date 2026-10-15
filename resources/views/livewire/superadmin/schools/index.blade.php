@@ -1,34 +1,42 @@
 <?php
 // resources/views/livewire/superadmin/schools/index.blade.php
-use function Livewire\Volt\{state, computed, usesPagination};
 use App\Models\School;
-use function Livewire\Volt\{layout};
-layout('layouts.superadmin');
-usesPagination();
+use Livewire\Volt\Component;
+use Livewire\WithPagination;
+use Livewire\Attributes\{Computed, Layout};
 
-state(['search' => '']);
+new #[Layout('layouts.superadmin')] class extends Component
+{
+    use WithPagination;
 
-$schools = computed(function () {
-    return School::withCount('users')
-        ->when($this->search, fn ($q) =>
-            $q->where('name', 'ilike', '%' . $this->search . '%'))
-        ->orderBy('name')
-        ->paginate(15);
-});
+    public string $search = '';
 
-$toggleActive = function ($id) {
-    abort_unless(auth('superadmin')->check(), 403);
+    #[Computed]
+    public function schools()
+    {
+        return School::withCount('users')
+            ->when($this->search, fn ($q) =>
+                $q->where('name', 'ilike', '%' . $this->search . '%'))
+            ->orderBy('name')
+            ->paginate(15);
+    }
 
-    $school = School::findOrFail($id);
-    $newStatus = $school->status === 'active' ? 'suspended' : 'active';
-    $school->update(['status' => $newStatus]);
+    public function toggleActive($id): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
+
+        $school = School::findOrFail($id);
+        $newStatus = $school->status === 'active' ? 'suspended' : 'active';
+        $school->update(['status' => $newStatus]);
+    }
 };
-
 ?>
 
-@include('layouts.partials.finance-styles')
+
 
 <div class="p-6">
+
+@include('layouts.partials.finance-styles')
     @if (session('status'))
         <div class="fin-alert ok">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>

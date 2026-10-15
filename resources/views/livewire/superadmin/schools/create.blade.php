@@ -1,76 +1,81 @@
 <?php
-use function Livewire\Volt\{state, layout, rules};
 use Illuminate\Support\Facades\{DB, Hash};
 use Illuminate\Support\Str;
 use App\Models\{School, User};
+use Livewire\Volt\Component;
+use Livewire\Attributes\Layout;
 
-layout('layouts.superadmin');
-
-state([
+new #[Layout('layouts.superadmin')] class extends Component
+{
     // École
-    'school_name'  => '',
-    'school_email' => '',
-    'school_phone' => '',
+    public string $school_name  = '';
+    public string $school_email = '';
+    public string $school_phone = '';
     // Premier admin
-    'admin_name'     => '',
-    'admin_email'    => '',
-    'admin_password' => '',
-]);
+    public string $admin_name     = '';
+    public string $admin_email    = '';
+    public string $admin_password = '';
 
-rules([
-    'school_name'    => 'required|string|max:255',
-    'school_email'   => 'required|email|max:255',
-    'school_phone'   => 'required|string|max:30',
-    'admin_name'     => 'required|string|max:255',
-    'admin_email'    => 'required|email|max:255|unique:users,email',
-    'admin_password' => 'required|string|min:8',
-]);
+    protected function rules(): array
+    {
+        return [
+            'school_name'    => 'required|string|max:255',
+            'school_email'   => 'required|email|max:255',
+            'school_phone'   => 'required|string|max:30',
+            'admin_name'     => 'required|string|max:255',
+            'admin_email'    => 'required|email|max:255|unique:users,email',
+            'admin_password' => 'required|string|min:8',
+        ];
+    }
 
-$save = function () {
-    abort_unless(auth('superadmin')->check(), 403);
+    public function save()
+    {
+        abort_unless(auth('superadmin')->check(), 403);
 
-    $data = $this->validate();
+        $data = $this->validate();
 
-    DB::transaction(function () use ($data) {
-        // 1. Créer l'école
-        $school = School::create([
-            'name'   => $data['school_name'],
-            'email'  => $data['school_email'],
-            'slug'   => Str::slug($data['school_name']),
-            'phone'  => $data['school_phone'],
-            'status' => 'active',
-        ]);
+        DB::transaction(function () use ($data) {
+            // 1. Créer l'école
+            $school = School::create([
+                'name'   => $data['school_name'],
+                'email'  => $data['school_email'],
+                'slug'   => Str::slug($data['school_name']),
+                'phone'  => $data['school_phone'],
+                'status' => 'active',
+            ]);
 
-        // 2. Créer les 6 rôles standards de cette école
-        \App\Services\RoleTemplateService::createForSchool($school->id);
+            // 2. Créer les 6 rôles standards de cette école
+            \App\Services\RoleTemplateService::createForSchool($school->id);
 
-        // 3. Créer le premier admin
-        $admin = User::create([
-            'name'      => $data['admin_name'],
-            'email'     => $data['admin_email'],
-            'password'  => Hash::make($data['admin_password']),
-            'school_id' => $school->id,
-            'status'    => 'active',
-        ]);
+            // 3. Créer le premier admin
+            $admin = User::create([
+                'name'      => $data['admin_name'],
+                'email'     => $data['admin_email'],
+                'password'  => Hash::make($data['admin_password']),
+                'school_id' => $school->id,
+                'status'    => 'active',
+            ]);
 
-        // 4. Lui donner le rôle admin, dans le contexte de son école
-        app(\Spatie\Permission\PermissionRegistrar::class)
-            ->setPermissionsTeamId($school->id);
-        $admin->assignRole('admin');
+            // 4. Lui donner le rôle admin, dans le contexte de son école
+            app(\Spatie\Permission\PermissionRegistrar::class)
+                ->setPermissionsTeamId($school->id);
+            $admin->assignRole('admin');
 
-        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
-    });
+            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+        });
 
-    session()->flash('status', "École « {$data['school_name']} » créée avec son administrateur.");
+        session()->flash('status', "École « {$data['school_name']} » créée avec son administrateur.");
 
-    return redirect()->route('superadmin.schools.index');
+        return redirect()->route('superadmin.schools.index');
+    }
 };
-
 ?>
 
-@include('layouts.partials.finance-styles')
+
 
 <div class="p-6" style="max-width:640px;">
+
+@include('layouts.partials.finance-styles')
     <div class="page-head">
         <div>
             <div class="page-title">Nouvelle école</div>

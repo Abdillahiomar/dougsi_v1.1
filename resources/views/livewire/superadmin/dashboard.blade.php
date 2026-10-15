@@ -1,19 +1,24 @@
 <?php
 // resources/views/livewire/superadmin/dashboard.blade.php
-use function Livewire\Volt\{computed};
 use App\Models\School;
 use App\Models\User;
 use App\Models\Subscription;
-use function Livewire\Volt\{layout};
-layout('layouts.superadmin');
+use Livewire\Volt\Component;
+use Livewire\Attributes\{Computed, Layout};
 
-$stats = computed(fn () => [
-    'schools'       => School::count(),
-    'active'        => School::where('status', 'active')->count(),
-    'total_users'   => User::whereNotNull('school_id')->count(),
-    'subscriptions' => Subscription::where('status', 'active')->count(),
-]);
-
+new #[Layout('layouts.superadmin')] class extends Component
+{
+    #[Computed]
+    public function stats(): array
+    {
+        return [
+            'schools'       => School::count(),
+            'active'        => School::where('status', 'active')->count(),
+            'total_users'   => User::whereNotNull('school_id')->count(),
+            'subscriptions' => Subscription::where('status', 'active')->count(),
+        ];
+    }
+};
 ?>
 
 @include('layouts.partials.finance-styles')

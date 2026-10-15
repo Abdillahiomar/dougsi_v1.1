@@ -1,148 +1,162 @@
 <?php
-use function Livewire\Volt\{state, computed, layout, usesPagination, mount};
 use App\Models\User;
 use App\Models\School;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Livewire\Volt\Component;
+use Livewire\WithPagination;
+use Livewire\Attributes\{Computed, Layout};
 
-layout('layouts.superadmin');
-usesPagination();
+new #[Layout('layouts.superadmin')] class extends Component
+{
+    use WithPagination;
 
-state([
-    'search'            => '',
-    'schoolFilter'      => '',
-    'resetUserId'       => null,
-    'generatedPassword' => null,
+    public string $search = '';
+    public string $schoolFilter = '';
+    public ?int $resetUserId = null;
+    public ?string $generatedPassword = null;
 
     // ── Édition ──
-    'editingUserId'  => null,
-    'eName'          => '',
-    'eEmail'         => '',
-    'eStatus'        => 'active',
-    'eRole'          => '',
-    'eSchoolId'      => null,   // école du user en cours d'édition (pour le contexte team)
-]);
+    public ?int $editingUserId = null;
+    public string $eName = '';
+    public string $eEmail = '';
+    public string $eStatus = 'active';
+    public string $eRole = '';
+    public ?int $eSchoolId = null;   // école du user en cours d'édition (pour le contexte team)
 
-mount(function () {
-    abort_unless(auth('superadmin')->check(), 403);
-});
-
-// Écoles pour le filtre
-$schools = computed(fn () =>
-    School::orderBy('name')->get(['id', 'name'])
-);
-
-$users = computed(function () {
-    return User::query()
-        ->whereNotNull('school_id')            // exclut les superadmins (pas d'école)
-        ->with(['school:id,name', 'roles:id,name'])
-        ->when($this->search, function ($q) {
-            $q->where(function ($sub) {
-                $sub->where('name', 'ilike', '%' . $this->search . '%')
-                    ->orWhere('email', 'ilike', '%' . $this->search . '%');
-            });
-        })
-        ->when($this->schoolFilter, fn ($q) =>
-            $q->where('school_id', $this->schoolFilter))
-        ->orderBy('name')
-        ->paginate(20);
-});
-
-// Rôles disponibles pour l'école du user en cours d'édition
-$availableRoles = computed(function () {
-    if (! $this->eSchoolId) return collect();
-
-    return Role::where('school_id', $this->eSchoolId)
-        ->orderBy('name')
-        ->get(['id', 'name']);
-});
-
-// ── Réinitialiser le mot de passe ──
-$resetPassword = function ($userId) {
-    abort_unless(auth('superadmin')->check(), 403);
-
-    $user = User::findOrFail($userId);
-    $newPassword = Str::password(10);
-    $user->update(['password' => Hash::make($newPassword)]);
-
-    $this->resetUserId = $userId;
-    $this->generatedPassword = $newPassword;
-};
-
-$closeReset = function () {
-    $this->resetUserId = null;
-    $this->generatedPassword = null;
-};
-
-// ── Ouvrir l'édition ──
-$startEdit = function ($userId) {
-    abort_unless(auth('superadmin')->check(), 403);
-
-    $user = User::with('roles')->findOrFail($userId);
-
-    // Définir le contexte team de l'école du user, pour lire ses rôles correctement
-    app(PermissionRegistrar::class)->setPermissionsTeamId($user->school_id);
-    $user->load('roles'); // recharge dans le bon contexte
-
-    $this->editingUserId = $user->id;
-    $this->eName     = $user->name;
-    $this->eEmail    = $user->email;
-    $this->eStatus   = $user->status ?? 'active';
-    $this->eSchoolId = $user->school_id;
-    $this->eRole     = $user->roles->first()?->name ?? '';
-};
-
-$cancelEdit = function () {
-    $this->editingUserId = null;
-    $this->reset(['eName', 'eEmail', 'eStatus', 'eRole', 'eSchoolId']);
-};
-
-// ── Sauvegarder l'édition ──
-$saveEdit = function () {
-    abort_unless(auth('superadmin')->check(), 403);
-
-    $this->validate([
-        'eName'   => 'required|string|max:200',
-        'eEmail'  => 'required|email|unique:users,email,' . $this->editingUserId,
-        'eStatus' => 'required|in:active,inactive,suspended',
-        'eRole'   => 'required|string',
-    ]);
-
-    $user = User::findOrFail($this->editingUserId);
-
-    // Mise à jour des champs simples
-    $user->update([
-        'name'   => $this->eName,
-        'email'  => $this->eEmail,
-        'status' => $this->eStatus,
-    ]);
-
-    // ── Rôle : dans le contexte team de l'école du user ──
-    app(PermissionRegistrar::class)->setPermissionsTeamId($user->school_id);
-
-    // Vérifier que le rôle existe bien dans cette école (anti-forge)
-    $roleExists = Role::where('school_id', $user->school_id)
-        ->where('name', $this->eRole)
-        ->exists();
-
-    if ($roleExists) {
-        $user->syncRoles([$this->eRole]);
+    public function mount(): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
     }
 
-    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    // Écoles pour le filtre
+    #[Computed]
+    public function schools()
+    {
+        return School::orderBy('name')->get(['id', 'name']);
+    }
 
-    $this->editingUserId = null;
-    $this->reset(['eName', 'eEmail', 'eStatus', 'eRole', 'eSchoolId']);
-    session()->flash('status', 'Utilisateur mis à jour.');
+    #[Computed]
+    public function users()
+    {
+        return User::query()
+            ->whereNotNull('school_id')            // exclut les superadmins (pas d'école)
+            ->with(['school:id,name', 'roles:id,name'])
+            ->when($this->search, function ($q) {
+                $q->where(function ($sub) {
+                    $sub->where('name', 'ilike', '%' . $this->search . '%')
+                        ->orWhere('email', 'ilike', '%' . $this->search . '%');
+                });
+            })
+            ->when($this->schoolFilter, fn ($q) =>
+                $q->where('school_id', $this->schoolFilter))
+            ->orderBy('name')
+            ->paginate(20);
+    }
+
+    // Rôles disponibles pour l'école du user en cours d'édition
+    #[Computed]
+    public function availableRoles()
+    {
+        if (! $this->eSchoolId) return collect();
+
+        return Role::where('school_id', $this->eSchoolId)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    // ── Réinitialiser le mot de passe ──
+    public function resetPassword($userId): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
+
+        $user = User::findOrFail($userId);
+        $newPassword = Str::password(10);
+        $user->update(['password' => Hash::make($newPassword)]);
+
+        $this->resetUserId = $userId;
+        $this->generatedPassword = $newPassword;
+    }
+
+    public function closeReset(): void
+    {
+        $this->resetUserId = null;
+        $this->generatedPassword = null;
+    }
+
+    // ── Ouvrir l'édition ──
+    public function startEdit($userId): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
+
+        $user = User::with('roles')->findOrFail($userId);
+
+        // Définir le contexte team de l'école du user, pour lire ses rôles correctement
+        app(PermissionRegistrar::class)->setPermissionsTeamId($user->school_id);
+        $user->load('roles'); // recharge dans le bon contexte
+
+        $this->editingUserId = $user->id;
+        $this->eName     = $user->name;
+        $this->eEmail    = $user->email;
+        $this->eStatus   = $user->status ?? 'active';
+        $this->eSchoolId = $user->school_id;
+        $this->eRole     = $user->roles->first()?->name ?? '';
+    }
+
+    public function cancelEdit(): void
+    {
+        $this->editingUserId = null;
+        $this->reset(['eName', 'eEmail', 'eStatus', 'eRole', 'eSchoolId']);
+    }
+
+    // ── Sauvegarder l'édition ──
+    public function saveEdit(): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
+
+        $this->validate([
+            'eName'   => 'required|string|max:200',
+            'eEmail'  => 'required|email|unique:users,email,' . $this->editingUserId,
+            'eStatus' => 'required|in:active,inactive,suspended',
+            'eRole'   => 'required|string',
+        ]);
+
+        $user = User::findOrFail($this->editingUserId);
+
+        // Mise à jour des champs simples
+        $user->update([
+            'name'   => $this->eName,
+            'email'  => $this->eEmail,
+            'status' => $this->eStatus,
+        ]);
+
+        // ── Rôle : dans le contexte team de l'école du user ──
+        app(PermissionRegistrar::class)->setPermissionsTeamId($user->school_id);
+
+        // Vérifier que le rôle existe bien dans cette école (anti-forge)
+        $roleExists = Role::where('school_id', $user->school_id)
+            ->where('name', $this->eRole)
+            ->exists();
+
+        if ($roleExists) {
+            $user->syncRoles([$this->eRole]);
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $this->editingUserId = null;
+        $this->reset(['eName', 'eEmail', 'eStatus', 'eRole', 'eSchoolId']);
+        session()->flash('status', 'Utilisateur mis à jour.');
+    }
 };
-
 ?>
 
-@include('layouts.partials.finance-styles')
+
 
 <div class="p-6">
+    @include('layouts.partials.finance-styles')
     <div class="page-head">
         <div>
             <div class="page-title">Utilisateurs</div>

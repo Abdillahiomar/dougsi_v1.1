@@ -1,52 +1,58 @@
 <?php
-use function Livewire\Volt\{state, computed, layout, usesPagination, mount};
 use App\Models\Subscription;
 use App\Services\InvoiceGenerator;
+use Livewire\Volt\Component;
+use Livewire\WithPagination;
+use Livewire\Attributes\{Computed, Layout};
 
-layout('layouts.superadmin');
-usesPagination();
+new #[Layout('layouts.superadmin')] class extends Component
+{
+    use WithPagination;
 
-state([
-    'search'       => '',
-    'statusFilter' => '',
-]);
+    public string $search = '';
+    public string $statusFilter = '';
 
-mount(function () {
-    abort_unless(auth('superadmin')->check(), 403);
-});
+    public function mount(): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
+    }
 
-$generateInvoice = function ($subscriptionId) {
-    abort_unless(auth('superadmin')->check(), 403);
+    public function generateInvoice($subscriptionId): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
 
-    $sub = \App\Models\Subscription::withoutGlobalScopes()->findOrFail($subscriptionId);
+        $sub = Subscription::withoutGlobalScopes()->findOrFail($subscriptionId);
 
-    $invoice = app(InvoiceGenerator::class)->generateForSubscription($sub);
+        $invoice = app(InvoiceGenerator::class)->generateForSubscription($sub);
 
-    if ($invoice) {
-        session()->flash('status', "Facture {$invoice->invoice_number} générée ({$invoice->amount} FDJ).");
-    } else {
-        session()->flash('status', "Une facture existe déjà pour la période courante de {$sub->school?->name}.");
+        if ($invoice) {
+            session()->flash('status', "Facture {$invoice->invoice_number} générée ({$invoice->amount} FDJ).");
+        } else {
+            session()->flash('status', "Une facture existe déjà pour la période courante de {$sub->school?->name}.");
+        }
+    }
+
+    #[Computed]
+    public function subscriptions()
+    {
+        return Subscription::query()
+            ->with(['school:id,name', 'plan:id,name'])
+            ->when($this->search, function ($q) {
+                $q->whereHas('school', fn ($s) =>
+                    $s->where('name', 'ilike', '%' . $this->search . '%'));
+            })
+            ->when($this->statusFilter, fn ($q) =>
+                $q->where('status', $this->statusFilter))
+            ->orderByDesc('created_at')
+            ->paginate(20);
     }
 };
-
-$subscriptions = computed(function () {
-    return Subscription::query()
-        ->with(['school:id,name', 'plan:id,name'])
-        ->when($this->search, function ($q) {
-            $q->whereHas('school', fn ($s) =>
-                $s->where('name', 'ilike', '%' . $this->search . '%'));
-        })
-        ->when($this->statusFilter, fn ($q) =>
-            $q->where('status', $this->statusFilter))
-        ->orderByDesc('created_at')
-        ->paginate(20);
-});
-
 ?>
 
-@include('layouts.partials.finance-styles')
+
 
 <div class="p-6">
+@include('layouts.partials.finance-styles')
     <div class="page-head">
         <div>
             <div class="page-title">Abonnements</div>

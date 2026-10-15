@@ -1,35 +1,39 @@
 <?php
-use function Livewire\Volt\{state, computed, layout, usesPagination, mount};
 use App\Models\AuditLog;
+use Livewire\Volt\Component;
+use Livewire\WithPagination;
+use Livewire\Attributes\{Computed, Layout};
 
-layout('layouts.superadmin');
-usesPagination();
+new #[Layout('layouts.superadmin')] class extends Component
+{
+    use WithPagination;
 
-state([
-    'search'       => '',
-    'guardFilter'  => '',
-    'eventFilter'  => '',
-]);
+    public string $search = '';
+    public string $guardFilter = '';
+    public string $eventFilter = '';
 
-mount(function () {
-    abort_unless(auth('superadmin')->check(), 403);
-});
+    public function mount(): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
+    }
 
-$logs = computed(function () {
-    return AuditLog::query()
-        ->with('school:id,name')
-        ->when($this->search, function ($q) {
-            $q->where(function ($sub) {
-                $sub->where('name', 'ilike', '%' . $this->search . '%')
-                    ->orWhere('email', 'ilike', '%' . $this->search . '%');
-            });
-        })
-        ->when($this->guardFilter, fn ($q) => $q->where('guard', $this->guardFilter))
-        ->when($this->eventFilter, fn ($q) => $q->where('event', $this->eventFilter))
-        ->orderByDesc('created_at')
-        ->paginate(30);
-});
-
+    #[Computed]
+    public function logs()
+    {
+        return AuditLog::query()
+            ->with('school:id,name')
+            ->when($this->search, function ($q) {
+                $q->where(function ($sub) {
+                    $sub->where('name', 'ilike', '%' . $this->search . '%')
+                        ->orWhere('email', 'ilike', '%' . $this->search . '%');
+                });
+            })
+            ->when($this->guardFilter, fn ($q) => $q->where('guard', $this->guardFilter))
+            ->when($this->eventFilter, fn ($q) => $q->where('event', $this->eventFilter))
+            ->orderByDesc('created_at')
+            ->paginate(30);
+    }
+};
 ?>
 
 @include('layouts.partials.finance-styles')

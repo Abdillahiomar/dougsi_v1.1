@@ -1,52 +1,60 @@
 <?php
-use function Livewire\Volt\{state, rules, layout, mount, computed};
 use App\Models\AuditLog;
 use App\Models\SuperAdmin;
 use Illuminate\Validation\Rules\Password;
+use Livewire\Volt\Component;
+use Livewire\Attributes\{Computed, Layout};
 
-layout('layouts.superadmin');
+new #[Layout('layouts.superadmin')] class extends Component
+{
+    public string $current_password = '';
+    public string $password = '';
+    public string $password_confirmation = '';
 
-state([
-    'current_password'      => '',
-    'password'               => '',
-    'password_confirmation'  => '',
-]);
+    protected function rules(): array
+    {
+        return [
+            'current_password' => ['required', 'string', 'current_password:superadmin'],
+            'password'          => ['required', 'string', Password::default(), 'confirmed'],
+        ];
+    }
 
-rules([
-    'current_password' => ['required', 'string', 'current_password:superadmin'],
-    'password'          => ['required', 'string', Password::default(), 'confirmed'],
-]);
+    public function mount(): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
+    }
 
-mount(function () {
-    abort_unless(auth('superadmin')->check(), 403);
-});
+    #[Computed]
+    public function lastLogin()
+    {
+        $base = AuditLog::query()
+            ->where('user_type', SuperAdmin::class)
+            ->where('user_id', auth('superadmin')->id())
+            ->where('guard', 'superadmin')
+            ->where('event', 'login')
+            ->orderByDesc('created_at');
 
-$lastLogin = computed(function () {
-    $base = AuditLog::query()
-        ->where('user_type', SuperAdmin::class)
-        ->where('user_id', auth('superadmin')->id())
-        ->where('guard', 'superadmin')
-        ->where('event', 'login')
-        ->orderByDesc('created_at');
+        return (clone $base)->skip(1)->first() ?? $base->first();
+    }
 
-    return (clone $base)->skip(1)->first() ?? $base->first();
-});
+    public function updatePassword(): void
+    {
+        $validated = $this->validate();
 
-$updatePassword = function () {
-    $validated = $this->validate();
+        auth('superadmin')->user()->update(['password' => $validated['password']]);
 
-    auth('superadmin')->user()->update(['password' => $validated['password']]);
+        $this->reset('current_password', 'password', 'password_confirmation');
 
-    $this->reset('current_password', 'password', 'password_confirmation');
-
-    session()->flash('status', 'Mot de passe mis à jour.');
+        session()->flash('status', 'Mot de passe mis à jour.');
+    }
 };
-
 ?>
 
-@include('layouts.partials.finance-styles')
+
 
 <div class="p-6" style="max-width:640px;">
+
+@include('layouts.partials.finance-styles')
     <div class="page-head">
         <div>
             <div class="page-title">Sécurité</div>
