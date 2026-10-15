@@ -162,7 +162,7 @@ return [
 
     'features' => [
         //Features::registration(),
-        Features::resetPasswords(),
+        //Features::resetPasswords(), // routes gérées manuellement (routes/password-reset.php) pour le contrôle SMTP par école
         //Features::emailVerification(),
         Features::twoFactorAuthentication([
             'confirm' => true,

@@ -106,6 +106,17 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
+     * Envoie l'email de réinitialisation via le SMTP de l'école de
+     * l'utilisateur. N'est appelée que lorsque la page "mot de passe
+     * oublié" a déjà vérifié que l'école a une config SMTP active —
+     * voir resources/views/pages/auth/forgot-password.blade.php.
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new \App\Notifications\ResetPasswordNotification($token));
+    }
+
+    /**
      * Initiales de l'utilisateur (ex: "Abdillahi Omar" -> "AO"),
      * utilisées par les vues du starter kit Laravel (navbar, avatar...).
      */
