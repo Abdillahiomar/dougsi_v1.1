@@ -2,19 +2,19 @@
 
 namespace App\Console\Commands;
 
+use App\Services\InvoiceGenerator;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
 #[Signature('app:generate-subscription-invoices')]
-#[Description('Command description')]
+#[Description("Génère les factures dues pour tous les abonnements actifs (facturation Dugsi → écoles)")]
 class GenerateSubscriptionInvoices extends Command
 {
-    /**
-     * Execute the console command.
-     */
-    public function handle()
+    public function handle(InvoiceGenerator $generator): void
     {
-        //
+        $count = $generator->generateDueInvoices();
+
+        $this->info("{$count} facture(s) générée(s).");
     }
 }

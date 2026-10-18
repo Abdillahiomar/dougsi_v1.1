@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Invoice;
+use App\Services\SubscriptionPaymentService;
 use Livewire\Volt\Component;
 use Livewire\Attributes\{Computed, Layout};
 use Livewire\WithPagination;
@@ -11,6 +12,12 @@ new #[Layout('layouts.superadmin')] class extends Component
 
     public string $search = '';
     public string $statusFilter = '';
+
+    public ?int $payingInvoiceId = null;
+    public $payAmount = null;
+    public string $payMethod = '';
+    public string $payReference = '';
+    public $payDate = null;
 
     public function mount(): void
     {
@@ -33,16 +40,44 @@ new #[Layout('layouts.superadmin')] class extends Component
             ->paginate(20);
     }
 
-    public function markAsPaid($invoiceId)
+    public function startPay(int $invoiceId): void
+    {
+        $invoice = Invoice::findOrFail($invoiceId);
+
+        $this->payingInvoiceId = $invoice->id;
+        $this->payAmount       = $invoice->amount;
+        $this->payMethod       = '';
+        $this->payReference    = '';
+        $this->payDate         = now()->format('Y-m-d');
+    }
+
+    public function cancelPay(): void
+    {
+        $this->reset(['payingInvoiceId', 'payAmount', 'payMethod', 'payReference', 'payDate']);
+    }
+
+    public function confirmPay(): void
     {
         abort_unless(auth('superadmin')->check(), 403);
 
-        $invoice = Invoice::withoutGlobalScopes()->findOrFail($invoiceId);
-        $invoice->update([
-            'status'  => 'paid',
-            'paid_at' => now(),
+        $this->validate([
+            'payAmount'    => 'required|numeric|min:0',
+            'payMethod'    => 'nullable|string|max:50',
+            'payReference' => 'nullable|string|max:100',
+            'payDate'      => 'required|date',
         ]);
-        session()->flash('status', "Facture {$invoice->invoice_number} marquée comme payée.");
+
+        $invoice = Invoice::findOrFail($this->payingInvoiceId);
+
+        app(SubscriptionPaymentService::class)->recordPayment($invoice, [
+            'amount'    => $this->payAmount,
+            'method'    => $this->payMethod,
+            'reference' => $this->payReference,
+            'paid_at'   => $this->payDate,
+        ]);
+
+        session()->flash('status', "Paiement enregistré pour la facture {$invoice->invoice_number}.");
+        $this->cancelPay();
     }
 } ?>
 
@@ -76,11 +111,45 @@ new #[Layout('layouts.superadmin')] class extends Component
             <select wire:model.live="statusFilter" class="fin-select">
                 <option value="">Tous les statuts</option>
                 <option value="unpaid">Impayée</option>
+                <option value="overdue">En retard</option>
                 <option value="paid">Payée</option>
                 <option value="cancelled">Annulée</option>
             </select>
         </div>
     </div>
+
+    @if ($payingInvoiceId)
+        <form wire:submit="confirmPay" class="fin-card" style="padding:1rem;margin-bottom:1rem;">
+            <div style="display:grid;grid-template-columns:1fr;gap:.75rem;" class="sm-grid-2">
+                <div class="filter-field">
+                    <span class="lbl">Montant reçu (FDJ)</span>
+                    <input type="number" wire:model="payAmount" class="fin-input">
+                    @error('payAmount') <span class="fin-error">{{ $message }}</span> @enderror
+                </div>
+                <div class="filter-field">
+                    <span class="lbl">Méthode</span>
+                    <select wire:model="payMethod" class="fin-select">
+                        <option value="">— Choisir —</option>
+                        <option value="d-money">D-Money</option>
+                        <option value="virement">Virement</option>
+                        <option value="especes">Espèces</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <span class="lbl">Référence (optionnel)</span>
+                    <input wire:model="payReference" class="fin-input">
+                </div>
+                <div class="filter-field">
+                    <span class="lbl">Date de paiement</span>
+                    <input type="date" wire:model="payDate" class="fin-input">
+                </div>
+            </div>
+            <div style="display:flex;gap:.5rem;margin-top:.75rem;">
+                <button type="submit" class="btn btn-primary">Enregistrer le paiement</button>
+                <button type="button" wire:click="cancelPay" class="btn">Annuler</button>
+            </div>
+        </form>
+    @endif
 
     <div class="fin-card">
         <div class="fin-card-body">
@@ -108,20 +177,19 @@ new #[Layout('layouts.superadmin')] class extends Component
                                 <span @class([
                                     'st',
                                     'st-paid'      => $invoice->status === 'paid',
-                                    'st-overdue'   => $invoice->status === 'unpaid',
+                                    'st-overdue'   => $invoice->status === 'overdue',
+                                    'st-trial'     => $invoice->status === 'unpaid',
                                     'st-cancelled' => $invoice->status === 'cancelled',
                                 ])>
                                     @php
-                                        $labels = ['paid' => 'Payée', 'unpaid' => 'Impayée', 'cancelled' => 'Annulée'];
+                                        $labels = ['paid' => 'Payée', 'unpaid' => 'Impayée', 'overdue' => 'En retard', 'cancelled' => 'Annulée'];
                                     @endphp
                                     {{ $labels[$invoice->status] ?? ucfirst($invoice->status) }}
                                 </span>
                             </td>
                             <td class="num">
-                                @if ($invoice->status === 'unpaid')
-                                    <button wire:click="markAsPaid({{ $invoice->id }})"
-                                            wire:confirm="Marquer la facture {{ $invoice->invoice_number }} comme payée ?"
-                                            class="btn btn-green btn-icon" title="Marquer payée">
+                                @if (in_array($invoice->status, ['unpaid', 'overdue']))
+                                    <button wire:click="startPay({{ $invoice->id }})" class="btn btn-green btn-icon" title="Marquer payée">
                                         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
                                     </button>
                                 @else
@@ -139,3 +207,10 @@ new #[Layout('layouts.superadmin')] class extends Component
 
     <div class="mt-4">{{ $this->invoices->links() }}</div>
 </div>
+
+<style>
+    .fin-error { display:block; font-size:.75rem; color:var(--accent-red); margin-top:.25rem; }
+    @media (min-width: 640px) {
+        .sm-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+</style>

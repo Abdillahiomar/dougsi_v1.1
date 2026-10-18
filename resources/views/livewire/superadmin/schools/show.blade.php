@@ -1,6 +1,8 @@
 <?php
-use App\Models\{School, User, Student, SchoolClass, Staff};
+use App\Models\{School, User, Student, SchoolClass, Staff, Subscription, Plan, Invoice};
 use App\Services\RoleTemplateService;
+use App\Services\InvoiceGenerator;
+use App\Services\SubscriptionPaymentService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -15,6 +17,23 @@ new #[Layout('layouts.superadmin')] class extends Component
     public string $newAdminName = '';
     public string $newAdminEmail = '';
     public ?string $generatedAdminPassword = null;
+
+    // ── Abonnement ──
+    public bool $showAddSubscription = false;
+    public $subPlanId = null;
+    public $subCustomAmount = null;
+    public $subDiscountPercent = 0;
+    public string $subBillingCycle = 'monthly';
+    public string $subStatus = 'active';
+    public $subStartsAt = null;
+    public bool $subAutoRenew = true;
+
+    // ── Paiement d'une facture ──
+    public ?int $payingInvoiceId = null;
+    public $payAmount = null;
+    public string $payMethod = '';
+    public string $payReference = '';
+    public $payDate = null;
 
     public function mount(School $school): void
     {
@@ -48,6 +67,124 @@ new #[Layout('layouts.superadmin')] class extends Component
     {
         $this->school->update(['status' => $this->school->status === 'active' ? 'suspended' : 'active']);
         $this->school->refresh();
+    }
+
+    // ── Abonnement ──
+    #[Computed]
+    public function subscription(): ?Subscription
+    {
+        return $this->school->subscriptions()->latest()->first();
+    }
+
+    #[Computed]
+    public function plans()
+    {
+        return Plan::orderBy('price')->get();
+    }
+
+    #[Computed]
+    public function invoices()
+    {
+        return $this->subscription
+            ? $this->subscription->invoices()->orderByDesc('issued_at')->get()
+            : collect();
+    }
+
+    public function toggleAddSubscription(): void
+    {
+        $this->showAddSubscription = ! $this->showAddSubscription;
+
+        if ($this->showAddSubscription) {
+            $this->subStartsAt = now()->format('Y-m-d');
+        }
+    }
+
+    public function createSubscription(): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
+
+        $this->validate([
+            'subPlanId'          => 'nullable|exists:plans,id',
+            'subCustomAmount'    => 'nullable|numeric|min:0',
+            'subDiscountPercent' => 'required|numeric|min:0|max:100',
+            'subBillingCycle'    => 'required|in:monthly,quarterly,semiannual,annual',
+            'subStatus'          => 'required|in:active,trial,suspended,expired',
+            'subStartsAt'        => 'required|date',
+        ]);
+
+        Subscription::create([
+            'school_id'             => $this->school->id,
+            'plan_id'               => $this->subPlanId ?: null,
+            'custom_monthly_amount' => $this->subCustomAmount ?: null,
+            'discount_percent'      => $this->subDiscountPercent,
+            'billing_cycle'         => $this->subBillingCycle,
+            'status'                => $this->subStatus,
+            'starts_at'             => $this->subStartsAt,
+            'auto_renew'            => $this->subAutoRenew,
+        ]);
+
+        $this->showAddSubscription = false;
+        session()->flash('status', 'Abonnement créé.');
+        unset($this->subscription);
+    }
+
+    public function generateInvoice(): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
+
+        if (! $this->subscription) {
+            return;
+        }
+
+        $invoice = app(InvoiceGenerator::class)->generateForSubscription($this->subscription);
+
+        session()->flash('status', $invoice
+            ? "Facture {$invoice->invoice_number} générée."
+            : "Une facture existe déjà pour la période courante.");
+
+        unset($this->invoices);
+    }
+
+    // ── Paiement d'une facture ──
+    public function startPay(int $invoiceId): void
+    {
+        $invoice = Invoice::findOrFail($invoiceId);
+
+        $this->payingInvoiceId = $invoice->id;
+        $this->payAmount       = $invoice->amount;
+        $this->payMethod       = '';
+        $this->payReference    = '';
+        $this->payDate         = now()->format('Y-m-d');
+    }
+
+    public function cancelPay(): void
+    {
+        $this->reset(['payingInvoiceId', 'payAmount', 'payMethod', 'payReference', 'payDate']);
+    }
+
+    public function confirmPay(): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
+
+        $this->validate([
+            'payAmount'    => 'required|numeric|min:0',
+            'payMethod'    => 'nullable|string|max:50',
+            'payReference' => 'nullable|string|max:100',
+            'payDate'      => 'required|date',
+        ]);
+
+        $invoice = Invoice::findOrFail($this->payingInvoiceId);
+
+        app(SubscriptionPaymentService::class)->recordPayment($invoice, [
+            'amount'    => $this->payAmount,
+            'method'    => $this->payMethod,
+            'reference' => $this->payReference,
+            'paid_at'   => $this->payDate,
+        ]);
+
+        session()->flash('status', "Paiement enregistré pour la facture {$invoice->invoice_number}.");
+        $this->cancelPay();
+        unset($this->invoices);
     }
 
     public function toggleAddAdmin(): void
@@ -211,6 +348,202 @@ new #[Layout('layouts.superadmin')] class extends Component
                     <button wire:click="toggleAddAdmin" class="btn btn-primary">+ Créer un administrateur</button>
                 @endif
             </div>
+        </div>
+    </div>
+
+    {{-- Abonnement & Facturation --}}
+    <div class="fin-card" style="margin-top:1.25rem;">
+        <div class="fin-card-header">
+            <span class="fin-card-title">Abonnement & Facturation</span>
+            @if ($this->subscription)
+                <a href="{{ route('superadmin.subscriptions.edit', $this->subscription) }}" class="btn btn-icon" style="margin-left:auto;" title="Modifier l'abonnement">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+                </a>
+            @endif
+        </div>
+        <div class="fin-card-body">
+            @if (! $this->subscription && ! $showAddSubscription)
+                <p class="fin-empty" style="padding:.5rem 0 1rem;">Aucun abonnement pour cette école.</p>
+                <button wire:click="toggleAddSubscription" class="btn btn-primary">+ Créer un abonnement</button>
+            @elseif ($showAddSubscription)
+                <form wire:submit="createSubscription" style="display:flex;flex-direction:column;gap:1rem;">
+                    <div style="display:grid;grid-template-columns:1fr;gap:1rem;" class="sm-grid-2">
+                        <div class="filter-field">
+                            <span class="lbl">Plan de référence (optionnel)</span>
+                            <select wire:model="subPlanId" class="fin-select">
+                                <option value="">— Aucun (montant 100% négocié) —</option>
+                                @foreach ($this->plans as $plan)
+                                    <option value="{{ $plan->id }}">{{ $plan->name }} ({{ number_format($plan->price, 0, ',', ' ') }} FDJ/mois)</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <span class="lbl">Montant mensuel négocié (FDJ)</span>
+                            <input type="number" wire:model="subCustomAmount" class="fin-input" placeholder="Laisser vide pour utiliser le prix du plan">
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr;gap:1rem;" class="sm-grid-2">
+                        <div class="filter-field">
+                            <span class="lbl">Périodicité</span>
+                            <select wire:model="subBillingCycle" class="fin-select">
+                                <option value="monthly">Mensuel</option>
+                                <option value="quarterly">Trimestriel (3 mois)</option>
+                                <option value="semiannual">Semestriel (6 mois)</option>
+                                <option value="annual">Annuel (12 mois)</option>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <span class="lbl">Remise (%)</span>
+                            <input type="number" step="0.01" wire:model="subDiscountPercent" class="fin-input">
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr;gap:1rem;" class="sm-grid-2">
+                        <div class="filter-field">
+                            <span class="lbl">Statut</span>
+                            <select wire:model="subStatus" class="fin-select">
+                                <option value="active">Actif</option>
+                                <option value="trial">Essai</option>
+                                <option value="suspended">Suspendu</option>
+                                <option value="expired">Expiré</option>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <span class="lbl">Date de début</span>
+                            <input type="date" wire:model="subStartsAt" class="fin-input">
+                            @error('subStartsAt') <span class="fin-error">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <label style="display:flex;align-items:center;gap:.5rem;font-size:.875rem;">
+                        <input type="checkbox" wire:model="subAutoRenew">
+                        Renouvellement automatique
+                    </label>
+
+                    <div style="display:flex;gap:.5rem;">
+                        <button type="submit" class="btn btn-primary">Créer l'abonnement</button>
+                        <button type="button" wire:click="toggleAddSubscription" class="btn">Annuler</button>
+                    </div>
+                </form>
+            @else
+                <dl style="display:grid;grid-template-columns:1fr;gap:.85rem;font-size:.875rem;margin-bottom:1.25rem;" class="sm-grid-2">
+                    <div>
+                        <dt class="lbl">Plan</dt>
+                        <dd style="margin-top:.2rem;font-weight:600;">{{ $this->subscription->plan?->name ?? 'Négocié (sans plan)' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="lbl">Montant par cycle</dt>
+                        <dd style="margin-top:.2rem;" class="mono">{{ number_format($this->subscription->cycleAmount(), 0, ',', ' ') }} FDJ ({{ $this->subscription->cycleLabel() }})</dd>
+                    </div>
+                    <div>
+                        <dt class="lbl">Statut</dt>
+                        <dd style="margin-top:.3rem;">
+                            <span @class([
+                                'st',
+                                'st-active'    => $this->subscription->status === 'active',
+                                'st-trial'     => $this->subscription->status === 'trial',
+                                'st-suspended' => in_array($this->subscription->status, ['suspended', 'expired']),
+                            ])>
+                                {{ match($this->subscription->status) { 'active'=>'Actif','trial'=>'Essai','suspended'=>'Suspendu','expired'=>'Expiré',default=>ucfirst($this->subscription->status) } }}
+                            </span>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="lbl">Période</dt>
+                        <dd style="margin-top:.2rem;">
+                            {{ $this->subscription->starts_at?->format('d/m/Y') }}
+                            → {{ $this->subscription->ends_at?->format('d/m/Y') ?? 'en cours' }}
+                        </dd>
+                    </div>
+                </dl>
+
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+                    <span class="fin-card-sub" style="font-weight:600;">Factures</span>
+                    <button wire:click="generateInvoice" class="btn btn-icon" title="Générer la facture de la période courante">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                        Générer facture
+                    </button>
+                </div>
+
+                @if ($payingInvoiceId)
+                    <form wire:submit="confirmPay" class="fin-card" style="background:var(--paper);padding:1rem;margin-bottom:1rem;display:flex;flex-direction:column;gap:.75rem;">
+                        <div style="display:grid;grid-template-columns:1fr;gap:.75rem;" class="sm-grid-2">
+                            <div class="filter-field">
+                                <span class="lbl">Montant reçu (FDJ)</span>
+                                <input type="number" wire:model="payAmount" class="fin-input">
+                                @error('payAmount') <span class="fin-error">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="filter-field">
+                                <span class="lbl">Méthode</span>
+                                <select wire:model="payMethod" class="fin-select">
+                                    <option value="">— Choisir —</option>
+                                    <option value="d-money">D-Money</option>
+                                    <option value="virement">Virement</option>
+                                    <option value="especes">Espèces</option>
+                                </select>
+                            </div>
+                            <div class="filter-field">
+                                <span class="lbl">Référence (optionnel)</span>
+                                <input wire:model="payReference" class="fin-input">
+                            </div>
+                            <div class="filter-field">
+                                <span class="lbl">Date de paiement</span>
+                                <input type="date" wire:model="payDate" class="fin-input">
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:.5rem;">
+                            <button type="submit" class="btn btn-primary">Enregistrer le paiement</button>
+                            <button type="button" wire:click="cancelPay" class="btn">Annuler</button>
+                        </div>
+                    </form>
+                @endif
+
+                <table class="fin-table">
+                    <thead>
+                        <tr>
+                            <th>N° Facture</th>
+                            <th class="num">Montant</th>
+                            <th>Émise le</th>
+                            <th>Échéance</th>
+                            <th>Statut</th>
+                            <th class="num">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($this->invoices as $invoice)
+                            <tr>
+                                <td class="mono">{{ $invoice->invoice_number }}</td>
+                                <td class="num mono">{{ number_format($invoice->amount, 0, ',', ' ') }} FDJ</td>
+                                <td>{{ $invoice->issued_at?->format('d/m/Y') }}</td>
+                                <td>{{ $invoice->due_at?->format('d/m/Y') }}</td>
+                                <td>
+                                    <span @class([
+                                        'st',
+                                        'st-paid'      => $invoice->status === 'paid',
+                                        'st-overdue'   => $invoice->status === 'overdue',
+                                        'st-trial'     => $invoice->status === 'unpaid',
+                                        'st-cancelled' => $invoice->status === 'cancelled',
+                                    ])>
+                                        {{ match($invoice->status) { 'paid'=>'Payée','unpaid'=>'Impayée','overdue'=>'En retard','cancelled'=>'Annulée',default=>ucfirst($invoice->status) } }}
+                                    </span>
+                                </td>
+                                <td class="num">
+                                    @if (in_array($invoice->status, ['unpaid', 'overdue']))
+                                        <button wire:click="startPay({{ $invoice->id }})" class="btn btn-green btn-icon" title="Marquer payée">
+                                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                        </button>
+                                    @else
+                                        <span style="opacity:.4;">—</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="6" class="fin-empty">Aucune facture pour cet abonnement.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            @endif
         </div>
     </div>
 
