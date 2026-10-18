@@ -96,9 +96,10 @@ new #[Layout('layouts.superadmin')] class extends Component
     
 } ?>
 
-@include('layouts.partials.finance-styles')
+
 
 <div class="p-6" style="max-width:640px;">
+    @include('layouts.partials.finance-styles')
     <div class="page-head">
         <div style="display:flex;align-items:center;gap:.75rem;">
             <a href="{{ route('superadmin.subscriptions.index') }}" class="btn btn-icon" title="Retour">
