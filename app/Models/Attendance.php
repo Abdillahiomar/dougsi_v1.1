@@ -17,6 +17,7 @@ class Attendance extends Model
         'justification',
         'justification_path',
         'recorded_by',
+        'created_by',
     ];
 
     protected $casts = [
@@ -38,6 +39,11 @@ class Attendance extends Model
     public function recorder()
     {
         return $this->belongsTo(Staff::class, 'recorded_by');
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(Staff::class, 'created_by');
     }
 
     // ── Helpers ──────────────────────────────────────────────────

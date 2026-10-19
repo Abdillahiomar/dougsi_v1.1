@@ -7,13 +7,19 @@ use App\Models\Subject;
 use App\Models\StudentSchoolYear;
 use App\Services\AcademicYearService;
 use App\Services\AccessService;
+use App\Exports\GradeTemplateExport;
+use App\Imports\GradeImport;
+use Maatwebsite\Excel\Facades\Excel;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 new class extends Component
 {
+    use WithFileUploads;
+
     // Sélection
     #[Url]
     public string $classId   = '';
@@ -33,6 +39,14 @@ new class extends Component
     public array $scores = [];
 
     public bool  $saved  = false;
+
+    // ── Import Excel ───────────────────────────────────────────────
+    public bool   $showImport    = false;
+    public        $importFile    = null;
+    public array  $importPreview = [];
+    public bool   $importParsed  = false;
+    public ?int   $importedCount = null;
+    public ?string $importError  = null;
 
     public function mount(): void
     {
@@ -193,6 +207,8 @@ new class extends Component
 
     public function saveGrades(): void
     {
+        $this->importedCount = null;
+
         // Permission
         abort_unless(auth()->user()->can('grades.enter'), 403);
 
@@ -222,28 +238,188 @@ new class extends Component
                 continue;
             }
 
-            if ($score === '' || $score === null) {
-                Grade::where('student_school_year_id', $ssyId)
-                    ->where('evaluation_id', $this->evalId)
-                    ->delete();
-                continue;
-            }
-
-            $scoreFloat = (float) str_replace(',', '.', $score);
-            $scoreFloat = max(0, min($eval->max_score, $scoreFloat));
-
-            Grade::updateOrCreate(
-                [
-                    'student_school_year_id' => $ssyId,
-                    'evaluation_id'          => $this->evalId,
-                ],
-                ['score' => $scoreFloat]
-            );
+            $this->applyGrade($ssyId, $score, $eval);
         }
 
         $this->saved = true;
     }
-    // À ajouter dans grades/index.blade.php, absences/index.blade.php, etc.
+
+    /**
+     * Enregistre (ou supprime si vide) la note d'un élève pour une évaluation
+     * donnée. Partagé entre la saisie manuelle et l'import Excel.
+     */
+    private function applyGrade(string|int $ssyId, mixed $score, Evaluation $eval): void
+    {
+        if ($score === '' || $score === null) {
+            Grade::where('student_school_year_id', $ssyId)
+                ->where('evaluation_id', $eval->id)
+                ->delete();
+            return;
+        }
+
+        $scoreFloat = (float) str_replace(',', '.', (string) $score);
+        $scoreFloat = max(0, min($eval->max_score, $scoreFloat));
+
+        Grade::updateOrCreate(
+            [
+                'student_school_year_id' => $ssyId,
+                'evaluation_id'          => $eval->id,
+            ],
+            ['score' => $scoreFloat]
+        );
+    }
+
+    // ── Import Excel ───────────────────────────────────────────────
+
+    public function toggleImport(): void
+    {
+        $this->showImport = ! $this->showImport;
+        $this->reset(['importFile', 'importPreview', 'importParsed', 'importError']);
+    }
+
+    public function downloadTemplate()
+    {
+        abort_unless(auth()->user()->can('grades.enter'), 403);
+        if (! $this->evalId) return;
+
+        $eval = Evaluation::find($this->evalId);
+        abort_unless($eval && $this->evaluationInScope($eval), 403);
+
+        $year = AcademicYearService::current();
+        $students = StudentSchoolYear::where('school_class_id', $eval->school_class_id)
+            ->where('academic_year_id', $year?->id)
+            ->with('student')
+            ->get()
+            ->sortBy('student.last_name');
+
+        $existing = Grade::where('evaluation_id', $eval->id)
+            ->get()
+            ->keyBy('student_school_year_id');
+
+        $className = SchoolClass::find($eval->school_class_id)?->name ?? 'classe';
+        $fileName  = "modele-notes-{$className}-{$eval->type}-{$eval->date?->format('Y-m-d')}.xlsx";
+
+        return Excel::download(new GradeTemplateExport($students, $existing, $eval->max_score), $fileName);
+    }
+
+    public function parseImportFile(): void
+    {
+        $this->importError    = null;
+        $this->importPreview  = [];
+        $this->importParsed   = false;
+
+        abort_unless(auth()->user()->can('grades.enter'), 403);
+        abort_unless($this->isGradingOpen(), 403);
+
+        if (! $this->evalId) return;
+
+        $eval = Evaluation::find($this->evalId);
+        abort_unless($eval && $this->evaluationInScope($eval), 403);
+
+        $this->validate(['importFile' => 'required|file|mimes:xlsx']);
+
+        $year = AcademicYearService::current();
+        $studentsByMatricule = StudentSchoolYear::where('school_class_id', $eval->school_class_id)
+            ->where('academic_year_id', $year?->id)
+            ->with('student')
+            ->get()
+            ->keyBy(fn ($ssy) => $ssy->student->matricule);
+
+        $sheets = Excel::toCollection(new GradeImport, $this->importFile->getRealPath());
+        $rows   = $sheets->first() ?? collect();
+
+        $preview = [];
+
+        foreach ($rows as $i => $row) {
+            $lineNo    = $i + 2; // +1 en-tête, +1 indexation à partir de 1
+            $matricule = trim((string) ($row['matricule'] ?? ''));
+            $noteRaw   = $row['note'] ?? null;
+            $noteStr   = trim((string) ($noteRaw ?? ''));
+
+            $entry = [
+                'line'        => $lineNo,
+                'matricule'   => $matricule,
+                'studentName' => null,
+                'score'       => $noteStr,
+                'ssyId'       => null,
+                'ok'          => true,
+                'error'       => null,
+            ];
+
+            if ($matricule === '') {
+                $entry['ok'] = false;
+                $entry['error'] = 'Matricule manquant';
+                $preview[] = $entry;
+                continue;
+            }
+
+            $ssy = $studentsByMatricule->get($matricule);
+            if (! $ssy) {
+                $entry['ok'] = false;
+                $entry['error'] = 'Matricule inconnu dans cette classe';
+                $preview[] = $entry;
+                continue;
+            }
+
+            $entry['ssyId']       = $ssy->id;
+            $entry['studentName'] = $ssy->student->fullName();
+
+            // Case vide = pas de note (supprime une note existante le cas échéant)
+            if ($noteStr === '') {
+                $preview[] = $entry;
+                continue;
+            }
+
+            $normalized = str_replace(',', '.', $noteStr);
+            if (! is_numeric($normalized)) {
+                $entry['ok'] = false;
+                $entry['error'] = "Note non numérique (« {$noteStr} »)";
+                $preview[] = $entry;
+                continue;
+            }
+
+            $noteFloat = (float) $normalized;
+            if ($noteFloat < 0 || $noteFloat > $eval->max_score) {
+                $entry['ok'] = false;
+                $entry['error'] = "Note hors barème (0 à {$eval->max_score})";
+                $preview[] = $entry;
+                continue;
+            }
+
+            $entry['score'] = $noteFloat;
+            $preview[] = $entry;
+        }
+
+        $this->importPreview = $preview;
+        $this->importParsed  = true;
+    }
+
+    public function confirmImport(): void
+    {
+        abort_unless(auth()->user()->can('grades.enter'), 403);
+        abort_unless($this->isGradingOpen(), 403);
+
+        if (! $this->evalId) return;
+
+        $eval = Evaluation::find($this->evalId);
+        abort_unless($eval && $this->evaluationInScope($eval), 403);
+
+        $imported = 0;
+
+        foreach ($this->importPreview as $row) {
+            if (! $row['ok']) {
+                continue;
+            }
+
+            $this->applyGrade($row['ssyId'], $row['score'], $eval);
+            $imported++;
+        }
+
+        $this->importedCount = $imported;
+        $this->saved         = true;
+        $this->reset(['importFile', 'importPreview', 'importParsed', 'showImport']);
+        $this->loadExistingScores();
+    }
 
     /**
      * Retourne les IDs des classes assignées à l'enseignant connecté.
@@ -560,7 +736,11 @@ new class extends Component
     @if ($saved)
         <div class="toast toast-ok" x-data x-init="setTimeout(() => $el.remove(), 3000)">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            Notes enregistrées.
+            @if ($importedCount !== null)
+                {{ $importedCount }} note(s) importée(s).
+            @else
+                Notes enregistrées.
+            @endif
         </div>
     @endif
 
@@ -668,10 +848,97 @@ new class extends Component
                             <span class="card-title">
                                 Saisie des notes — {{ ucfirst($currentEval->type) }} / {{ $currentEval->max_score }}
                             </span>
-                            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink);opacity:.4;">
-                                {{ $students->count() }} élèves
-                            </span>
+                            <div style="display:flex;align-items:center;gap:.75rem;margin-left:auto;">
+                                <button type="button" wire:click="toggleImport" class="btn-secondary">
+                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                                    Importer Excel
+                                </button>
+                                <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink);opacity:.4;">
+                                    {{ $students->count() }} élèves
+                                </span>
+                            </div>
                         </div>
+
+                        @if ($showImport)
+                            <div class="eval-form" style="margin:1rem 1.5rem;">
+                                <p style="font-size:.8125rem;opacity:.65;margin-bottom:1rem;">
+                                    Télécharge le modèle pré-rempli, complète la colonne "Note" (sur {{ $currentEval->max_score }}), puis importe le fichier.
+                                    Rien n'est enregistré tant que tu n'as pas confirmé l'aperçu.
+                                </p>
+
+                                <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem;">
+                                    <button type="button" wire:click="downloadTemplate" class="btn-secondary">
+                                        ⬇ Télécharger le modèle (.xlsx)
+                                    </button>
+
+                                    <label class="btn-secondary" style="cursor:pointer;position:relative;overflow:hidden;">
+                                        Choisir un fichier .xlsx
+                                        <input type="file" wire:model="importFile" accept=".xlsx" style="position:absolute;inset:0;opacity:0;cursor:pointer;">
+                                    </label>
+
+                                    @if ($importFile)
+                                        <button type="button" wire:click="parseImportFile" class="btn-sm-save">
+                                            Analyser le fichier
+                                        </button>
+                                    @endif
+
+                                    <button type="button" wire:click="toggleImport" class="btn-sm-cancel">Fermer</button>
+                                </div>
+                                @error('importFile') <span style="color:var(--accent-red);font-size:.8125rem;">{{ $message }}</span> @enderror
+
+                                @if ($importParsed)
+                                    @php
+                                        $okCount  = collect($importPreview)->where('ok', true)->count();
+                                        $errCount = collect($importPreview)->where('ok', false)->count();
+                                    @endphp
+                                    <div>
+                                        <p style="font-size:.875rem;font-weight:600;margin-bottom:.65rem;">
+                                            <span style="color:#166534;">{{ $okCount }} ligne(s) valide(s)</span>
+                                            @if ($errCount > 0)
+                                                · <span style="color:var(--accent-red);">{{ $errCount }} erreur(s)</span>
+                                            @endif
+                                        </p>
+
+                                        <div style="max-height:320px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;">
+                                            <table>
+                                                <thead>
+                                                    <tr>
+                                                        <th>Ligne</th>
+                                                        <th>Matricule</th>
+                                                        <th>Élève</th>
+                                                        <th>Note</th>
+                                                        <th>Résultat</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach ($importPreview as $row)
+                                                        <tr>
+                                                            <td class="mono" style="font-size:.75rem;">{{ $row['line'] }}</td>
+                                                            <td class="mono" style="font-size:.75rem;">{{ $row['matricule'] ?: '—' }}</td>
+                                                            <td style="font-size:.8125rem;">{{ $row['studentName'] ?? '—' }}</td>
+                                                            <td style="font-size:.8125rem;">{{ $row['score'] !== '' ? $row['score'] : '—' }}</td>
+                                                            <td style="font-size:.8125rem;">
+                                                                @if ($row['ok'])
+                                                                    <span style="color:#166534;">✓ OK</span>
+                                                                @else
+                                                                    <span style="color:var(--accent-red);">✗ {{ $row['error'] }}</span>
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        @if ($okCount > 0)
+                                            <button type="button" wire:click="confirmImport" class="btn-sm-save" style="margin-top:1rem;">
+                                                Confirmer l'import ({{ $okCount }} note(s))
+                                            </button>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
 
                         @if ($students->isEmpty())
                             <div class="empty"><div class="empty-sub">Aucun élève inscrit dans cette classe.</div></div>
@@ -769,12 +1036,15 @@ new class extends Component
                     </div>
 
                         @if (! $this->isGradingOpen())
-                            <div style="...alerte rouge...">
+                            <div style="font-size:.8125rem;color:var(--accent-red);background:rgba(224,92,58,.08);border:1px solid rgba(224,92,58,.2);border-radius:8px;padding:.6rem .9rem;">
                                 🔒 La saisie des notes pour {{ $period }} est fermée.
                                 Contactez le directeur pour l'ouvrir.
                             </div>
                         @else
-                            <button wire:click="saveGrades" ...>Enregistrer</button>
+                            <button wire:click="saveGrades" class="btn-save-grades">
+                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                                Enregistrer
+                            </button>
                         @endif
                 @else
                     <div class="card">

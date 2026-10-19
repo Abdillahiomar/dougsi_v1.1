@@ -7,7 +7,10 @@ use App\Models\StudentSchoolYear;
 use App\Notifications\AttendanceRecorded;
 use App\Services\AcademicYearService;
 use App\Services\AccessService;
+use App\Exports\AttendanceTemplateExport;
+use App\Imports\AttendanceImport;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
@@ -44,7 +47,20 @@ new class extends Component
     public array $documents      = [];
 
     public bool   $saved     = false;
+    public ?string $errorMessage = null;
     #[Url] public string $weekStart = '';
+
+    // ── Import Excel ───────────────────────────────────────────────
+    public bool   $showImport    = false;
+    public        $importFile    = null;
+    public array  $importPreview = [];
+    public bool   $importParsed  = false;
+    public ?int   $importedCount = null;
+
+    // Au-delà de ce nombre de jours, seuls admin/directeur peuvent encore
+    // modifier ou supprimer une présence déjà enregistrée.
+    private const EDIT_LOCK_DAYS = 7;
+    private const VALID_STATUSES = ['present', 'absent', 'late', 'excused'];
 
     public function mount(): void
     {
@@ -74,6 +90,8 @@ new class extends Component
     public function updatedDate(): void
     {
         $this->saved          = false;
+        $this->errorMessage   = null;
+        $this->importedCount  = null;
         $this->statuses       = [];
         $this->justifications = [];
         $this->lateMinutes    = [];
@@ -92,6 +110,18 @@ new class extends Component
     private function canJustify(): bool
     {
         return ! $this->isTeacher();
+    }
+
+    private function isAdminLike(): bool
+    {
+        return auth()->user()->hasAnyRole(['admin', 'directeur']);
+    }
+
+    /** Une date est verrouillée (hors admin/directeur) au-delà de EDIT_LOCK_DAYS. */
+    private function isLocked(\Carbon\Carbon $date): bool
+    {
+        return ! $this->isAdminLike()
+            && $date->lt(now()->subDays(self::EDIT_LOCK_DAYS)->startOfDay());
     }
 
     // ── Initialisation ────────────────────────────────────────────
@@ -133,7 +163,10 @@ new class extends Component
 
     public function saveAttendance(): void
     {
-       // Garde 1 : permission
+        $this->errorMessage = null;
+        $this->importedCount = null;
+
+        // Garde 1 : permission
         abort_unless(auth()->user()->can('absences.manage'), 403);
 
         if (! $this->classId) return;
@@ -145,7 +178,22 @@ new class extends Component
             403
         );
 
-        // Garde 3 : les élèves traités appartiennent-ils bien à cette classe ?
+        $targetDate = \Carbon\Carbon::parse($this->date)->startOfDay();
+
+        // Garde 3 : pas de saisie pour une date future.
+        if ($targetDate->isAfter(now()->startOfDay())) {
+            $this->errorMessage = "Impossible d'enregistrer une présence pour une date future.";
+            return;
+        }
+
+        // Garde 4 : date trop ancienne — réservé aux admins/directeurs au-delà
+        // du nombre de jours défini par EDIT_LOCK_DAYS.
+        if ($this->isLocked($targetDate)) {
+            $this->errorMessage = 'Cette date remonte à plus de ' . self::EDIT_LOCK_DAYS . " jours : seuls l'administration ou la direction peuvent encore la modifier.";
+            return;
+        }
+
+        // Garde 5 : les élèves traités appartiennent-ils bien à cette classe ?
         $year = AcademicYearService::current();
         $validSsyIds = StudentSchoolYear::where('school_class_id', $this->classId)
             ->where('academic_year_id', $year?->id)
@@ -161,67 +209,98 @@ new class extends Component
             if (! in_array((string) $ssyId, $validSsyIds)) {
                 continue;
             }
-           
-            $docPath = null;
 
-            // Upload document (réservé aux non-enseignants)
-            if ($this->canJustify() && isset($this->documents[$ssyId]) && $this->documents[$ssyId]) {
-                $file = $this->documents[$ssyId];
-
-                $existing = Attendance::where('student_school_year_id', $ssyId)
-                    ->where('date', $this->date)
-                    ->where(fn ($q) => $sessionStart
-                        ? $q->where('session_start', $sessionStart)
-                        : $q->whereNull('session_start')
-                    )->first();
-
-                if ($existing?->justification_path) {
-                    Storage::disk('public')->delete($existing->justification_path);
-                }
-
-                $docPath = $file->store('attendances/documents', 'public');
+            // Garde 6 : le statut doit faire partie des valeurs connues (anti-forge).
+            if (! in_array($status, self::VALID_STATUSES, true)) {
+                continue;
             }
 
-            $data = [
-                'status'        => $status,
-                'session_end'   => $this->sessionEnd ?: null,
-                'subject_id'    => $this->subjectId ?: null,
-                'recorded_by'   => auth()->user()->staff?->id,
-                // Durée retard
-                'late_minutes'  => $status === 'late' && ! empty($this->lateMinutes[$ssyId])
-                    ? (int) $this->lateMinutes[$ssyId]
-                    : null,
-                // Justification : uniquement pour les admins/surveillants
-                'justification' => $this->canJustify()
-                    ? ($this->justifications[$ssyId] ?? null)
-                    : null,
-            ];
+            $docFile = ($this->canJustify() && ! empty($this->documents[$ssyId]))
+                ? $this->documents[$ssyId]
+                : null;
 
-            if ($docPath) {
-                $data['justification_path'] = $docPath;
-            }
-
-            $attendance = Attendance::updateOrCreate(
-                [
-                    'student_school_year_id' => $ssyId,
-                    'date'                   => $this->date,
-                    'session_start'          => $sessionStart,
-                ],
-                $data
+            $this->applyAttendance(
+                ssyId: $ssyId,
+                status: $status,
+                lateMinutes: ! empty($this->lateMinutes[$ssyId]) ? (int) $this->lateMinutes[$ssyId] : null,
+                justification: $this->canJustify() ? ($this->justifications[$ssyId] ?? null) : null,
+                sessionStart: $sessionStart,
+                docFile: $docFile,
             );
-
-            // Notifier les tuteurs uniquement pour une absence/retard nouveau
-            // ou qui vient de changer (évite de spammer à chaque ré-enregistrement).
-            if (
-                in_array($status, ['absent', 'late'], true)
-                && ($attendance->wasRecentlyCreated || $attendance->wasChanged('status'))
-            ) {
-                $this->notifyGuardians($attendance);
-            }
         }
 
         $this->documents = [];
         $this->saved     = true;
+    }
+
+    /**
+     * Enregistre (ou met à jour) une présence pour un élève donné, avec
+     * toute la logique partagée entre la saisie manuelle et l'import Excel :
+     * document justificatif, created_by/recorded_by, notification tuteurs.
+     */
+    private function applyAttendance(
+        string|int $ssyId,
+        string $status,
+        ?int $lateMinutes,
+        ?string $justification,
+        ?string $sessionStart,
+        $docFile = null,
+    ): Attendance {
+        $docPath = null;
+
+        $existing = Attendance::where('student_school_year_id', $ssyId)
+            ->where('date', $this->date)
+            ->where(fn ($q) => $sessionStart
+                ? $q->where('session_start', $sessionStart)
+                : $q->whereNull('session_start')
+            )->first();
+
+        if ($docFile) {
+            if ($existing?->justification_path) {
+                Storage::disk('public')->delete($existing->justification_path);
+            }
+
+            $docPath = $docFile->store('attendances/documents', 'public');
+        }
+
+        $data = [
+            'status'        => $status,
+            'session_end'   => $this->sessionEnd ?: null,
+            'subject_id'    => $this->subjectId ?: null,
+            'recorded_by'   => auth()->user()->staff?->id,
+            'late_minutes'  => $status === 'late' && $lateMinutes ? $lateMinutes : null,
+            'justification' => $justification,
+        ];
+
+        if ($docPath) {
+            $data['justification_path'] = $docPath;
+        }
+
+        // L'auteur original n'est fixé qu'à la création — jamais réécrit
+        // ensuite, contrairement à "recorded_by" (dernier éditeur).
+        if (! $existing) {
+            $data['created_by'] = auth()->user()->staff?->id;
+        }
+
+        $attendance = Attendance::updateOrCreate(
+            [
+                'student_school_year_id' => $ssyId,
+                'date'                   => $this->date,
+                'session_start'          => $sessionStart,
+            ],
+            $data
+        );
+
+        // Notifier les tuteurs pour une absence/retard/justification nouveau
+        // ou qui vient de changer (évite de spammer à chaque ré-enregistrement).
+        if (
+            in_array($status, ['absent', 'late', 'excused'], true)
+            && ($attendance->wasRecentlyCreated || $attendance->wasChanged('status'))
+        ) {
+            $this->notifyGuardians($attendance);
+        }
+
+        return $attendance;
     }
 
     private function notifyGuardians(Attendance $attendance): void
@@ -249,8 +328,179 @@ new class extends Component
         }
     }
 
+    // ── Import Excel ───────────────────────────────────────────────
+
+    public function toggleImport(): void
+    {
+        $this->showImport = ! $this->showImport;
+        $this->reset(['importFile', 'importPreview', 'importParsed']);
+    }
+
+    public function downloadTemplate()
+    {
+        abort_unless(auth()->user()->can('absences.manage'), 403);
+        if (! $this->classId) return;
+
+        $allowed = AccessService::myClassIds();
+        abort_unless($allowed === null || in_array((int) $this->classId, $allowed), 403);
+
+        $year = AcademicYearService::current();
+        $students = StudentSchoolYear::where('school_class_id', $this->classId)
+            ->where('academic_year_id', $year?->id)
+            ->with('student')
+            ->get()
+            ->sortBy('student.last_name');
+
+        $sessionStart = $this->sessionStart ?: null;
+        $existing = Attendance::whereIn('student_school_year_id', $students->pluck('id'))
+            ->where('date', $this->date)
+            ->where(fn ($q) => $sessionStart
+                ? $q->where('session_start', $sessionStart)
+                : $q->whereNull('session_start')
+            )
+            ->get()
+            ->keyBy('student_school_year_id');
+
+        $className = SchoolClass::find($this->classId)?->name ?? 'classe';
+        $fileName  = "modele-presences-{$className}-{$this->date}.xlsx";
+
+        return Excel::download(new AttendanceTemplateExport($students, $existing), $fileName);
+    }
+
+    public function parseImportFile(): void
+    {
+        $this->errorMessage  = null;
+        $this->importPreview = [];
+        $this->importParsed  = false;
+
+        abort_unless(auth()->user()->can('absences.manage'), 403);
+        if (! $this->classId) return;
+
+        $allowed = AccessService::myClassIds();
+        abort_unless($allowed === null || in_array((int) $this->classId, $allowed), 403);
+
+        $this->validate(['importFile' => 'required|file|mimes:xlsx']);
+
+        $year = AcademicYearService::current();
+        $studentsByMatricule = StudentSchoolYear::where('school_class_id', $this->classId)
+            ->where('academic_year_id', $year?->id)
+            ->with('student')
+            ->get()
+            ->keyBy(fn ($ssy) => $ssy->student->matricule);
+
+        $sheets = Excel::toCollection(new AttendanceImport, $this->importFile->getRealPath());
+        $rows   = $sheets->first() ?? collect();
+
+        $preview = [];
+
+        foreach ($rows as $i => $row) {
+            $lineNo        = $i + 2; // +1 pour l'en-tête, +1 pour l'indexation à partir de 1
+            $matricule     = trim((string) ($row['matricule'] ?? ''));
+            $status        = strtolower(trim((string) ($row['statut'] ?? '')));
+            $lateMinutesIn = $row['minutes_de_retard'] ?? null;
+            $justification = trim((string) ($row['justification'] ?? ''));
+
+            $entry = [
+                'line'          => $lineNo,
+                'matricule'     => $matricule,
+                'studentName'   => null,
+                'status'        => $status,
+                'lateMinutes'   => $lateMinutesIn,
+                'justification' => $justification,
+                'ssyId'         => null,
+                'ok'            => true,
+                'error'         => null,
+            ];
+
+            if ($matricule === '') {
+                $entry['ok'] = false;
+                $entry['error'] = 'Matricule manquant';
+                $preview[] = $entry;
+                continue;
+            }
+
+            $ssy = $studentsByMatricule->get($matricule);
+            if (! $ssy) {
+                $entry['ok'] = false;
+                $entry['error'] = "Matricule inconnu dans cette classe";
+                $preview[] = $entry;
+                continue;
+            }
+
+            $entry['ssyId']       = $ssy->id;
+            $entry['studentName'] = $ssy->student->fullName();
+
+            if (! in_array($status, self::VALID_STATUSES, true)) {
+                $entry['ok'] = false;
+                $entry['error'] = "Statut invalide (« {$status} »)";
+                $preview[] = $entry;
+                continue;
+            }
+
+            if ($status === 'late' && empty($lateMinutesIn)) {
+                $entry['ok'] = false;
+                $entry['error'] = 'Minutes de retard requises pour un retard';
+                $preview[] = $entry;
+                continue;
+            }
+
+            $preview[] = $entry;
+        }
+
+        $this->importPreview = $preview;
+        $this->importParsed  = true;
+    }
+
+    public function confirmImport(): void
+    {
+        $this->errorMessage = null;
+
+        abort_unless(auth()->user()->can('absences.manage'), 403);
+
+        $allowed = AccessService::myClassIds();
+        abort_unless($allowed === null || in_array((int) $this->classId, $allowed), 403);
+
+        $targetDate = \Carbon\Carbon::parse($this->date)->startOfDay();
+
+        if ($targetDate->isAfter(now()->startOfDay())) {
+            $this->errorMessage = "Impossible d'importer pour une date future.";
+            return;
+        }
+
+        if ($this->isLocked($targetDate)) {
+            $this->errorMessage = 'Cette date remonte à plus de ' . self::EDIT_LOCK_DAYS . " jours : import réservé à l'administration ou la direction.";
+            return;
+        }
+
+        $sessionStart = $this->sessionStart ?: null;
+        $imported = 0;
+
+        foreach ($this->importPreview as $row) {
+            if (! $row['ok']) {
+                continue;
+            }
+
+            $this->applyAttendance(
+                ssyId: $row['ssyId'],
+                status: $row['status'],
+                lateMinutes: $row['lateMinutes'] ? (int) $row['lateMinutes'] : null,
+                justification: $this->canJustify() ? ($row['justification'] ?: null) : null,
+                sessionStart: $sessionStart,
+            );
+
+            $imported++;
+        }
+
+        $this->importedCount = $imported;
+        $this->saved         = true;
+        $this->reset(['importFile', 'importPreview', 'importParsed', 'showImport']);
+        $this->initStatuses();
+    }
+
     public function deleteAttendance(int $id): void
     {
+        $this->errorMessage = null;
+
         abort_unless(auth()->user()->can('absences.manage'), 403);
 
         $att = Attendance::with('studentSchoolYear')->find($id);
@@ -263,6 +513,13 @@ new class extends Component
             403
         );
 
+        // Verrou d'édition : au-delà de EDIT_LOCK_DAYS, seuls admin/directeur
+        // peuvent encore supprimer une présence déjà enregistrée.
+        if ($this->isLocked($att->date->copy()->startOfDay())) {
+            $this->errorMessage = 'Cette présence remonte à plus de ' . self::EDIT_LOCK_DAYS . " jours : seuls l'administration ou la direction peuvent encore la supprimer.";
+            return;
+        }
+
         if ($att->justification_path) {
             Storage::disk('public')->delete($att->justification_path);
         }
@@ -274,6 +531,8 @@ new class extends Component
     {
         $this->date  = \Carbon\Carbon::parse($this->date)->subDay()->format('Y-m-d');
         $this->saved = false;
+        $this->errorMessage = null;
+        $this->importedCount = null;
         $this->initStatuses();
     }
 
@@ -281,6 +540,8 @@ new class extends Component
     {
         $this->date  = \Carbon\Carbon::parse($this->date)->addDay()->format('Y-m-d');
         $this->saved = false;
+        $this->errorMessage = null;
+        $this->importedCount = null;
         $this->initStatuses();
     }
 
@@ -562,6 +823,12 @@ new class extends Component
     /* Toast */
     .toast { display:flex; align-items:center; gap:.6rem; padding:.65rem 1rem; border-radius:8px; font-size:.875rem; font-weight:500; margin-bottom:1rem; animation:slideDown .15s ease; }
     .toast-ok { background:rgba(30,120,80,.1); border:1px solid rgba(30,120,80,.2); color:#166534; }
+    .toast-err { background:rgba(224,92,58,.08); border:1px solid rgba(224,92,58,.25); color:#C04020; }
+
+    .btn-import { display:inline-flex; align-items:center; gap:6px; padding:.45rem .875rem; border-radius:8px; border:1px solid var(--line); background:var(--paper-raised); font-size:.8125rem; font-weight:500; font-family:'Inter',sans-serif; color:var(--ink); cursor:pointer; }
+    .btn-import:hover { border-color:var(--sidebar-soft); color:var(--sidebar-soft); }
+    .btn-import svg { width:15px; height:15px; }
+    .import-panel { margin-bottom:1.25rem; }
     .toast svg { width:15px; height:15px; flex-shrink:0; }
     @keyframes slideDown { from{opacity:0;transform:translateY(-4px);} to{opacity:1;transform:translateY(0);} }
 
@@ -615,6 +882,12 @@ new class extends Component
                 <input wire:model.live="date" type="date" class="date-input">
                 <button wire:click="nextDay" class="date-nav-btn"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>
             </div>
+            @if ($classId)
+                <button type="button" wire:click="toggleImport" class="btn-import">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                    Importer Excel
+                </button>
+            @endif
         @elseif ($mode === 'week')
             <div class="date-nav">
                 <button wire:click="prevWeek" class="date-nav-btn"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg></button>
@@ -627,8 +900,107 @@ new class extends Component
     @if ($saved)
         <div class="toast toast-ok" x-data x-init="setTimeout(() => $el.remove(), 3000)">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            Présences enregistrées — {{ \Carbon\Carbon::parse($date)->locale('fr')->isoFormat('dddd D MMMM') }}
-            @if ($sessionStart) · {{ substr($sessionStart,0,5) }}{{ $sessionEnd ? ' – '.substr($sessionEnd,0,5) : '' }} @endif
+            @if ($importedCount !== null)
+                {{ $importedCount }} présence(s) importée(s) — {{ \Carbon\Carbon::parse($date)->locale('fr')->isoFormat('dddd D MMMM') }}
+            @else
+                Présences enregistrées — {{ \Carbon\Carbon::parse($date)->locale('fr')->isoFormat('dddd D MMMM') }}
+                @if ($sessionStart) · {{ substr($sessionStart,0,5) }}{{ $sessionEnd ? ' – '.substr($sessionEnd,0,5) : '' }} @endif
+            @endif
+        </div>
+    @endif
+
+    @if ($errorMessage)
+        <div class="toast toast-err">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+            {{ $errorMessage }}
+        </div>
+    @endif
+
+    @if ($showImport)
+        <div class="card import-panel">
+            <div class="card-header">
+                <span class="card-title">Import Excel — présences</span>
+                <button type="button" wire:click="toggleImport" class="btn-del-record" style="opacity:.6;">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div style="padding:1.25rem 1.5rem;">
+                <p style="font-size:.8125rem;opacity:.65;margin-bottom:1rem;">
+                    Télécharge le modèle pré-rempli avec la liste des élèves de la classe sélectionnée, complète la colonne "Statut"
+                    (present / absent / late / excused), puis importe le fichier. Rien n'est enregistré tant que tu n'as pas confirmé l'aperçu.
+                </p>
+
+                <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem;">
+                    <button type="button" wire:click="downloadTemplate" class="btn-all-present" style="width:auto;margin:0;">
+                        ⬇ Télécharger le modèle (.xlsx)
+                    </button>
+
+                    <label class="upload-btn" style="font-size:.8125rem;padding:.45rem 1rem;">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                        Choisir un fichier .xlsx
+                        <input type="file" wire:model="importFile" accept=".xlsx">
+                    </label>
+
+                    @if ($importFile)
+                        <button type="button" wire:click="parseImportFile" class="btn-save" style="width:auto;">
+                            Analyser le fichier
+                        </button>
+                    @endif
+                </div>
+                @error('importFile') <span class="fin-error" style="color:var(--accent-red);font-size:.8125rem;">{{ $message }}</span> @enderror
+
+                @if ($importParsed)
+                    @php
+                        $okCount  = collect($importPreview)->where('ok', true)->count();
+                        $errCount = collect($importPreview)->where('ok', false)->count();
+                    @endphp
+                    <div style="margin-top:1rem;">
+                        <p style="font-size:.875rem;font-weight:600;margin-bottom:.65rem;">
+                            <span style="color:#166534;">{{ $okCount }} ligne(s) valide(s)</span>
+                            @if ($errCount > 0)
+                                · <span style="color:var(--accent-red);">{{ $errCount }} erreur(s)</span>
+                            @endif
+                        </p>
+
+                        <div style="max-height:320px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Ligne</th>
+                                        <th>Matricule</th>
+                                        <th>Élève</th>
+                                        <th>Statut</th>
+                                        <th>Résultat</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($importPreview as $row)
+                                        <tr>
+                                            <td class="mono" style="font-size:.75rem;">{{ $row['line'] }}</td>
+                                            <td class="mono" style="font-size:.75rem;">{{ $row['matricule'] ?: '—' }}</td>
+                                            <td style="font-size:.8125rem;">{{ $row['studentName'] ?? '—' }}</td>
+                                            <td style="font-size:.8125rem;">{{ $row['status'] ?: '—' }}</td>
+                                            <td style="font-size:.8125rem;">
+                                                @if ($row['ok'])
+                                                    <span style="color:#166534;">✓ OK</span>
+                                                @else
+                                                    <span style="color:var(--accent-red);">✗ {{ $row['error'] }}</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        @if ($okCount > 0)
+                            <button type="button" wire:click="confirmImport" class="btn-save" style="width:auto;margin-top:1rem;">
+                                Confirmer l'import ({{ $okCount }} présence(s))
+                            </button>
+                        @endif
+                    </div>
+                @endif
+            </div>
         </div>
     @endif
 

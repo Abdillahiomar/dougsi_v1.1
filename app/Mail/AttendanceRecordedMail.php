@@ -21,7 +21,11 @@ class AttendanceRecordedMail extends Mailable
     {
         $student    = $this->attendance->studentSchoolYear->student;
         $schoolName = $student->school?->name ?? 'Dugsi';
-        $label      = $this->attendance->status === 'late' ? 'retard' : 'absence';
+        $label      = match ($this->attendance->status) {
+            'late'    => 'retard',
+            'excused' => 'absence justifiée',
+            default   => 'absence',
+        };
 
         return new Envelope(
             subject: "{$schoolName} — {$label} de {$student->fullName()}",
@@ -38,7 +42,7 @@ class AttendanceRecordedMail extends Mailable
             with: [
                 'studentName'  => $student->fullName(),
                 'schoolName'   => $student->school?->name ?? 'Dugsi',
-                'isLate'       => $attendance->status === 'late',
+                'status'       => $attendance->status,
                 'date'         => $attendance->date->format('d/m/Y'),
                 'lateMinutes'  => $attendance->late_minutes,
                 'sessionLabel' => $attendance->sessionLabel(),

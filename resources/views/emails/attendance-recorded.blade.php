@@ -15,13 +15,26 @@
 
                 @include('emails.partials.header')
 
+                @php
+                    $badge = match ($status) {
+                        'late'    => ['bg' => '#FDF3E2', 'color' => '#8A6010', 'label' => 'Retard'],
+                        'excused' => ['bg' => '#E8EDFB', 'color' => '#334155', 'label' => 'Absence justifiée'],
+                        default   => ['bg' => '#FDECEA', 'color' => '#C0392B', 'label' => 'Absence'],
+                    };
+                    $verb = match ($status) {
+                        'late'    => 'marqué(e) en retard',
+                        'excused' => 'marqué(e) absent(e), de façon justifiée,',
+                        default   => 'marqué(e) absent(e)',
+                    };
+                @endphp
+
                 {{-- Badge de statut --}}
                 <tr>
                     <td style="padding:32px 32px 0;">
                         <span style="display:inline-block; padding:5px 12px; border-radius:6px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
-                            background-color:{{ $isLate ? '#FDF3E2' : '#FDECEA' }};
-                            color:{{ $isLate ? '#8A6010' : '#C0392B' }};">
-                            {{ $isLate ? 'Retard' : 'Absence' }}
+                            background-color:{{ $badge['bg'] }};
+                            color:{{ $badge['color'] }};">
+                            {{ $badge['label'] }}
                         </span>
                     </td>
                 </tr>
@@ -32,7 +45,7 @@
                         <p style="margin:0 0 16px; font-size:15px; line-height:1.6; color:#0F172A;">Bonjour,</p>
                         <p style="margin:0; font-size:15px; line-height:1.6; color:#0F172A;">
                             Nous vous informons que <strong>{{ $studentName }}</strong> a été
-                            marqué{{ $isLate ? '' : '(e)' }} <strong>{{ $isLate ? 'en retard' : 'absent(e)' }}</strong>
+                            {{ $verb }}
                             le <strong>{{ $date }}</strong>.
                         </p>
                     </td>
@@ -55,7 +68,7 @@
                                     <td style="padding:12px 16px; font-size:14px; color:#0F172A; border-top:1px solid #E2E8F0;">{{ $sessionLabel }}</td>
                                 </tr>
                             @endif
-                            @if ($isLate && $lateMinutes)
+                            @if ($status === 'late' && $lateMinutes)
                                 <tr>
                                     <td style="padding:12px 16px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#64748B; width:130px; vertical-align:top; border-top:1px solid #E2E8F0;">Durée du retard</td>
                                     <td style="padding:12px 16px; font-size:14px; color:#0F172A; border-top:1px solid #E2E8F0;">{{ $lateMinutes }} minute(s)</td>
