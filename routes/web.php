@@ -59,6 +59,9 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
     ->whereNumber('subscription');
 
     Volt::route('/invoices', 'superadmin.invoices.index')->name('invoices.index');
+    Route::get('/invoices/{invoice}/pdf', [\App\Http\Controllers\Superadmin\InvoicePdfController::class, 'show'])
+        ->name('invoices.pdf')
+        ->whereNumber('invoice');
 
     Volt::route('/activity', 'superadmin.activity.index')->name('activity.index');
 
