@@ -112,20 +112,28 @@ new #[Layout('layouts.superadmin')] class extends Component
             'subStartsAt'        => 'required|date',
         ]);
 
-        Subscription::create([
+        $startsAt = \Carbon\Carbon::parse($this->subStartsAt);
+
+        $subscription = Subscription::create([
             'school_id'             => $this->school->id,
             'plan_id'               => $this->subPlanId ?: null,
             'custom_monthly_amount' => $this->subCustomAmount ?: null,
             'discount_percent'      => $this->subDiscountPercent,
             'billing_cycle'         => $this->subBillingCycle,
             'status'                => $this->subStatus,
-            'starts_at'             => $this->subStartsAt,
+            'starts_at'             => $startsAt,
+            'ends_at'               => $startsAt->copy()->addYear(),
             'auto_renew'            => $this->subAutoRenew,
         ]);
 
+        // Génère d'un coup toutes les factures de l'année contractuelle
+        // (12 pour un cycle mensuel, 4 pour trimestriel, etc.)
+        app(InvoiceGenerator::class)->generateYearSchedule($subscription);
+
         $this->showAddSubscription = false;
-        session()->flash('status', 'Abonnement créé.');
+        session()->flash('status', 'Abonnement créé, factures de l\'année générées.');
         unset($this->subscription);
+        unset($this->invoices);
     }
 
     public function generateInvoice(): void
@@ -420,6 +428,10 @@ new #[Layout('layouts.superadmin')] class extends Component
                         <input type="checkbox" wire:model="subAutoRenew">
                         Renouvellement automatique
                     </label>
+
+                    <p style="font-size:.8125rem;opacity:.65;">
+                        La date de fin (1 an après le début) et toutes les factures de l'année seront générées automatiquement à la création.
+                    </p>
 
                     <div style="display:flex;gap:.5rem;">
                         <button type="submit" class="btn btn-primary">Créer l'abonnement</button>

@@ -11,7 +11,10 @@ Artisan::command('inspire', function () {
 // Purge quotidienne du journal d'audit (connexions/déconnexions) de plus d'un mois.
 Schedule::command('audit-logs:prune')->daily();
 
-// Facturation SaaS (Dugsi → écoles) : génère les factures dues, puis bascule
-// en retard celles dont l'échéance est dépassée.
+// Facturation SaaS (Dugsi → écoles) : renouvelle les abonnements arrivant à
+// échéance (génère l'année suivante), génère les factures dues (filet de
+// sécurité pour les abonnements sans échéancier complet), puis bascule en
+// retard celles dont l'échéance est dépassée.
+Schedule::command('app:renew-subscriptions')->dailyAt('01:00');
 Schedule::command('app:generate-subscription-invoices')->dailyAt('02:00');
 Schedule::command('app:mark-subscription-invoices-overdue')->dailyAt('03:00');

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\{Subscription, Plan};
+use App\Services\InvoiceGenerator;
 use Livewire\Volt\Component;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -89,7 +90,11 @@ new #[Layout('layouts.superadmin')] class extends Component
             'auto_renew'            => $this->auto_renew,
         ]);
 
-        session()->flash('status', 'Abonnement mis à jour.');
+        // Répercute le nouveau tarif sur les factures pas encore émises/en
+        // retard/payées (celles déjà en retard ou payées ne sont pas touchées).
+        $updated = app(InvoiceGenerator::class)->syncUnpaidInvoiceAmounts($this->subscription);
+
+        session()->flash('status', 'Abonnement mis à jour.' . ($updated > 0 ? " {$updated} facture(s) impayée(s) recalculée(s)." : ''));
         return redirect()->route('superadmin.subscriptions.index');
     }
 
