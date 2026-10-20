@@ -71,9 +71,10 @@ new #[Layout('layouts.superadmin')] class extends Component
 };
 ?>
 
-@include('layouts.partials.finance-styles')
+
 
 <div class="p-6">
+    @include('layouts.partials.finance-styles')
     <div class="page-head">
         <div>
             <div class="page-title">Tableau de bord</div>
