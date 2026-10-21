@@ -382,12 +382,45 @@ new class extends Component
             ->orderByDesc('id')
             ->paginate(30);
 
-        // Totaux par mode
-        $byMethod = PaymentReceipt::withoutGlobalScopes()
-            ->where(
-                'payment_receipts.school_id',
-                $schoolId
+        // Totaux par mode RÉEL (table receipt_methods) : pour un paiement mixte,
+        // chaque mode récupère sa propre part au lieu que tout le montant soit
+        // compté sous "Paiement mixte". PaymentService crée toujours une ligne
+        // receipt_methods par reçu, même pour un paiement à un seul mode.
+        $byMethod = \App\Models\ReceiptMethod::query()
+            ->join(
+                'payment_receipts',
+                'payment_receipts.id',
+                '=',
+                'receipt_methods.payment_receipt_id'
             )
+            ->where('payment_receipts.school_id', $schoolId)
+            ->whereBetween(
+                'payment_receipts.paid_at',
+                [
+                    $this->from . ' 00:00:00',
+                    $this->to . ' 23:59:59'
+                ]
+            )
+            ->whereNull('payment_receipts.voided_at')
+            ->when(
+                $this->filterUser,
+                fn ($q) => $q->where(
+                    'payment_receipts.received_by',
+                    $this->filterUser
+                )
+            )
+            ->selectRaw(
+                'receipt_methods.method, COUNT(*) AS n, SUM(receipt_methods.amount) AS total'
+            )
+            ->groupBy('receipt_methods.method')
+            ->get()
+            ->keyBy('method');
+
+        $grandTotal = (int) $byMethod->sum('total');
+
+        // Nombre de REÇUS (pas de lignes de mode) sur la période.
+        $countTotal = (int) PaymentReceipt::withoutGlobalScopes()
+            ->where('payment_receipts.school_id', $schoolId)
             ->whereBetween(
                 'paid_at',
                 [
@@ -398,20 +431,29 @@ new class extends Component
             ->whereNull('voided_at')
             ->when(
                 $this->filterUser,
-                fn ($q) => $q->where(
-                    'received_by',
-                    $this->filterUser
-                )
+                fn ($q) => $q->where('received_by', $this->filterUser)
             )
-            ->selectRaw(
-                'method, COUNT(*) AS n, SUM(amount) AS total'
-            )
-            ->groupBy('method')
-            ->get()
-            ->keyBy('method');
+            ->count();
 
-        $grandTotal = (int) $byMethod->sum('total');
-        $countTotal = (int) $byMethod->sum('n');
+        // Compteur de paiements mixtes — affiché comme indicateur seul (pas de
+        // montant) pour ne pas compter deux fois les sommes déjà réparties
+        // ci-dessus dans leurs modes réels.
+        $mixedCount = (int) PaymentReceipt::withoutGlobalScopes()
+            ->where('payment_receipts.school_id', $schoolId)
+            ->whereBetween(
+                'paid_at',
+                [
+                    $this->from . ' 00:00:00',
+                    $this->to . ' 23:59:59'
+                ]
+            )
+            ->whereNull('voided_at')
+            ->where('method', 'mixed')
+            ->when(
+                $this->filterUser,
+                fn ($q) => $q->where('received_by', $this->filterUser)
+            )
+            ->count();
 
         $voidedTotal = (int) PaymentReceipt::withoutGlobalScopes()
             ->where(
@@ -486,6 +528,7 @@ new class extends Component
             'byMethod',
             'grandTotal',
             'countTotal',
+            'mixedCount',
             'voidedTotal',
             'session',
             'expectedCash',
@@ -807,9 +850,11 @@ new class extends Component
         @endif
 
 
-        {{-- Méthodes de paiement --}}
+        {{-- Méthodes de paiement (la part de chaque paiement mixte est répartie ici) --}}
 
         @foreach (\App\Models\PaymentReceipt::METHODS as $key => $label)
+
+            @continue($key === 'mixed')
 
             @php
                 $row = $byMethod[$key] ?? null;
@@ -826,12 +871,29 @@ new class extends Component
                 </div>
 
                 <div class="m-n">
-                    {{ (int)($row->n ?? 0) }} reçu(s)
+                    {{ (int)($row->n ?? 0) }} ligne(s)
                 </div>
 
             </div>
 
         @endforeach
+
+        {{-- Paiements mixtes : compteur seul, le montant est déjà réparti ci-dessus --}}
+        <div class="m-box">
+
+            <div class="lbl">
+                Paiement mixte
+            </div>
+
+            <div class="m-val">
+                {{ $mixedCount }}
+            </div>
+
+            <div class="m-n">
+                reçu(s) à modes multiples
+            </div>
+
+        </div>
 
 
         {{-- Total --}}
