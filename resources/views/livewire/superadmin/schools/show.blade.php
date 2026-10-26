@@ -153,6 +153,38 @@ new #[Layout('layouts.superadmin')] class extends Component
         unset($this->invoices);
     }
 
+    /**
+     * Renouvelle manuellement l'abonnement d'un an : repousse la date de fin,
+     * repasse le statut à "active", génère les factures de la nouvelle année.
+     * Utile pour les abonnements sans renouvellement automatique, ou pour
+     * renouveler en avance.
+     */
+    public function renewSubscription(): void
+    {
+        abort_unless(auth('superadmin')->check(), 403);
+
+        if (! $this->subscription) {
+            return;
+        }
+
+        $sub = $this->subscription;
+
+        $newStart = ($sub->ends_at && $sub->ends_at->isFuture())
+            ? $sub->ends_at->copy()->addDay()
+            : now()->startOfDay();
+
+        app(InvoiceGenerator::class)->generateYearSchedule($sub, $newStart);
+
+        $sub->update([
+            'status'  => 'active',
+            'ends_at' => $newStart->copy()->addYear(),
+        ]);
+
+        session()->flash('status', "Abonnement renouvelé jusqu'au {$sub->fresh()->ends_at->format('d/m/Y')}.");
+        unset($this->subscription);
+        unset($this->invoices);
+    }
+
     // ── Paiement d'une facture ──
     public function startPay(int $invoiceId): void
     {
@@ -364,9 +396,16 @@ new #[Layout('layouts.superadmin')] class extends Component
         <div class="fin-card-header">
             <span class="fin-card-title">Abonnement & Facturation</span>
             @if ($this->subscription)
-                <a href="{{ route('superadmin.subscriptions.edit', $this->subscription) }}" class="btn btn-icon" style="margin-left:auto;" title="Modifier l'abonnement">
-                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
-                </a>
+                <div style="margin-left:auto;display:flex;gap:.5rem;">
+                    <button wire:click="renewSubscription"
+                            wire:confirm="Renouveler cet abonnement d'un an et générer les factures de la nouvelle année ?"
+                            class="btn btn-icon" title="Renouveler d'un an">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                    </button>
+                    <a href="{{ route('superadmin.subscriptions.edit', $this->subscription) }}" class="btn btn-icon" title="Modifier l'abonnement">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+                    </a>
+                </div>
             @endif
         </div>
         <div class="fin-card-body">

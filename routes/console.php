@@ -16,5 +16,6 @@ Schedule::command('audit-logs:prune')->daily();
 // sécurité pour les abonnements sans échéancier complet), puis bascule en
 // retard celles dont l'échéance est dépassée.
 Schedule::command('app:renew-subscriptions')->dailyAt('01:00');
+Schedule::command('app:expire-subscriptions')->dailyAt('01:30');
 Schedule::command('app:generate-subscription-invoices')->dailyAt('02:00');
 Schedule::command('app:mark-subscription-invoices-overdue')->dailyAt('03:00');

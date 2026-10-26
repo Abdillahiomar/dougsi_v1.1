@@ -59,6 +59,14 @@ class FortifyServiceProvider extends ServiceProvider
                         'email' => 'L\'accès de votre école est suspendu. Contactez le support DUGSI.',
                     ]);
                 }
+
+                // Abonnement expiré/suspendu (au-delà du délai de grâce) : on
+                // bloque la connexion avant même de créer la session.
+                if (\App\Services\SubscriptionAccessService::isBlocked($school)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'email' => "L'abonnement de votre école a expiré. Contactez l'administration de votre école ou le support Dugsi.",
+                    ]);
+                }
             }
 
             return $user;

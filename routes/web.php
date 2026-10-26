@@ -105,6 +105,9 @@ Route::view('/', 'welcome')->name('home');
 Route::middleware(['auth'])->group(function () {
     Volt::route('/changer-mot-de-passe', 'auth.force-password')
         ->name('password.force');
+
+    Route::view('/abonnement-expire', 'pages.subscription-expired')
+        ->name('subscription.expired');
 });
 
 

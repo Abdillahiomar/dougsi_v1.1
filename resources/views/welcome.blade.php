@@ -216,6 +216,13 @@
     }
     .school-chip span { font-size: 14px; font-weight: 600; color: var(--navy); }
 
+    /* ---------- BANDE VALEUR (5 cartes courtes) ---------- */
+    .value-strip { background: var(--navy); padding: 48px 0; }
+    .value-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 1px; background: rgba(255,255,255,.08); border-radius: 18px; overflow: hidden; }
+    .value-item { background: var(--navy); padding: 24px 20px; }
+    .value-item h4 { color: white; font-size: 14.5px; font-weight: 700; margin-bottom: 6px; }
+    .value-item p { color: rgba(255,255,255,.55); font-size: 12.5px; }
+
     /* ---------- SECTIONS ---------- */
     .section { padding: 90px 0; }
     .section-header { text-align: center; max-width: 700px; margin: 0 auto 56px; }
@@ -237,6 +244,34 @@
     }
     .card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
     .card p { color: var(--slate-text); font-size: 14.5px; }
+
+    /* ---------- "VOUS VOUS RECONNAISSEZ ?" ---------- */
+    .segment-card {
+      background: var(--white); border: 1px solid var(--border); border-radius: 20px;
+      padding: 28px 26px; position: relative;
+    }
+    .segment-tag {
+      position: absolute; top: -12px; right: 20px; background: var(--primary); color: white;
+      font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 999px;
+    }
+    .segment-quote { font-size: 15px; font-style: italic; color: var(--navy); margin-bottom: 14px; line-height: 1.5; }
+    .segment-quote::before { content: '"'; color: var(--primary); font-weight: 900; font-size: 22px; }
+    .segment-answer { font-size: 14px; color: var(--slate-text); }
+
+    /* ---------- TIMELINE "UNE JOURNÉE AVEC DOUGSI" ---------- */
+    .timeline { display: grid; grid-template-columns: repeat(4,1fr); gap: 24px; position: relative; }
+    .timeline::before {
+      content: ''; position: absolute; top: 22px; left: 10%; right: 10%; height: 2px;
+      background: var(--border); z-index: 0;
+    }
+    .timeline-item { position: relative; z-index: 1; text-align: center; }
+    .timeline-time {
+      font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: white;
+      background: var(--navy); width: 46px; height: 46px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;
+    }
+    .timeline-item h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .timeline-item p { font-size: 13.5px; color: var(--slate-text); }
 
     /* ---------- APERÇU BULLETIN (2e mockup, section "Voir Dougsi en action") ---------- */
     .demo-section { background: var(--slate); }
@@ -276,6 +311,42 @@
     .benefit-item h4 { font-size: 15.5px; font-weight: 700; margin-bottom: 6px; }
     .benefit-item p { font-size: 13.5px; color: var(--slate-text); }
 
+    /* ---------- APPLICATION MOBILE ---------- */
+    .mobile-section { background: var(--navy); color: white; overflow: hidden; }
+    .mobile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+    .mobile-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(232,168,56,0.15); border: 1px solid rgba(232,168,56,0.35);
+      color: var(--amber); padding: 6px 16px; border-radius: 999px;
+      font-size: 12.5px; font-weight: 700; margin-bottom: 18px;
+    }
+    .mobile-text h3 { font-family: 'Fraunces', serif; font-size: 28px; margin-bottom: 14px; }
+    .mobile-text p { color: rgba(255,255,255,.75); font-size: 15.5px; margin-bottom: 24px; max-width: 460px; }
+    .mobile-feats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .mobile-feat { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: rgba(255,255,255,.85); font-weight: 500; }
+    .mobile-feat .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+    .mobile-mock { display: flex; justify-content: center; }
+    .phone-frame {
+      width: 220px; height: 440px; background: var(--navy-light); border-radius: 36px;
+      border: 6px solid rgba(255,255,255,.1); padding: 16px 12px; position: relative;
+      box-shadow: 0 30px 70px rgba(0,0,0,0.5);
+    }
+    .phone-notch { width: 70px; height: 18px; background: var(--navy); border-radius: 10px; margin: 0 auto 14px; }
+    .phone-soon { text-align: center; margin-top: 110px; }
+    .phone-soon .ic { font-size: 34px; margin-bottom: 12px; }
+    .phone-soon h5 { font-family: 'Fraunces', serif; font-size: 16px; margin-bottom: 6px; }
+    .phone-soon p { font-size: 11.5px; color: rgba(255,255,255,.5); padding: 0 10px; }
+
+    /* ---------- COMPARATIF ---------- */
+    .compare-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 18px; overflow: hidden; border: 1px solid var(--border); }
+    .compare-table th, .compare-table td { padding: 16px 20px; text-align: center; font-size: 14px; border-bottom: 1px solid var(--border); }
+    .compare-table th { font-family: 'Fraunces', serif; font-size: 16px; background: var(--slate); }
+    .compare-table th.hl { background: var(--navy); color: white; }
+    .compare-table td:first-child, .compare-table th:first-child { text-align: left; font-weight: 600; color: var(--navy); }
+    .compare-table tr:last-child td { border-bottom: none; }
+    .compare-yes { color: var(--primary-dark); font-weight: 900; }
+    .compare-no { color: #CBD5E1; font-weight: 900; }
+
     /* ---------- ÉTAPES ---------- */
     .steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 24px; }
     .step { text-align: center; padding: 16px; }
@@ -300,6 +371,22 @@
     .role-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
     .role-card ul { list-style: none; font-size: 13.5px; color: var(--slate-text); }
     .role-card li { padding: 4px 0; }
+
+    /* ---------- SÉCURITÉ ---------- */
+    .security-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; margin-bottom: 40px; }
+    .security-item {
+      background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 24px 20px;
+    }
+    .security-item .si { font-size: 26px; margin-bottom: 10px; }
+    .security-item h4 { font-size: 14.5px; font-weight: 700; margin-bottom: 6px; }
+    .security-item p { font-size: 13px; color: var(--slate-text); }
+    .included-block {
+      background: var(--slate); border: 1px solid var(--border); border-radius: 20px;
+      padding: 28px 32px; display: grid; grid-template-columns: repeat(4,1fr); gap: 20px;
+    }
+    .included-block .ib-title { grid-column: 1 / -1; font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .included-item { display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; color: var(--navy); }
+    .included-item::before { content: '✓'; color: var(--primary); font-weight: 900; }
 
     /* ---------- FAQ ---------- */
     .faq-list { max-width: 780px; margin: 0 auto; }
@@ -368,20 +455,27 @@
       .hero p { margin-left: auto; margin-right: auto; }
       .hero-cta, .hero-stats { justify-content: center; }
       .app-mockup { transform: none; }
-      .grid-3, .roles-grid, .steps, .benefits-grid { grid-template-columns: 1fr 1fr; }
+      .grid-3, .roles-grid, .steps, .benefits-grid, .security-grid { grid-template-columns: 1fr 1fr; }
+      .value-grid { grid-template-columns: repeat(3,1fr); }
+      .timeline { grid-template-columns: 1fr 1fr; }
+      .timeline::before { display: none; }
       .nav-links { display: none; }
-      .demo-grid { grid-template-columns: 1fr; }
+      .demo-grid, .mobile-grid { grid-template-columns: 1fr; }
+      .mobile-mock { order: -1; }
+      .compare-table { font-size: 12px; }
+      .included-block { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 640px) {
       .hero h1 { font-size: 32px; }
       .section-header h2 { font-size: 28px; }
-      .grid-3, .roles-grid, .steps, .benefits-grid { grid-template-columns: 1fr; }
+      .grid-3, .roles-grid, .steps, .benefits-grid, .security-grid, .value-grid, .timeline, .included-block { grid-template-columns: 1fr; }
       .cta-final { padding: 40px 20px; }
       .cta-final h2 { font-size: 28px; }
       .hero-stats { gap: 20px; flex-wrap: wrap; }
       .mock-app-body { flex-direction: column; }
       .mock-sidebar { width: 100%; display: flex; overflow-x: auto; padding: 10px; }
       .mock-brand { display: none; }
+      .compare-table { display: block; overflow-x: auto; white-space: nowrap; }
     }
   </style>
 </head>
@@ -394,6 +488,7 @@
     <div class="nav-links">
       <a href="#features">Fonctionnalités</a>
       <a href="#demo">Aperçu</a>
+      <a href="#mobile">App mobile</a>
       <a href="#how">Comment ça marche</a>
       <a href="#faq">FAQ</a>
     </div>
@@ -478,6 +573,60 @@
   </div>
 </section>
 
+<!-- ====== BANDE VALEUR ====== -->
+<section class="value-strip">
+  <div class="container">
+    <div class="value-grid">
+      <div class="value-item"><h4>🎁 Démo gratuite</h4><p>Sans engagement, pour voir Dougsi avec vos propres données.</p></div>
+      <div class="value-item"><h4>🇩🇯 Pensé pour Djibouti</h4><p>Franc djiboutien, cycles scolaires et bulletins locaux.</p></div>
+      <div class="value-item"><h4>⚡ Mise en route rapide</h4><p>Configuration et import de vos élèves accompagnés.</p></div>
+      <div class="value-item"><h4>🤝 Support humain</h4><p>Une équipe joignable en français, pas un robot.</p></div>
+      <div class="value-item"><h4>🔐 Accès maîtrisé</h4><p>Chacun voit uniquement ce qui le concerne.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== VOUS VOUS RECONNAISSEZ ? ====== -->
+<section class="section">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="eyebrow">Pour qui ?</div>
+      <h2>Vous vous reconnaissez ?</h2>
+    </div>
+    <div class="grid-3">
+      <div class="segment-card reveal">
+        <p class="segment-quote">On note encore tout sur papier et dans des fichiers Excel séparés.</p>
+        <p class="segment-answer">Dougsi centralise élèves, notes, absences et paiements au même endroit, accessible à toute l'équipe.</p>
+      </div>
+      <div class="segment-card reveal d1">
+        <span class="segment-tag">Le plus fréquent</span>
+        <p class="segment-quote">Mon école grandit, les fichiers Excel ne suivent plus.</p>
+        <p class="segment-answer">Plus votre effectif augmente, plus Dougsi fait gagner du temps : calculs automatiques, relances d'impayés, bulletins générés en un clic.</p>
+      </div>
+      <div class="segment-card reveal d2">
+        <p class="segment-quote">Les parents nous appellent sans arrêt pour connaître les notes ou signaler une absence.</p>
+        <p class="segment-answer">Avec l'espace parent, chacun consulte notes, absences et annonces directement, sans passer par le secrétariat.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== TIMELINE : UNE JOURNÉE AVEC DOUGSI ====== -->
+<section class="section" style="background:var(--slate);">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="eyebrow">Au quotidien</div>
+      <h2>Une journée avec Dougsi</h2>
+    </div>
+    <div class="timeline">
+      <div class="timeline-item reveal"><div class="timeline-time">07h30</div><h4>Appel du matin</h4><p>L'enseignant marque les présences, les parents sont notifiés en cas d'absence.</p></div>
+      <div class="timeline-item reveal d1"><div class="timeline-time">10h00</div><h4>Encaissement</h4><p>La comptabilité enregistre un paiement, le reçu part immédiatement.</p></div>
+      <div class="timeline-item reveal d2"><div class="timeline-time">14h00</div><h4>Saisie des notes</h4><p>Les enseignants entrent les notes, Dougsi calcule moyennes et classement.</p></div>
+      <div class="timeline-item reveal d3"><div class="timeline-time">17h00</div><h4>Suivi de la direction</h4><p>Le directeur consulte le tableau de bord : effectifs, encaissements, taux de présence.</p></div>
+    </div>
+  </div>
+</section>
+
 <!-- ====== FONCTIONNALITÉS ====== -->
 <section class="section" id="features">
   <div class="container">
@@ -488,9 +637,9 @@
     </div>
     <div class="grid-3">
       <div class="card reveal"><div class="ico">🎓</div><h3>Inscriptions & élèves</h3><p>Gérez les dossiers élèves, les classes, les tuteurs et les documents requis en quelques clics.</p></div>
-      <div class="card reveal d1"><div class="ico">📄</div><h3>Notes & bulletins</h3><p>Saisissez les notes, Dougsi calcule les moyennes, le classement et génère les bulletins automatiquement.</p></div>
+      <div class="card reveal d1"><div class="ico">📄</div><h3>Notes & bulletins</h3><p>Saisissez les notes à la main ou importez-les depuis Excel, Dougsi calcule les moyennes, le classement et génère les bulletins automatiquement.</p></div>
       <div class="card reveal d2"><div class="ico">💰</div><h3>Paiements & impayés</h3><p>Plans de paiement par tranches, remises, suivi des impayés et reçus en temps réel.</p></div>
-      <div class="card reveal"><div class="ico">📅</div><h3>Absences & retards</h3><p>Enregistrez les présences — les parents sont notifiés automatiquement par email en cas d'absence.</p></div>
+      <div class="card reveal"><div class="ico">📅</div><h3>Absences & retards</h3><p>Enregistrez les présences une par une ou en masse via Excel — les parents sont notifiés automatiquement par email.</p></div>
       <div class="card reveal d1"><div class="ico">👨‍👩‍👧</div><h3>Espace parents</h3><p>Les parents consultent notes, absences, devoirs et annonces depuis leur propre espace.</p></div>
       <div class="card reveal d2"><div class="ico">🔐</div><h3>Rôles & sécurité</h3><p>Chaque membre du personnel accède uniquement à ce qui le concerne. Vos données sont isolées et protégées.</p></div>
     </div>
@@ -550,6 +699,64 @@
   </div>
 </section>
 
+<!-- ====== APPLICATION MOBILE ====== -->
+<section class="section mobile-section" id="mobile">
+  <div class="container">
+    <div class="mobile-grid">
+      <div class="mobile-text reveal">
+        <div class="mobile-badge">🚧 Bientôt disponible</div>
+        <h3>Dougsi, bientôt dans votre poche</h3>
+        <p>Une application mobile iOS et Android est en cours de développement pour les parents et le personnel — accès aux notes, absences et paiements, et notifications directement sur le téléphone, sans passer par le navigateur.</p>
+        <div class="mobile-feats">
+          <div class="mobile-feat"><span class="dot"></span>Notifications d'absence</div>
+          <div class="mobile-feat"><span class="dot"></span>Notes & bulletins</div>
+          <div class="mobile-feat"><span class="dot"></span>Échéances de paiement</div>
+          <div class="mobile-feat"><span class="dot"></span>Annonces de l'école</div>
+        </div>
+      </div>
+      <div class="mobile-mock reveal d1">
+        <div class="phone-frame">
+          <div class="phone-notch"></div>
+          <div class="phone-soon">
+            <div class="ic">📱</div>
+            <h5>App Dougsi</h5>
+            <p>iOS & Android — en développement</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== COMPARATIF ====== -->
+<section class="section">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="eyebrow">Comparaison</div>
+      <h2>Dougsi, face à vos méthodes actuelles</h2>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="compare-table reveal">
+        <thead>
+          <tr>
+            <th></th>
+            <th class="hl">Dougsi</th>
+            <th>Cahiers & Excel</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Calcul automatique des moyennes</td><td class="compare-yes">✓</td><td class="compare-no">✗</td></tr>
+          <tr><td>Notification automatique des parents</td><td class="compare-yes">✓</td><td class="compare-no">✗</td></tr>
+          <tr><td>Suivi des impayés en temps réel</td><td class="compare-yes">✓</td><td class="compare-no">✗</td></tr>
+          <tr><td>Accès selon le rôle de chacun</td><td class="compare-yes">✓</td><td class="compare-no">✗</td></tr>
+          <tr><td>Import/export Excel quand besoin</td><td class="compare-yes">✓</td><td class="compare-yes">✓</td></tr>
+          <tr><td>Accessible depuis n'importe où</td><td class="compare-yes">✓</td><td class="compare-no">✗</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
 <!-- ====== COMMENT ÇA MARCHE ====== -->
 <section class="section" id="how" style="background:var(--slate);">
   <div class="container">
@@ -578,6 +785,29 @@
       <div class="role-card reveal d1"><div class="ri">💼</div><h3>Comptable</h3><ul><li>Encaissements & reçus</li><li>Liste des impayés</li><li>Journal de caisse</li></ul></div>
       <div class="role-card reveal d2"><div class="ri">👩‍🏫</div><h3>Enseignant</h3><ul><li>Saisie des notes</li><li>Appel & absences</li><li>Devoirs & annonces</li></ul></div>
       <div class="role-card reveal d3"><div class="ri">👨‍👩‍👧</div><h3>Parent</h3><ul><li>Notes de l'enfant</li><li>Absences signalées</li><li>Annonces de l'école</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== SÉCURITÉ ====== -->
+<section class="section" style="background:var(--slate);">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="eyebrow">Confiance</div>
+      <h2>Vos données, protégées</h2>
+    </div>
+    <div class="security-grid">
+      <div class="security-item reveal"><div class="si">🔑</div><h4>Accès par rôle</h4><p>Chaque utilisateur ne voit que ce que son rôle autorise.</p></div>
+      <div class="security-item reveal d1"><div class="si">🏫</div><h4>Données isolées par école</h4><p>Aucune école ne peut voir les données d'une autre.</p></div>
+      <div class="security-item reveal d2"><div class="si">🔒</div><h4>Mots de passe chiffrés</h4><p>Identifiants et configurations sensibles jamais stockés en clair.</p></div>
+      <div class="security-item reveal d3"><div class="si">📋</div><h4>Connexions tracées</h4><p>Chaque connexion est enregistrée, consultable par votre administration.</p></div>
+    </div>
+    <div class="included-block reveal">
+      <div class="ib-title">Inclus dans chaque abonnement</div>
+      <div class="included-item">Accès gratuit pour enseignants et personnel</div>
+      <div class="included-item">Mise en place et formation</div>
+      <div class="included-item">Mises à jour continues</div>
+      <div class="included-item">Support réactif en français</div>
     </div>
   </div>
 </section>
@@ -613,6 +843,7 @@
     <div class="faq-list">
       <details open><summary>Mes données sont-elles en sécurité ?</summary><div class="answer">Oui. Chaque école dispose de son espace isolé et vos données sont sauvegardées régulièrement. Seules les personnes que vous autorisez y ont accès, selon leur rôle.</div></details>
       <details><summary>Faut-il une connexion internet permanente ?</summary><div class="answer">Dougsi fonctionne dans votre navigateur, une connexion internet est donc nécessaire. Une simple connexion mobile suffit largement.</div></details>
+      <details><summary>Une application mobile est-elle disponible ?</summary><div class="answer">Elle est en cours de développement pour iOS et Android. En attendant, Dougsi fonctionne déjà très bien depuis le navigateur de votre téléphone.</div></details>
       <details><summary>Et si mon personnel n'est pas à l'aise avec l'informatique ?</summary><div class="answer">L'interface est volontairement simple, en français. Nous formons votre équipe lors de la mise en place et restons disponibles pour les accompagner.</div></details>
       <details><summary>Est-ce adapté au système scolaire djiboutien ?</summary><div class="answer">Oui, Dougsi est conçu localement, avec les cycles, les frais et les bulletins adaptés aux écoles de Djibouti. La devise utilisée est le franc djiboutien (FDJ).</div></details>
       <details><summary>Puis-je récupérer mes données si besoin ?</summary><div class="answer">Vos données vous appartiennent. Vous pouvez les exporter à tout moment, notamment les listes d'élèves, les paiements et les bulletins.</div></details>
