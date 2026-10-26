@@ -195,26 +195,20 @@
     .mock-badge.good { background: rgba(16,185,129,.12); color: #047857; }
     .mock-badge.warn { background: rgba(232,168,56,.18); color: #8A6010; }
 
-    /* ---------- PREUVE SOCIALE : écoles qui utilisent Dougsi ---------- */
-    .proof { background: var(--white); padding: 40px 0; border-bottom: 1px solid var(--border); }
-    .proof .label {
-      display: block; text-align: center; color: var(--slate-text); font-size: 13px; font-weight: 600;
-      letter-spacing: 1px; text-transform: uppercase; margin-bottom: 22px;
+    /* ---------- PREUVE SOCIALE : statistiques réelles ---------- */
+    .proof { background: var(--white); padding: 44px 0; border-bottom: 1px solid var(--border); }
+    .proof-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 48px; }
+    .proof-item { text-align: center; }
+    .proof-item .pnum {
+      font-family: 'Fraunces', serif; font-weight: 800; font-size: 34px; color: var(--navy); line-height: 1.1;
     }
-    .school-strip {
-      display: flex; flex-wrap: wrap; justify-content: center; gap: 14px;
+    .proof-item .pnum span { color: var(--primary); }
+    .proof-item .plbl { font-size: 13px; color: var(--slate-text); font-weight: 600; margin-top: 4px; }
+    .cycle-strip { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 28px; }
+    .cycle-chip {
+      background: var(--slate); border: 1px solid var(--border); border-radius: 999px;
+      padding: 7px 18px; font-size: 13px; font-weight: 600; color: var(--navy);
     }
-    .school-chip {
-      display: flex; align-items: center; gap: 10px;
-      background: var(--slate); border: 1px solid var(--border); border-radius: 14px;
-      padding: 10px 18px;
-    }
-    .school-chip .avatar {
-      width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
-      background: var(--navy); display: flex; align-items: center; justify-content: center;
-      font-family: 'Fraunces', serif; font-weight: 800; font-size: 15px; color: var(--primary);
-    }
-    .school-chip span { font-size: 14px; font-weight: 600; color: var(--navy); }
 
     /* ---------- BANDE VALEUR (5 cartes courtes) ---------- */
     .value-strip { background: var(--navy); padding: 48px 0; }
@@ -327,15 +321,43 @@
     .mobile-feat .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
     .mobile-mock { display: flex; justify-content: center; }
     .phone-frame {
-      width: 220px; height: 440px; background: var(--navy-light); border-radius: 36px;
-      border: 6px solid rgba(255,255,255,.1); padding: 16px 12px; position: relative;
-      box-shadow: 0 30px 70px rgba(0,0,0,0.5);
+      width: 240px; background: white; border-radius: 36px;
+      border: 7px solid var(--navy-light); position: relative;
+      box-shadow: 0 30px 70px rgba(0,0,0,0.5); overflow: hidden;
     }
-    .phone-notch { width: 70px; height: 18px; background: var(--navy); border-radius: 10px; margin: 0 auto 14px; }
-    .phone-soon { text-align: center; margin-top: 110px; }
-    .phone-soon .ic { font-size: 34px; margin-bottom: 12px; }
-    .phone-soon h5 { font-family: 'Fraunces', serif; font-size: 16px; margin-bottom: 6px; }
-    .phone-soon p { font-size: 11.5px; color: rgba(255,255,255,.5); padding: 0 10px; }
+    .phone-notch {
+      width: 70px; height: 16px; background: var(--navy-light); border-radius: 0 0 10px 10px;
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 2;
+    }
+    .phone-screen-head {
+      background: var(--navy); color: white; padding: 24px 16px 14px; text-align: left;
+    }
+    .phone-screen-head .ph-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px; }
+    .phone-screen-head .ph-sub { font-size: 10.5px; color: rgba(255,255,255,.55); margin-top: 2px; }
+    .phone-list { padding: 10px 10px 4px; background: var(--slate); min-height: 230px; }
+    .phone-row {
+      display: flex; align-items: center; gap: 8px; background: white; border: 1px solid var(--border);
+      border-radius: 10px; padding: 8px 10px; margin-bottom: 7px;
+    }
+    .phone-row .pr-av {
+      width: 26px; height: 26px; border-radius: 50%; background: rgba(42,63,126,.1); color: var(--navy);
+      font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .phone-row .pr-info { flex: 1; min-width: 0; }
+    .phone-row .pr-name { font-size: 11.5px; font-weight: 700; color: var(--navy); }
+    .phone-row .pr-sub { font-size: 9.5px; color: #94A3B8; }
+    .phone-row .pr-badge {
+      font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700;
+      padding: 2px 7px; border-radius: 4px; background: rgba(16,185,129,.12); color: #047857;
+    }
+    .phone-tabbar {
+      display: flex; justify-content: space-around; align-items: center;
+      background: white; border-top: 1px solid var(--border); padding: 10px 0 14px;
+    }
+    .phone-tab { text-align: center; font-size: 9px; font-weight: 600; color: #94A3B8; }
+    .phone-tab.active { color: var(--primary-dark); }
+    .phone-tab .pt-ic { font-size: 16px; margin-bottom: 2px; }
 
     /* ---------- COMPARATIF ---------- */
     .compare-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 18px; overflow: hidden; border: 1px solid var(--border); }
@@ -371,6 +393,45 @@
     .role-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
     .role-card ul { list-style: none; font-size: 13.5px; color: var(--slate-text); }
     .role-card li { padding: 4px 0; }
+
+    /* ---------- ONGLETS (fonctionnalités + démo interactive) ---------- */
+    .tab-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 44px; }
+    .tab-btn {
+      padding: 10px 20px; border-radius: 10px; border: 1.5px solid var(--border);
+      background: white; font-size: 13.5px; font-weight: 600; color: var(--slate-text);
+      cursor: pointer; transition: all .15s; font-family: 'Inter', sans-serif;
+    }
+    .tab-btn:hover { border-color: var(--primary); color: var(--primary-dark); }
+    .tab-btn.active { background: var(--navy); border-color: var(--navy); color: white; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .tab-panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; max-width: 1000px; margin: 0 auto; }
+    .tab-panel-text h3 { font-family: 'Fraunces', serif; font-size: 22px; margin-bottom: 10px; }
+    .tab-panel-text p { color: var(--slate-text); font-size: 15px; margin-bottom: 18px; }
+    .mini-panel {
+      background: white; border: 1px solid var(--border); border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(15,23,42,0.08); overflow: hidden;
+    }
+    .mini-panel-head {
+      background: var(--navy); color: white; padding: 12px 18px;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: .04em;
+    }
+    .mini-panel-body { padding: 14px 18px; }
+
+    /* ---------- DÉMO INTERACTIVE : espaces ---------- */
+    .role-tabs { display: flex; gap: 10px; justify-content: center; margin-bottom: 36px; }
+    .role-tab-btn {
+      display: flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 12px;
+      border: 1.5px solid var(--border); background: white; font-size: 14px; font-weight: 700;
+      color: var(--slate-text); cursor: pointer; transition: all .15s; font-family: 'Inter', sans-serif;
+    }
+    .role-tab-btn:hover { border-color: var(--primary); }
+    .role-tab-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+    .role-panel { display: none; max-width: 640px; margin: 0 auto; }
+    .role-panel.active { display: block; }
+    .role-fiction-note {
+      text-align: center; font-size: 12px; color: var(--slate-text); opacity: .7; margin-top: 18px;
+    }
 
     /* ---------- SÉCURITÉ ---------- */
     .security-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; margin-bottom: 40px; }
@@ -551,24 +612,20 @@
   </div>
 </header>
 
-<!-- ====== PREUVE SOCIALE : écoles qui utilisent Dougsi ====== -->
+<!-- ====== PREUVE SOCIALE : statistiques réelles ====== -->
 <section class="proof">
   <div class="container">
-    <span class="label">Déjà adopté par 6 écoles à Djibouti</span>
-    <div class="school-strip">
-      @foreach ([
-        'Ecole Les Elites', 'Ecole Privée Maryama', 'Ecole Les Petits Futés',
-        'Ecole Bien Grandir', 'Ecole Privée Iftin', 'Ecole Le Jardin des Enfants',
-      ] as $schoolName)
-        @php
-          $shortName = trim(preg_replace('/^Ecole\s*(Priv[ée]e)?\s*(Le |Les |La )?/ui', '', $schoolName));
-          $initial   = mb_strtoupper(mb_substr($shortName, 0, 1));
-        @endphp
-        <div class="school-chip">
-          <div class="avatar">{{ $initial }}</div>
-          <span>{{ $schoolName }}</span>
-        </div>
-      @endforeach
+    <div class="proof-grid">
+      <div class="proof-item"><div class="pnum"><span>+6</span></div><div class="plbl">écoles utilisent Dougsi</div></div>
+      <div class="proof-item"><div class="pnum"><span>+1000</span></div><div class="plbl">élèves gérés sur la plateforme</div></div>
+      <div class="proof-item"><div class="pnum"><span>5</span></div><div class="plbl">cycles scolaires couverts</div></div>
+    </div>
+    <div class="cycle-strip">
+      <span class="cycle-chip">Crèche</span>
+      <span class="cycle-chip">Maternelle</span>
+      <span class="cycle-chip">Primaire</span>
+      <span class="cycle-chip">Collège</span>
+      <span class="cycle-chip">Lycée</span>
     </div>
   </div>
 </section>
@@ -627,7 +684,7 @@
   </div>
 </section>
 
-<!-- ====== FONCTIONNALITÉS ====== -->
+<!-- ====== FONCTIONNALITÉS (onglets) ====== -->
 <section class="section" id="features">
   <div class="container">
     <div class="section-header reveal">
@@ -635,14 +692,207 @@
       <h2>Une seule plateforme pour toute votre école</h2>
       <p>Fini les cahiers, les fichiers Excel éparpillés et les calculs manuels. Dougsi centralise votre gestion quotidienne.</p>
     </div>
-    <div class="grid-3">
-      <div class="card reveal"><div class="ico">🎓</div><h3>Inscriptions & élèves</h3><p>Gérez les dossiers élèves, les classes, les tuteurs et les documents requis en quelques clics.</p></div>
-      <div class="card reveal d1"><div class="ico">📄</div><h3>Notes & bulletins</h3><p>Saisissez les notes à la main ou importez-les depuis Excel, Dougsi calcule les moyennes, le classement et génère les bulletins automatiquement.</p></div>
-      <div class="card reveal d2"><div class="ico">💰</div><h3>Paiements & impayés</h3><p>Plans de paiement par tranches, remises, suivi des impayés et reçus en temps réel.</p></div>
-      <div class="card reveal"><div class="ico">📅</div><h3>Absences & retards</h3><p>Enregistrez les présences une par une ou en masse via Excel — les parents sont notifiés automatiquement par email.</p></div>
-      <div class="card reveal d1"><div class="ico">👨‍👩‍👧</div><h3>Espace parents</h3><p>Les parents consultent notes, absences, devoirs et annonces depuis leur propre espace.</p></div>
-      <div class="card reveal d2"><div class="ico">🔐</div><h3>Rôles & sécurité</h3><p>Chaque membre du personnel accède uniquement à ce qui le concerne. Vos données sont isolées et protégées.</p></div>
+
+    <div class="tab-btns" data-tabgroup="feat">
+      <button type="button" class="tab-btn active" data-tab="feat-grades">Notes & bulletins</button>
+      <button type="button" class="tab-btn" data-tab="feat-absences">Absences</button>
+      <button type="button" class="tab-btn" data-tab="feat-payments">Paiements</button>
+      <button type="button" class="tab-btn" data-tab="feat-comm">Communication</button>
+      <button type="button" class="tab-btn" data-tab="feat-timetable">Emploi du temps</button>
+      <button type="button" class="tab-btn" data-tab="feat-dashboard">Pilotage</button>
     </div>
+
+    <div class="tab-panel active" id="feat-grades" data-tabgroup="feat">
+      <div class="tab-panel-grid">
+        <div class="tab-panel-text">
+          <h3>Des bulletins sans calculs manuels</h3>
+          <p>Les enseignants saisissent les notes à la main ou les importent en masse depuis Excel. Dougsi calcule automatiquement moyennes, classement et mentions.</p>
+          <ul class="demo-list">
+            <li>Moyennes pondérées par coefficient</li>
+            <li>Import de notes par fichier Excel</li>
+            <li>Bulletins générés en PDF</li>
+          </ul>
+        </div>
+        <div class="mini-panel">
+          <div class="mini-panel-head">BULLETIN — TRIMESTRE 1</div>
+          <div class="mini-panel-body">
+            <div class="bm-row"><span class="bm-subject">Mathématiques</span><span class="bm-avg">16,5/20</span></div>
+            <div class="bm-row"><span class="bm-subject">Français</span><span class="bm-avg">14,2/20</span></div>
+            <div class="bm-row"><span class="bm-subject">Sciences</span><span class="bm-avg">17,0/20</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="feat-absences" data-tabgroup="feat">
+      <div class="tab-panel-grid">
+        <div class="tab-panel-text">
+          <h3>Un appel en quelques secondes</h3>
+          <p>Marquez les présences par classe, ou importez-les en masse via Excel pour toute une journée. Les tuteurs sont notifiés automatiquement en cas d'absence ou de retard.</p>
+          <ul class="demo-list">
+            <li>Saisie quotidienne par classe</li>
+            <li>Import Excel en masse</li>
+            <li>Notification automatique des tuteurs</li>
+          </ul>
+        </div>
+        <div class="mini-panel">
+          <div class="mini-panel-head">APPEL — CM2-A</div>
+          <div class="mini-panel-body">
+            <div class="mock-table" style="border:none;">
+              <div class="mock-row header"><span>Élève</span><span>Statut</span><span></span></div>
+              <div class="mock-row"><span>Ayan D.</span><span class="mock-badge good">Présent</span><span></span></div>
+              <div class="mock-row"><span>Hamza O.</span><span class="mock-badge warn">Retard</span><span></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="feat-payments" data-tabgroup="feat">
+      <div class="tab-panel-grid">
+        <div class="tab-panel-text">
+          <h3>Encaissements et impayés sous contrôle</h3>
+          <p>Plans de paiement par tranches, remises, journal de caisse et relances d'impayés — tout est suivi en temps réel, avec un reçu généré à chaque paiement.</p>
+          <ul class="demo-list">
+            <li>Plans de paiement par tranches</li>
+            <li>Journal de caisse quotidien</li>
+            <li>Suivi des impayés en temps réel</li>
+          </ul>
+        </div>
+        <div class="mini-panel">
+          <div class="mini-panel-head">JOURNAL DE CAISSE</div>
+          <div class="mini-panel-body">
+            <div class="mock-kpis" style="margin-bottom:0;">
+              <div class="mock-kpi good"><div class="k-lbl">Encaissé</div><div class="k-val">2,4M</div></div>
+              <div class="mock-kpi"><div class="k-lbl">Impayés</div><div class="k-val">180K</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="feat-comm" data-tabgroup="feat">
+      <div class="tab-panel-grid">
+        <div class="tab-panel-text">
+          <h3>Les parents informés, sans effort</h3>
+          <p>Annonces de l'école, devoirs à venir, notifications d'absence — tout part automatiquement par email, depuis l'adresse de votre établissement.</p>
+          <ul class="demo-list">
+            <li>Annonces publiées en un clic</li>
+            <li>Emails envoyés depuis votre école</li>
+            <li>Espace parent dédié</li>
+          </ul>
+        </div>
+        <div class="mini-panel">
+          <div class="mini-panel-head">ANNONCES</div>
+          <div class="mini-panel-body">
+            <div class="bm-row"><span class="bm-subject">📢 Réunion parents-profs</span><span style="font-size:10px;opacity:.5;">Auj.</span></div>
+            <div class="bm-row"><span class="bm-subject">📢 Sortie pédagogique CM2</span><span style="font-size:10px;opacity:.5;">Hier</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="feat-timetable" data-tabgroup="feat">
+      <div class="tab-panel-grid">
+        <div class="tab-panel-text">
+          <h3>Un emploi du temps clair pour tous</h3>
+          <p>Construisez l'emploi du temps par classe. Chaque enseignant et chaque parent voit uniquement ce qui le concerne.</p>
+          <ul class="demo-list">
+            <li>Grille par classe et par enseignant</li>
+            <li>Visible par les parents</li>
+            <li>Mis à jour en temps réel</li>
+          </ul>
+        </div>
+        <div class="mini-panel">
+          <div class="mini-panel-head">EMPLOI DU TEMPS — CM2-A</div>
+          <div class="mini-panel-body">
+            <div class="bm-row"><span class="bm-subject">08h00 – 09h00</span><span style="font-size:11px;">Mathématiques</span></div>
+            <div class="bm-row"><span class="bm-subject">09h00 – 10h00</span><span style="font-size:11px;">Français</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="feat-dashboard" data-tabgroup="feat">
+      <div class="tab-panel-grid">
+        <div class="tab-panel-text">
+          <h3>Un tableau de bord pour piloter votre école</h3>
+          <p>Effectifs, encaissements, taux de présence, factures en retard — la direction a une vue d'ensemble, mise à jour en continu.</p>
+          <ul class="demo-list">
+            <li>Indicateurs clés en un coup d'œil</li>
+            <li>Suivi financier consolidé</li>
+            <li>Alertes sur les retards de paiement</li>
+          </ul>
+        </div>
+        <div class="mini-panel">
+          <div class="mini-panel-head">TABLEAU DE BORD</div>
+          <div class="mini-panel-body">
+            <div class="mock-kpis" style="margin-bottom:0;">
+              <div class="mock-kpi"><div class="k-lbl">Élèves</div><div class="k-val">340</div></div>
+              <div class="mock-kpi good"><div class="k-lbl">Recouvrement</div><div class="k-val">94%</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== DÉMO INTERACTIVE : les 3 espaces ====== -->
+<section class="section demo-section">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="eyebrow">Démo interactive</div>
+      <h2>Un espace pensé pour chaque utilisateur</h2>
+      <p>Cliquez pour voir ce que chaque profil consulte dans Dougsi.</p>
+    </div>
+
+    <div class="role-tabs" data-tabgroup="role">
+      <button type="button" class="role-tab-btn active" data-tab="role-parent">👨‍👩‍👧 Espace parent</button>
+      <button type="button" class="role-tab-btn" data-tab="role-teacher">👩‍🏫 Espace enseignant</button>
+      <button type="button" class="role-tab-btn" data-tab="role-admin">👔 Espace administrateur</button>
+    </div>
+
+    <div class="role-panel active" id="role-parent" data-tabgroup="role">
+      <div class="mini-panel">
+        <div class="mini-panel-head">AYAN DIRIEH — CM2-A</div>
+        <div class="mini-panel-body">
+          <div class="bm-row"><span class="bm-subject">Moyenne générale</span><span class="bm-avg">15,4/20</span></div>
+          <div class="bm-row"><span class="bm-subject">Absences ce trimestre</span><span style="font-size:12px;">1 (justifiée)</span></div>
+          <div class="bm-row"><span class="bm-subject">Prochaine échéance</span><span style="font-size:12px;">15 000 FDJ — 05/11</span></div>
+          <div class="bm-row"><span class="bm-subject">Dernière annonce</span><span style="font-size:12px;">Réunion parents-profs</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="role-panel" id="role-teacher" data-tabgroup="role">
+      <div class="mini-panel">
+        <div class="mini-panel-head">ESPACE ENSEIGNANT — CM2-A</div>
+        <div class="mini-panel-body">
+          <div class="mock-table" style="border:none;">
+            <div class="mock-row header"><span>Élève</span><span>Présence</span><span>Note</span></div>
+            <div class="mock-row"><span>Ayan D.</span><span class="mock-badge good">Présent</span><span>16,5</span></div>
+            <div class="mock-row"><span>Hamza O.</span><span class="mock-badge warn">Retard</span><span>12,8</span></div>
+            <div class="mock-row"><span>Sagal M.</span><span class="mock-badge good">Présent</span><span>17,1</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="role-panel" id="role-admin" data-tabgroup="role">
+      <div class="mini-panel">
+        <div class="mini-panel-head">TABLEAU DE BORD — DIRECTION</div>
+        <div class="mini-panel-body">
+          <div class="mock-kpis" style="margin-bottom:0;">
+            <div class="mock-kpi"><div class="k-lbl">Élèves</div><div class="k-val">340</div></div>
+            <div class="mock-kpi good"><div class="k-lbl">Encaissé</div><div class="k-val">2,4M FDJ</div></div>
+            <div class="mock-kpi"><div class="k-lbl">Recouvrement</div><div class="k-val">94%</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="role-fiction-note">Données fictives, à titre d'illustration.</p>
   </div>
 </section>
 
@@ -717,10 +967,36 @@
       <div class="mobile-mock reveal d1">
         <div class="phone-frame">
           <div class="phone-notch"></div>
-          <div class="phone-soon">
-            <div class="ic">📱</div>
-            <h5>App Dougsi</h5>
-            <p>iOS & Android — en développement</p>
+          <div class="phone-screen-head">
+            <div class="ph-title">Mes élèves</div>
+            <div class="ph-sub">CM2-A · 28 élèves</div>
+          </div>
+          <div class="phone-list">
+            <div class="phone-row">
+              <div class="pr-av">AD</div>
+              <div class="pr-info"><div class="pr-name">Ayan Dirieh</div><div class="pr-sub">CM2-A · 15,4/20</div></div>
+              <span class="pr-badge">Présent</span>
+            </div>
+            <div class="phone-row">
+              <div class="pr-av">HO</div>
+              <div class="pr-info"><div class="pr-name">Hamza Omar</div><div class="pr-sub">CM2-A · 12,8/20</div></div>
+              <span class="pr-badge">Présent</span>
+            </div>
+            <div class="phone-row">
+              <div class="pr-av">SM</div>
+              <div class="pr-info"><div class="pr-name">Sagal Mohamed</div><div class="pr-sub">CM2-A · 17,1/20</div></div>
+              <span class="pr-badge">Présent</span>
+            </div>
+            <div class="phone-row">
+              <div class="pr-av">IA</div>
+              <div class="pr-info"><div class="pr-name">Idriss Ali</div><div class="pr-sub">CM2-A · 14,0/20</div></div>
+              <span class="pr-badge">Présent</span>
+            </div>
+          </div>
+          <div class="phone-tabbar">
+            <div class="phone-tab active"><div class="pt-ic">🎓</div>Élèves</div>
+            <div class="phone-tab"><div class="pt-ic">📅</div>Absences</div>
+            <div class="phone-tab"><div class="pt-ic">🔔</div>Annonces</div>
           </div>
         </div>
       </div>
@@ -797,10 +1073,10 @@
       <h2>Vos données, protégées</h2>
     </div>
     <div class="security-grid">
-      <div class="security-item reveal"><div class="si">🔑</div><h4>Accès par rôle</h4><p>Chaque utilisateur ne voit que ce que son rôle autorise.</p></div>
-      <div class="security-item reveal d1"><div class="si">🏫</div><h4>Données isolées par école</h4><p>Aucune école ne peut voir les données d'une autre.</p></div>
-      <div class="security-item reveal d2"><div class="si">🔒</div><h4>Mots de passe chiffrés</h4><p>Identifiants et configurations sensibles jamais stockés en clair.</p></div>
-      <div class="security-item reveal d3"><div class="si">📋</div><h4>Connexions tracées</h4><p>Chaque connexion est enregistrée, consultable par votre administration.</p></div>
+      <div class="security-item reveal"><div class="si">🤐</div><h4>Confidentialité</h4><p>Les données de votre école sont isolées, invisibles aux autres établissements.</p></div>
+      <div class="security-item reveal d1"><div class="si">🔒</div><h4>Sécurité</h4><p>Mots de passe chiffrés, accès par rôle, chaque connexion tracée.</p></div>
+      <div class="security-item reveal d2"><div class="si">🛡️</div><h4>Zéro risque de perte</h4><p>Vos données sont sauvegardées pour ne jamais être perdues.</p></div>
+      <div class="security-item reveal d3"><div class="si">⏱️</div><h4>Garantie de disponibilité</h4><p>Accessible 24h/24, depuis n'importe quel appareil connecté.</p></div>
     </div>
     <div class="included-block reveal">
       <div class="ib-title">Inclus dans chaque abonnement</div>
@@ -926,6 +1202,22 @@
   }, { threshold: 0.12 });
 
   document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+  // Onglets (fonctionnalités + démo interactive)
+  document.querySelectorAll('.tab-btn, .role-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const group = btn.dataset.tabgroup;
+      const target = btn.dataset.tab;
+
+      document.querySelectorAll(`[data-tabgroup="${group}"]`).forEach(el => {
+        if (el.classList.contains('tab-btn') || el.classList.contains('role-tab-btn')) {
+          el.classList.toggle('active', el === btn);
+        } else {
+          el.classList.toggle('active', el.id === target);
+        }
+      });
+    });
+  });
 
   // Si réduction de mouvement, on active tout directement
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
