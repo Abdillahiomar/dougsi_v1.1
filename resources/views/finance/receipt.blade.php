@@ -4,6 +4,19 @@
     <meta charset="utf-8">
     <title>Reçu {{ $receipt->receipt_number }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    {{-- Favicon dynamique selon l'école --}}
+    @php
+        $logoFile = $school?->logo_path ? public_path('storage/'.$school->logo_path) : null;
+        $logoUrl  = ($logoFile && file_exists($logoFile))
+            ? asset('storage/'.$school->logo_path).'?v='.filemtime($logoFile)
+            : null;
+    @endphp
+    @if ($logoUrl)
+        <link rel="icon" type="image/png" href="{{ $logoUrl }}">
+    @else
+        <link rel="icon" href="/favicon.ico">
+    @endif
     <style>
         @page { size: A5; margin: 10mm; }
         * { box-sizing: border-box; }
