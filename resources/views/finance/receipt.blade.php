@@ -85,7 +85,7 @@
 
     <div class="head">
         @if ($school?->logo_path)
-            <img src="{{ public_path('storage/'.$school->logo_path) }}" class="logo" alt="">
+            <img src="{{ asset('storage/'.$school->logo_path) }}" class="logo" alt="">
         @else
             <div class="logo-ph">{{ strtoupper(substr($school?->name ?? 'D', 0, 1)) }}</div>
         @endif

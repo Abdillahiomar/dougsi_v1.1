@@ -142,6 +142,11 @@
       color: #64748B; background: #F8FAFC; border-radius: 6px; padding: 4px 12px;
       flex: 1;
     }
+    .mock-topbar-badge {
+      display: flex; align-items: center; gap: 4px; white-space: nowrap;
+      background: rgba(16,185,129,.12); color: #047857; font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+    }
     .mock-app-body { display: flex; min-height: 300px; }
     .mock-sidebar {
       width: 150px; background: var(--navy); padding: 18px 0; flex-shrink: 0;
@@ -162,6 +167,14 @@
       background: var(--primary); border-radius: 0 2px 2px 0;
     }
     .mock-main { flex: 1; padding: 20px; background: var(--slate); }
+    .mock-student-card { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .mock-avatar {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      background: var(--primary); color: white; display: flex; align-items: center; justify-content: center;
+      font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px;
+    }
+    .mock-student-info .s-name { font-size: 12.5px; font-weight: 700; color: var(--navy); }
+    .mock-student-info .s-class { font-size: 10px; color: #64748B; margin-top: 1px; }
     .mock-kpis { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
     .mock-kpi {
       background: white; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
@@ -177,6 +190,7 @@
       color: var(--navy); margin-top: 3px;
     }
     .mock-kpi.good .k-val { color: white; }
+    .mock-kpi.ok .k-val { color: var(--primary); }
     .mock-table { background: white; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
     .mock-row {
       display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px;
@@ -194,6 +208,17 @@
     }
     .mock-badge.good { background: rgba(16,185,129,.12); color: #047857; }
     .mock-badge.warn { background: rgba(232,168,56,.18); color: #8A6010; }
+    .mock-badge.neutral { background: #F1F5F9; color: #64748B; }
+    .mock-callout {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--navy); margin: 14px -20px -20px; padding: 14px 20px;
+    }
+    .mock-callout-ico {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 13px;
+    }
+    .mock-callout-text { font-size: 10.5px; color: rgba(255,255,255,.55); line-height: 1.35; }
+    .mock-callout-text strong { display: block; color: white; font-size: 11.5px; font-weight: 700; margin-bottom: 2px; }
 
     /* ---------- PREUVE SOCIALE : statistiques réelles ---------- */
     .proof { background: var(--white); padding: 44px 0; border-bottom: 1px solid var(--border); }
@@ -306,58 +331,86 @@
     .benefit-item p { font-size: 13.5px; color: var(--slate-text); }
 
     /* ---------- APPLICATION MOBILE ---------- */
-    .mobile-section { background: var(--navy); color: white; overflow: hidden; }
-    .mobile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+    .mobile-section { background: var(--slate); overflow: hidden; }
+    .mobile-grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 64px; align-items: center; }
     .mobile-badge {
       display: inline-flex; align-items: center; gap: 8px;
-      background: rgba(232,168,56,0.15); border: 1px solid rgba(232,168,56,0.35);
-      color: var(--amber); padding: 6px 16px; border-radius: 999px;
-      font-size: 12.5px; font-weight: 700; margin-bottom: 18px;
+      background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3);
+      color: var(--primary-dark); padding: 7px 18px; border-radius: 999px;
+      font-size: 12.5px; font-weight: 700; margin-bottom: 20px;
     }
-    .mobile-text h3 { font-family: 'Fraunces', serif; font-size: 28px; margin-bottom: 14px; }
-    .mobile-text p { color: rgba(255,255,255,.75); font-size: 15.5px; margin-bottom: 24px; max-width: 460px; }
-    .mobile-feats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .mobile-feat { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: rgba(255,255,255,.85); font-weight: 500; }
-    .mobile-feat .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+    .mobile-text h3 { font-family: 'Fraunces', serif; font-size: 30px; color: var(--navy); line-height: 1.2; margin-bottom: 16px; }
+    .mobile-text > p { color: var(--slate-text); font-size: 15.5px; margin-bottom: 28px; max-width: 480px; }
+    .mobile-feats { display: flex; flex-direction: column; gap: 20px; }
+    .mobile-feat { display: flex; align-items: flex-start; gap: 14px; }
+    .mobile-feat .mf-ic {
+      width: 38px; height: 38px; border-radius: 11px; background: white; border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0;
+    }
+    .mobile-feat h4 { font-size: 14.5px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+    .mobile-feat p { font-size: 13px; color: var(--slate-text); line-height: 1.5; }
+    .mobile-stores { display: flex; gap: 10px; margin: 26px 0 10px; }
+    .store-btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 12px;
+      background: var(--navy); opacity: .45; color: white; font-size: 13px; font-weight: 600;
+      position: relative; cursor: default;
+    }
+    .store-btn .soon-flag {
+      position: absolute; top: -9px; right: -8px; background: var(--amber); color: #3b2a06;
+      font-size: 8.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px;
+      text-transform: uppercase; letter-spacing: .03em;
+    }
+    .mobile-note { font-size: 12.5px; color: var(--slate-text); opacity: .75; }
+
     .mobile-mock { display: flex; justify-content: center; }
     .phone-frame {
-      width: 240px; background: white; border-radius: 36px;
-      border: 7px solid var(--navy-light); position: relative;
-      box-shadow: 0 30px 70px rgba(0,0,0,0.5); overflow: hidden;
+      width: 260px; background: var(--navy); border-radius: 38px;
+      border: 8px solid var(--navy-light); position: relative;
+      box-shadow: 0 30px 70px rgba(15,23,42,0.3); overflow: hidden;
     }
-    .phone-notch {
-      width: 70px; height: 16px; background: var(--navy-light); border-radius: 0 0 10px 10px;
-      position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 2;
+    .phone-statusbar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 20px 4px; color: white; font-size: 11px; font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
     }
+    .phone-statusbar .ps-icons { display: flex; gap: 4px; align-items: center; font-size: 10px; }
     .phone-screen-head {
-      background: var(--navy); color: white; padding: 24px 16px 14px; text-align: left;
+      display: flex; align-items: center; gap: 10px; padding: 10px 18px 20px; color: white;
+    }
+    .phone-screen-head .ph-av {
+      width: 38px; height: 38px; border-radius: 11px; background: rgba(16,185,129,.18);
+      display: flex; align-items: center; justify-content: center; font-family:'Fraunces',serif;
+      font-weight: 800; color: var(--primary); font-size: 15px; flex-shrink: 0;
     }
     .phone-screen-head .ph-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px; }
-    .phone-screen-head .ph-sub { font-size: 10.5px; color: rgba(255,255,255,.55); margin-top: 2px; }
-    .phone-list { padding: 10px 10px 4px; background: var(--slate); min-height: 230px; }
-    .phone-row {
-      display: flex; align-items: center; gap: 8px; background: white; border: 1px solid var(--border);
-      border-radius: 10px; padding: 8px 10px; margin-bottom: 7px;
+    .phone-screen-head .ph-sub { font-size: 10.5px; color: rgba(255,255,255,.55); margin-top: 1px; }
+    .phone-screen-head .ph-bell { margin-left: auto; font-size: 16px; opacity: .8; }
+    .phone-cards {
+      background: var(--slate); border-radius: 22px 22px 0 0; padding: 16px 14px 10px; min-height: 340px;
     }
-    .phone-row .pr-av {
-      width: 26px; height: 26px; border-radius: 50%; background: rgba(42,63,126,.1); color: var(--navy);
-      font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    .phone-card {
+      background: white; border-radius: 13px; padding: 11px 13px; margin-bottom: 10px;
+      box-shadow: 0 2px 6px rgba(15,23,42,0.04);
     }
-    .phone-row .pr-info { flex: 1; min-width: 0; }
-    .phone-row .pr-name { font-size: 11.5px; font-weight: 700; color: var(--navy); }
-    .phone-row .pr-sub { font-size: 9.5px; color: #94A3B8; }
-    .phone-row .pr-badge {
+    .phone-card.alert { background: rgba(224,92,58,.06); border: 1px solid rgba(224,92,58,.2); }
+    .pc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .pc-head .pc-title { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--navy); }
+    .pc-head .pc-time { font-size: 9px; color: #94A3B8; }
+    .pc-body { font-size: 11px; color: var(--slate-text); }
+    .pc-alert-text { font-size: 11px; color: #C04020; font-weight: 500; }
+    .pc-grade-row { display: flex; justify-content: space-between; font-size: 11px; padding: 3px 0; color: var(--navy); }
+    .pc-grade-row span:last-child { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--primary-dark); }
+    .pc-badge {
       font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700;
-      padding: 2px 7px; border-radius: 4px; background: rgba(16,185,129,.12); color: #047857;
+      padding: 2px 8px; border-radius: 5px; background: rgba(16,185,129,.12); color: #047857;
     }
+    .pc-badge.warn { background: rgba(232,168,56,.18); color: #8A6010; }
     .phone-tabbar {
       display: flex; justify-content: space-around; align-items: center;
-      background: white; border-top: 1px solid var(--border); padding: 10px 0 14px;
+      background: white; padding: 12px 0 16px;
     }
-    .phone-tab { text-align: center; font-size: 9px; font-weight: 600; color: #94A3B8; }
+    .phone-tab { font-size: 16px; color: #CBD5E1; }
     .phone-tab.active { color: var(--primary-dark); }
-    .phone-tab .pt-ic { font-size: 16px; margin-bottom: 2px; }
 
     /* ---------- COMPARATIF ---------- */
     .compare-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 18px; overflow: hidden; border: 1px solid var(--border); }
@@ -418,19 +471,103 @@
     }
     .mini-panel-body { padding: 14px 18px; }
 
-    /* ---------- DÉMO INTERACTIVE : espaces ---------- */
-    .role-tabs { display: flex; gap: 10px; justify-content: center; margin-bottom: 36px; }
+    /* ---------- DÉMO INTERACTIVE : espaces (mockup plein écran) ---------- */
+    .role-pills {
+      display: inline-flex; gap: 4px; background: white; border: 1px solid var(--border);
+      border-radius: 999px; padding: 5px; margin: 0 auto 32px; box-shadow: 0 8px 24px rgba(15,23,42,0.06);
+    }
+    .role-pills-wrap { display: flex; justify-content: center; }
     .role-tab-btn {
-      display: flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 12px;
-      border: 1.5px solid var(--border); background: white; font-size: 14px; font-weight: 700;
+      display: flex; align-items: center; gap: 7px; padding: 10px 20px; border-radius: 999px;
+      border: none; background: transparent; font-size: 13.5px; font-weight: 700;
       color: var(--slate-text); cursor: pointer; transition: all .15s; font-family: 'Inter', sans-serif;
     }
-    .role-tab-btn:hover { border-color: var(--primary); }
-    .role-tab-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
-    .role-panel { display: none; max-width: 640px; margin: 0 auto; }
+    .role-tab-btn.active { background: var(--primary-soft); color: var(--primary-dark); }
+
+    .demo-browser {
+      border-radius: 18px; overflow: hidden; background: white;
+      box-shadow: 0 30px 70px rgba(15,23,42,0.18); border: 1px solid var(--border);
+    }
+    .demo-browser-bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #E2E8F0; }
+    .demo-browser-url {
+      margin-left: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px;
+      color: #64748B; background: #F8FAFC; border-radius: 6px; padding: 5px 14px; flex: 1;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .demo-body { display: flex; min-height: 480px; }
+    .demo-sidebar { width: 210px; background: var(--navy); padding: 20px 0; flex-shrink: 0; }
+    .demo-sidebar-brand {
+      display: flex; align-items: center; gap: 10px; padding: 0 18px 18px;
+      border-bottom: 1px solid rgba(255,255,255,.08); margin-bottom: 14px;
+    }
+    .demo-sidebar-brand .dlogo {
+      width: 32px; height: 32px; border-radius: 9px; background: rgba(16,185,129,.18);
+      display: flex; align-items: center; justify-content: center; font-family:'Fraunces',serif;
+      font-weight: 800; color: var(--primary); font-size: 14px; flex-shrink: 0;
+    }
+    .demo-sidebar-brand .dname { font-family: 'Fraunces', serif; font-weight: 700; font-size: 14.5px; color: white; }
+    .demo-sidebar-brand .dname span { color: var(--primary); }
+    .demo-nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 18px;
+      font-size: 12.5px; font-weight: 500; color: rgba(255,255,255,.55);
+    }
+    .demo-nav-item.active { background: rgba(255,255,255,.07); color: white; position: relative; }
+    .demo-nav-item.active::before {
+      content: ''; position: absolute; left: 0; top: 5px; bottom: 5px; width: 3px;
+      background: var(--primary); border-radius: 0 2px 2px 0;
+    }
+    .demo-main { flex: 1; background: var(--slate); display: flex; flex-direction: column; min-width: 0; }
+    .demo-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 28px; background: white; border-bottom: 1px solid var(--border);
+    }
+    .demo-topbar .dt-crumb { font-size: 11px; color: #94A3B8; margin-bottom: 2px; }
+    .demo-topbar .dt-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 19px; color: var(--navy); }
+    .demo-user-chip { display: flex; align-items: center; gap: 10px; background: var(--slate); border-radius: 999px; padding: 6px 14px 6px 6px; }
+    .demo-user-chip .uav {
+      width: 30px; height: 30px; border-radius: 50%; background: var(--navy); color: var(--primary);
+      display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .demo-user-chip .un { font-size: 12.5px; font-weight: 700; color: var(--navy); line-height: 1.2; }
+    .demo-user-chip .ur { font-size: 10.5px; color: #94A3B8; }
+    .demo-content { padding: 24px 28px; }
+    .demo-banner {
+      background: var(--primary-soft); border: 1px solid rgba(16,185,129,.25); border-radius: 14px;
+      padding: 16px 20px; display: flex; align-items: center; gap: 14px; margin-bottom: 18px;
+    }
+    .demo-banner .bav {
+      width: 42px; height: 42px; border-radius: 50%; background: var(--navy); color: var(--primary);
+      display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;
+      font-family: 'JetBrains Mono', monospace; flex-shrink: 0;
+    }
+    .demo-banner .bname { font-weight: 700; font-size: 15px; color: var(--navy); }
+    .demo-banner .bsub { font-size: 12px; color: var(--slate-text); margin-top: 1px; }
+    .demo-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+    .demo-kpi-card { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+    .demo-kpi-card .dk-lbl { font-size: 11.5px; color: #94A3B8; font-weight: 600; }
+    .demo-kpi-card .dk-val { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 22px; color: var(--navy); margin-top: 4px; }
+    .demo-kpi-card .dk-val.good { color: var(--primary-dark); }
+    .demo-kpi-card .dk-val.warn { color: #B45309; }
+    .demo-list-card { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px; }
+    .demo-list-card .dl-head { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13.5px; color: var(--navy); margin-bottom: 10px; }
+    .demo-list-card .dl-head a { font-size: 12px; color: var(--primary-dark); font-weight: 600; }
+    .demo-list-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); font-size: 12.5px; }
+    .demo-list-row:first-of-type { border-top: none; }
+    .demo-list-row .dr-main { font-weight: 600; color: var(--navy); }
+    .demo-list-row .dr-sub { color: #94A3B8; font-size: 11px; margin-top: 1px; }
+    .demo-hint { text-align: center; font-size: 12px; color: var(--slate-text); opacity: .6; padding: 14px 0 0; }
+
+    .role-panel { display: none; }
     .role-panel.active { display: block; }
     .role-fiction-note {
       text-align: center; font-size: 12px; color: var(--slate-text); opacity: .7; margin-top: 18px;
+    }
+
+    @media (max-width: 768px) {
+      .demo-sidebar { display: none; }
+      .demo-content { padding: 18px; }
+      .demo-kpi-grid { grid-template-columns: 1fr; }
     }
 
     /* ---------- SÉCURITÉ ---------- */
@@ -582,28 +719,40 @@
       <div class="app-mockup">
         <div class="mock-topbar">
           <span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span>
-          <div class="mock-url">dougsi.tech/dashboard</div>
+          <div class="mock-url">dougsi.tech/eleves/paiements</div>
+          <div class="mock-topbar-badge">✓ Démo réelle</div>
         </div>
         <div class="mock-app-body">
           <div class="mock-sidebar">
             <div class="mock-brand">DUG<span>SI</span></div>
-            <div class="mock-nav-item active">📊 Tableau de bord</div>
+            <div class="mock-nav-item">📊 Tableau de bord</div>
             <div class="mock-nav-item">🎓 Élèves</div>
             <div class="mock-nav-item">📄 Bulletins</div>
-            <div class="mock-nav-item">💰 Finances</div>
+            <div class="mock-nav-item active">💰 Finances</div>
             <div class="mock-nav-item">📅 Absences</div>
           </div>
           <div class="mock-main">
+            <div class="mock-student-card">
+              <div class="mock-avatar">AD</div>
+              <div class="mock-student-info">
+                <div class="s-name">Ayan Darar</div>
+                <div class="s-class">CM2-A · Scolarité 2026-2027</div>
+              </div>
+            </div>
             <div class="mock-kpis">
-              <div class="mock-kpi"><div class="k-lbl">Élèves</div><div class="k-val">340</div></div>
-              <div class="mock-kpi good"><div class="k-lbl">Encaissé</div><div class="k-val">2,4M FDJ</div></div>
-              <div class="mock-kpi"><div class="k-lbl">Recouvrement</div><div class="k-val">94%</div></div>
+              <div class="mock-kpi ok"><div class="k-lbl">Statut</div><div class="k-val">À jour</div></div>
+              <div class="mock-kpi"><div class="k-lbl">Reste à payer</div><div class="k-val">0 FDJ</div></div>
+              <div class="mock-kpi"><div class="k-lbl">Mois réglés</div><div class="k-val">4/4</div></div>
             </div>
             <div class="mock-table">
-              <div class="mock-row header"><span>Élève</span><span>Classe</span><span>Statut</span></div>
-              <div class="mock-row"><span>Ayan D.</span><span>CM2-A</span><span class="mock-badge good">Payé</span></div>
-              <div class="mock-row"><span>Hamza O.</span><span>6ème-B</span><span class="mock-badge warn">Partiel</span></div>
-              <div class="mock-row"><span>Sagal M.</span><span>CE1-C</span><span class="mock-badge good">Payé</span></div>
+              <div class="mock-row header"><span>Mois</span><span>Montant</span><span>État</span></div>
+              <div class="mock-row"><span>Juillet 2026</span><span>15 000 FDJ</span><span class="mock-badge good">Payé</span></div>
+              <div class="mock-row"><span>Août 2026</span><span>15 000 FDJ</span><span class="mock-badge good">Payé</span></div>
+              <div class="mock-row"><span>Septembre 2026</span><span>15 000 FDJ</span><span class="mock-badge neutral">À venir</span></div>
+            </div>
+            <div class="mock-callout">
+              <div class="mock-callout-ico">💳</div>
+              <div class="mock-callout-text"><strong>Chaque paiement suivi, élève par élève</strong>Échéancier, reste à payer et historique au même endroit.</div>
             </div>
           </div>
         </div>
@@ -694,12 +843,12 @@
     </div>
 
     <div class="tab-btns" data-tabgroup="feat">
-      <button type="button" class="tab-btn active" data-tab="feat-grades">Notes & bulletins</button>
-      <button type="button" class="tab-btn" data-tab="feat-absences">Absences</button>
-      <button type="button" class="tab-btn" data-tab="feat-payments">Paiements</button>
-      <button type="button" class="tab-btn" data-tab="feat-comm">Communication</button>
-      <button type="button" class="tab-btn" data-tab="feat-timetable">Emploi du temps</button>
-      <button type="button" class="tab-btn" data-tab="feat-dashboard">Pilotage</button>
+      <button type="button" class="tab-btn active" data-tabgroup="feat" data-tab="feat-grades">Notes & bulletins</button>
+      <button type="button" class="tab-btn" data-tabgroup="feat" data-tab="feat-absences">Absences</button>
+      <button type="button" class="tab-btn" data-tabgroup="feat" data-tab="feat-payments">Paiements</button>
+      <button type="button" class="tab-btn" data-tabgroup="feat" data-tab="feat-comm">Communication</button>
+      <button type="button" class="tab-btn" data-tabgroup="feat" data-tab="feat-timetable">Emploi du temps</button>
+      <button type="button" class="tab-btn" data-tabgroup="feat" data-tab="feat-dashboard">Pilotage</button>
     </div>
 
     <div class="tab-panel active" id="feat-grades" data-tabgroup="feat">
@@ -847,52 +996,146 @@
       <p>Cliquez pour voir ce que chaque profil consulte dans Dougsi.</p>
     </div>
 
-    <div class="role-tabs" data-tabgroup="role">
-      <button type="button" class="role-tab-btn active" data-tab="role-parent">👨‍👩‍👧 Espace parent</button>
-      <button type="button" class="role-tab-btn" data-tab="role-teacher">👩‍🏫 Espace enseignant</button>
-      <button type="button" class="role-tab-btn" data-tab="role-admin">👔 Espace administrateur</button>
-    </div>
-
-    <div class="role-panel active" id="role-parent" data-tabgroup="role">
-      <div class="mini-panel">
-        <div class="mini-panel-head">AYAN DIRIEH — CM2-A</div>
-        <div class="mini-panel-body">
-          <div class="bm-row"><span class="bm-subject">Moyenne générale</span><span class="bm-avg">15,4/20</span></div>
-          <div class="bm-row"><span class="bm-subject">Absences ce trimestre</span><span style="font-size:12px;">1 (justifiée)</span></div>
-          <div class="bm-row"><span class="bm-subject">Prochaine échéance</span><span style="font-size:12px;">15 000 FDJ — 05/11</span></div>
-          <div class="bm-row"><span class="bm-subject">Dernière annonce</span><span style="font-size:12px;">Réunion parents-profs</span></div>
-        </div>
+    <div class="role-pills-wrap">
+      <div class="role-pills" data-tabgroup="role">
+        <button type="button" class="role-tab-btn active" data-tabgroup="role" data-tab="parent">👨‍👩‍👧 Espace parent</button>
+        <button type="button" class="role-tab-btn" data-tabgroup="role" data-tab="teacher">👩‍🏫 Espace enseignant</button>
+        <button type="button" class="role-tab-btn" data-tabgroup="role" data-tab="admin">🛡️ Administration</button>
       </div>
     </div>
 
-    <div class="role-panel" id="role-teacher" data-tabgroup="role">
-      <div class="mini-panel">
-        <div class="mini-panel-head">ESPACE ENSEIGNANT — CM2-A</div>
-        <div class="mini-panel-body">
-          <div class="mock-table" style="border:none;">
-            <div class="mock-row header"><span>Élève</span><span>Présence</span><span>Note</span></div>
-            <div class="mock-row"><span>Ayan D.</span><span class="mock-badge good">Présent</span><span>16,5</span></div>
-            <div class="mock-row"><span>Hamza O.</span><span class="mock-badge warn">Retard</span><span>12,8</span></div>
-            <div class="mock-row"><span>Sagal M.</span><span class="mock-badge good">Présent</span><span>17,1</span></div>
+    <div class="demo-browser reveal">
+      <div class="demo-browser-bar">
+        <span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span>
+        <div class="demo-browser-url">🔒 app.dougsi.tech</div>
+      </div>
+
+      <div class="demo-body">
+        <div class="demo-sidebar">
+          <div class="demo-sidebar-brand">
+            <div class="dlogo">D</div>
+            <div class="dname">DUG<span>SI</span></div>
+          </div>
+
+          <!-- ── Espace parent ── -->
+          <div class="role-panel active" data-tabgroup="role" data-role="parent">
+            <div class="demo-nav-item active">📊 Accueil</div>
+            <div class="demo-nav-item">📄 Notes</div>
+            <div class="demo-nav-item">📝 Devoirs</div>
+            <div class="demo-nav-item">📅 Absences</div>
+            <div class="demo-nav-item">🧾 Bulletins</div>
+            <div class="demo-nav-item">💳 Paiements</div>
+            <div class="demo-nav-item">🗓️ Emploi du temps</div>
+            <div class="demo-nav-item">📢 Annonces</div>
+          </div>
+
+          <!-- ── Espace enseignant ── -->
+          <div class="role-panel" data-tabgroup="role" data-role="teacher">
+            <div class="demo-nav-item active">📊 Accueil</div>
+            <div class="demo-nav-item">🎓 Mes classes</div>
+            <div class="demo-nav-item">📝 Saisie des notes</div>
+            <div class="demo-nav-item">📅 Appel & absences</div>
+            <div class="demo-nav-item">📚 Devoirs</div>
+            <div class="demo-nav-item">🧾 Bulletins</div>
+            <div class="demo-nav-item">🗓️ Emploi du temps</div>
+            <div class="demo-nav-item">📢 Annonces</div>
+          </div>
+
+          <!-- ── Administration ── -->
+          <div class="role-panel" data-tabgroup="role" data-role="admin">
+            <div class="demo-nav-item active">📊 Tableau de bord</div>
+            <div class="demo-nav-item">🎓 Élèves</div>
+            <div class="demo-nav-item">🧾 Bulletins</div>
+            <div class="demo-nav-item">💰 Finances</div>
+            <div class="demo-nav-item">📅 Absences</div>
+            <div class="demo-nav-item">👨‍🏫 Personnel</div>
+            <div class="demo-nav-item">👥 Utilisateurs</div>
+            <div class="demo-nav-item">⚙️ Paramètres</div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div class="role-panel" id="role-admin" data-tabgroup="role">
-      <div class="mini-panel">
-        <div class="mini-panel-head">TABLEAU DE BORD — DIRECTION</div>
-        <div class="mini-panel-body">
-          <div class="mock-kpis" style="margin-bottom:0;">
-            <div class="mock-kpi"><div class="k-lbl">Élèves</div><div class="k-val">340</div></div>
-            <div class="mock-kpi good"><div class="k-lbl">Encaissé</div><div class="k-val">2,4M FDJ</div></div>
-            <div class="mock-kpi"><div class="k-lbl">Recouvrement</div><div class="k-val">94%</div></div>
+        <div class="demo-main">
+
+          <!-- ── Topbar + contenu : Parent ── -->
+          <div class="role-panel active" data-tabgroup="role" data-role="parent">
+            <div class="demo-topbar">
+              <div><div class="dt-crumb">Accueil</div><div class="dt-title">Tableau de bord</div></div>
+              <div class="demo-user-chip"><div class="uav">KB</div><div><div class="un">Karim Hassan</div><div class="ur">Parent · Ayan D. (CM2-A)</div></div></div>
+            </div>
+            <div class="demo-content">
+              <div class="demo-banner">
+                <div class="bav">AD</div>
+                <div><div class="bname">Ayan Dirieh</div><div class="bsub">CM2-A · Primaire · Ecole Les Elites</div></div>
+              </div>
+              <div class="demo-kpi-grid">
+                <div class="demo-kpi-card"><div class="dk-lbl">Moyenne générale</div><div class="dk-val good">15,4/20</div></div>
+                <div class="demo-kpi-card"><div class="dk-lbl">Assiduité</div><div class="dk-val good">98%</div></div>
+                <div class="demo-kpi-card"><div class="dk-lbl">Devoirs à faire</div><div class="dk-val">2</div></div>
+                <div class="demo-kpi-card"><div class="dk-lbl">Reste à payer</div><div class="dk-val warn">15 000 FDJ</div></div>
+              </div>
+              <div class="demo-list-card">
+                <div class="dl-head"><span>Dernières annonces</span><a href="#">Tout voir</a></div>
+                <div class="demo-list-row"><div><div class="dr-main">Réunion parents-professeurs</div><div class="dr-sub">École · il y a 1 jour</div></div></div>
+                <div class="demo-list-row"><div><div class="dr-main">Absence du 12/10 — justifiée</div><div class="dr-sub">Vie scolaire · il y a 3 jours</div></div></div>
+              </div>
+            </div>
           </div>
+
+          <!-- ── Topbar + contenu : Enseignant ── -->
+          <div class="role-panel" data-tabgroup="role" data-role="teacher">
+            <div class="demo-topbar">
+              <div><div class="dt-crumb">Mes classes</div><div class="dt-title">CM2-A</div></div>
+              <div class="demo-user-chip"><div class="uav">FA</div><div><div class="un">Fatouma Ahmed</div><div class="ur">Enseignante · CM2-A</div></div></div>
+            </div>
+            <div class="demo-content">
+              <div class="demo-banner">
+                <div class="bav">28</div>
+                <div><div class="bname">CM2-A</div><div class="bsub">28 élèves · Mathématiques & Sciences</div></div>
+              </div>
+              <div class="demo-kpi-grid">
+                <div class="demo-kpi-card"><div class="dk-lbl">Élèves présents</div><div class="dk-val good">26 / 28</div></div>
+                <div class="demo-kpi-card"><div class="dk-lbl">Moyenne de classe</div><div class="dk-val">14,1/20</div></div>
+                <div class="demo-kpi-card"><div class="dk-lbl">Notes à saisir</div><div class="dk-val warn">1 évaluation</div></div>
+                <div class="demo-kpi-card"><div class="dk-lbl">Devoirs publiés</div><div class="dk-val">3</div></div>
+              </div>
+              <div class="demo-list-card">
+                <div class="dl-head"><span>Appel du jour</span><a href="#">Voir tout</a></div>
+                <div class="demo-list-row"><div><div class="dr-main">Ayan Dirieh</div><div class="dr-sub">16,5/20</div></div><span class="mock-badge good">Présent</span></div>
+                <div class="demo-list-row"><div><div class="dr-main">Hamza Omar</div><div class="dr-sub">12,8/20</div></div><span class="mock-badge warn">Retard</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Topbar + contenu : Administration ── -->
+          <div class="role-panel" data-tabgroup="role" data-role="admin">
+            <div class="demo-topbar">
+              <div><div class="dt-crumb">Accueil</div><div class="dt-title">Tableau de bord</div></div>
+              <div class="demo-user-chip"><div class="uav">DH</div><div><div class="un">Direction</div><div class="ur">Ecole Les Elites</div></div></div>
+            </div>
+            <div class="demo-content">
+              <div class="demo-banner">
+                <div class="bav">EE</div>
+                <div><div class="bname">Ecole Les Elites</div><div class="bsub">Année scolaire 2026-2027</div></div>
+              </div>
+              <div class="demo-kpi-grid">
+                <div class="demo-kpi-card"><div class="dk-lbl">Élèves inscrits</div><div class="dk-val">340</div></div>
+                <div class="demo-kpi-card"><div class="dk-lbl">Encaissé ce mois</div><div class="dk-val good">2,4M FDJ</div></div>
+                <div class="demo-kpi-card"><div class="dk-lbl">Taux de recouvrement</div><div class="dk-val good">94%</div></div>
+                <div class="demo-kpi-card"><div class="dk-lbl">Factures en retard</div><div class="dk-val warn">7</div></div>
+              </div>
+              <div class="demo-list-card">
+                <div class="dl-head"><span>Activité récente</span><a href="#">Journal complet</a></div>
+                <div class="demo-list-row"><div><div class="dr-main">Nouveau paiement — Sagal M.</div><div class="dr-sub">Comptabilité · il y a 20 min</div></div></div>
+                <div class="demo-list-row"><div><div class="dr-main">Bulletins Trimestre 1 générés</div><div class="dr-sub">CM2-A · il y a 2h</div></div></div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
 
-    <p class="role-fiction-note">Données fictives, à titre d'illustration.</p>
+    <p class="demo-hint">Données fictives, à titre d'illustration.</p>
   </div>
 </section>
 
@@ -955,48 +1198,71 @@
     <div class="mobile-grid">
       <div class="mobile-text reveal">
         <div class="mobile-badge">🚧 Bientôt disponible</div>
-        <h3>Dougsi, bientôt dans votre poche</h3>
-        <p>Une application mobile iOS et Android est en cours de développement pour les parents et le personnel — accès aux notes, absences et paiements, et notifications directement sur le téléphone, sans passer par le navigateur.</p>
+        <h3>Les parents suivront la scolarité depuis leur téléphone.</h3>
+        <p>Une vraie application native iOS et Android est en cours de développement — pas un simple site adapté au mobile. Les parents recevront l'information au moment où elle compte, sans avoir à se connecter à un ordinateur.</p>
+
         <div class="mobile-feats">
-          <div class="mobile-feat"><span class="dot"></span>Notifications d'absence</div>
-          <div class="mobile-feat"><span class="dot"></span>Notes & bulletins</div>
-          <div class="mobile-feat"><span class="dot"></span>Échéances de paiement</div>
-          <div class="mobile-feat"><span class="dot"></span>Annonces de l'école</div>
+          <div class="mobile-feat">
+            <div class="mf-ic">🔔</div>
+            <div><h4>Notification dès l'absence</h4><p>Le parent est prévenu en temps réel, directement depuis l'application. Fini les mots dans le cahier.</p></div>
+          </div>
+          <div class="mobile-feat">
+            <div class="mf-ic">⭐</div>
+            <div><h4>Notes et bulletins</h4><p>Résultats et bulletins consultables à tout moment, sans passer par le secrétariat.</p></div>
+          </div>
+          <div class="mobile-feat">
+            <div class="mf-ic">💳</div>
+            <div><h4>Scolarité et échéances</h4><p>Chaque famille voit sa situation et ses échéances. Moins d'appels au secrétariat, moins de retards.</p></div>
+          </div>
+          <div class="mobile-feat">
+            <div class="mf-ic">📢</div>
+            <div><h4>Annonces de l'école</h4><p>Les communications de l'établissement regroupées au même endroit, au lieu de se disperser.</p></div>
+          </div>
         </div>
+
+        <div class="mobile-stores">
+          <span class="store-btn">🍎 App Store<span class="soon-flag">Bientôt</span></span>
+          <span class="store-btn">▶ Google Play<span class="soon-flag">Bientôt</span></span>
+        </div>
+        <p class="mobile-note">L'application sera réservée aux familles et au personnel déjà inscrits via votre établissement.</p>
       </div>
+
       <div class="mobile-mock reveal d1">
         <div class="phone-frame">
-          <div class="phone-notch"></div>
-          <div class="phone-screen-head">
-            <div class="ph-title">Mes élèves</div>
-            <div class="ph-sub">CM2-A · 28 élèves</div>
+          <div class="phone-statusbar">
+            <span>9:41</span>
+            <span class="ps-icons">📶 📡 🔋</span>
           </div>
-          <div class="phone-list">
-            <div class="phone-row">
-              <div class="pr-av">AD</div>
-              <div class="pr-info"><div class="pr-name">Ayan Dirieh</div><div class="pr-sub">CM2-A · 15,4/20</div></div>
-              <span class="pr-badge">Présent</span>
+          <div class="phone-screen-head">
+            <div class="ph-av">SD</div>
+            <div><div class="ph-title">Sofia</div><div class="ph-sub">Grande section</div></div>
+            <span class="ph-bell">🔔</span>
+          </div>
+          <div class="phone-cards">
+            <div class="phone-card alert">
+              <div class="pc-head"><span class="pc-title">⚠️ Absence signalée</span><span class="pc-time">il y a 4 min</span></div>
+              <div class="pc-alert-text">Sofia est absente ce matin.</div>
             </div>
-            <div class="phone-row">
-              <div class="pr-av">HO</div>
-              <div class="pr-info"><div class="pr-name">Hamza Omar</div><div class="pr-sub">CM2-A · 12,8/20</div></div>
-              <span class="pr-badge">Présent</span>
+            <div class="phone-card">
+              <div class="pc-head"><span class="pc-title">⭐ Dernières notes</span></div>
+              <div class="pc-grade-row"><span>Mathématiques</span><span>15,5/20</span></div>
+              <div class="pc-grade-row"><span>Arabe</span><span>14,5/20</span></div>
+              <div class="pc-grade-row"><span>Expression orale</span><span>16,0/20</span></div>
             </div>
-            <div class="phone-row">
-              <div class="pr-av">SM</div>
-              <div class="pr-info"><div class="pr-name">Sagal Mohamed</div><div class="pr-sub">CM2-A · 17,1/20</div></div>
-              <span class="pr-badge">Présent</span>
+            <div class="phone-card">
+              <div class="pc-head"><span class="pc-title">💳 Scolarité de janvier</span><span class="pc-badge">Réglée</span></div>
+              <div class="pc-body">Prochaine échéance, 5 février — <strong>12 000 FDJ</strong></div>
             </div>
-            <div class="phone-row">
-              <div class="pr-av">IA</div>
-              <div class="pr-info"><div class="pr-name">Idriss Ali</div><div class="pr-sub">CM2-A · 14,0/20</div></div>
-              <span class="pr-badge">Présent</span>
+            <div class="phone-card">
+              <div class="pc-head"><span class="pc-title">📢 Annonce</span><span class="pc-time">il y a 1h</span></div>
+              <div class="pc-body">Sortie pédagogique de vendredi confirmée.</div>
             </div>
           </div>
           <div class="phone-tabbar">
-            <div class="phone-tab active"><div class="pt-ic">🎓</div>Élèves</div>
-            <div class="phone-tab"><div class="pt-ic">📅</div>Absences</div>
-            <div class="phone-tab"><div class="pt-ic">🔔</div>Annonces</div>
+            <div class="phone-tab active">🏠</div>
+            <div class="phone-tab">📅</div>
+            <div class="phone-tab">📢</div>
+            <div class="phone-tab">👤</div>
           </div>
         </div>
       </div>
@@ -1212,6 +1478,8 @@
       document.querySelectorAll(`[data-tabgroup="${group}"]`).forEach(el => {
         if (el.classList.contains('tab-btn') || el.classList.contains('role-tab-btn')) {
           el.classList.toggle('active', el === btn);
+        } else if (el.dataset.role) {
+          el.classList.toggle('active', el.dataset.role === target);
         } else {
           el.classList.toggle('active', el.id === target);
         }
