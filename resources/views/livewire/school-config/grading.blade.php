@@ -1,7 +1,10 @@
 <?php
 
+use App\Models\EvaluationPlan;
 use App\Models\GradingPeriod;
+use App\Models\Level;
 use App\Models\SchoolGradingConfig;
+use App\Models\Subject;
 use App\Services\AcademicYearService;
 use App\Services\GradingConfigService;
 use Livewire\Attributes\Layout;
@@ -41,6 +44,13 @@ new class extends Component
     // ── Périodes de saisie ───────────────────────────────────────
     // [period => [is_open, open_from, open_until, note]]
     public array $gradingPeriods = [];
+
+    // ── Plan d'évaluations (par niveau + matière + période) ───────
+    public string $planLevelId     = '';
+    public string $planSubjectId   = '';
+    public string $planPeriod      = '';
+    public string $newPlanLabel    = '';
+    public int    $newPlanMaxScore = 20;
 
     public bool   $savedScale    = false;
     public bool   $savedTypes    = false;
@@ -237,10 +247,61 @@ new class extends Component
         );
     }
 
+    // ── Plan d'évaluations ────────────────────────────────────────
+
+    public function addPlanItem(): void
+    {
+        if (! $this->planLevelId || ! $this->planSubjectId || ! $this->planPeriod) return;
+
+        $this->validate([
+            'newPlanLabel'    => 'required|string|max:60',
+            'newPlanMaxScore' => 'required|integer|min:1|max:100',
+        ]);
+
+        $maxOrder = EvaluationPlan::where('level_id', $this->planLevelId)
+            ->where('subject_id', $this->planSubjectId)
+            ->where('period', $this->planPeriod)
+            ->max('order');
+
+        EvaluationPlan::create([
+            'level_id'   => $this->planLevelId,
+            'subject_id' => $this->planSubjectId,
+            'period'     => $this->planPeriod,
+            'label'      => trim($this->newPlanLabel),
+            'max_score'  => $this->newPlanMaxScore,
+            'order'      => ($maxOrder ?? 0) + 1,
+        ]);
+
+        $this->newPlanLabel    = '';
+        $this->newPlanMaxScore = 20;
+    }
+
+    public function removePlanItem(int $id): void
+    {
+        EvaluationPlan::where('id', $id)
+            ->where('level_id', $this->planLevelId)
+            ->where('subject_id', $this->planSubjectId)
+            ->where('period', $this->planPeriod)
+            ->delete();
+    }
+
     public function with(): array
     {
         $year = AcademicYearService::current();
-        return compact('year');
+
+        $levels   = Level::orderBy('order')->get();
+        $subjects = Subject::orderBy('name')->get();
+
+        $planItems = collect();
+        if ($this->planLevelId && $this->planSubjectId && $this->planPeriod) {
+            $planItems = EvaluationPlan::where('level_id', $this->planLevelId)
+                ->where('subject_id', $this->planSubjectId)
+                ->where('period', $this->planPeriod)
+                ->orderBy('order')
+                ->get();
+        }
+
+        return compact('year', 'levels', 'subjects', 'planItems');
     }
 }; ?>
 
@@ -352,6 +413,7 @@ new class extends Component
             ['k'=>'types',   'l'=>'Types d\'évaluation',   'i'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
             ['k'=>'mentions','l'=>'Mentions & Bulletins',   'i'=>'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z'],
             ['k'=>'periods', 'l'=>'Saisie des notes',      'i'=>'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'],
+            ['k'=>'plans',   'l'=>'Plan d\'évaluations',   'i'=>'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
         ] as $t)
             <button type="button" wire:click="$set('activeTab','{{ $t['k'] }}')"
                     class="tab {{ $activeTab===$t['k'] ? 'active' : '' }}">
@@ -690,6 +752,90 @@ new class extends Component
                 Enregistrer toutes les périodes
             </button>
         </div>
+
+    @endif
+
+    {{-- ══ PLAN D'ÉVALUATIONS ══ --}}
+    @if ($activeTab === 'plans')
+
+        <div style="font-size:.875rem;color:var(--ink);opacity:.6;margin-bottom:1.25rem;padding:.875rem 1.25rem;background:rgba(42,63,126,.04);border:1px solid rgba(42,63,126,.1);border-radius:10px;">
+            Définis ici les évaluations prévues pour chaque niveau, matière et trimestre. Dès qu'une évaluation est ajoutée pour une combinaison niveau/matière/trimestre, les enseignants concernés ne peuvent plus créer d'évaluation libre — ils sélectionnent uniquement dans cette liste.
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span class="card-title">Sélection</span></div>
+            <div class="card-body">
+                <div class="form-grid-3">
+                    <div class="form-field">
+                        <label class="form-label">Niveau</label>
+                        <select wire:model.live="planLevelId" class="form-select-inp">
+                            <option value="">— Choisir —</option>
+                            @foreach ($levels as $level)
+                                <option value="{{ $level->id }}">{{ $level->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Matière</label>
+                        <select wire:model.live="planSubjectId" class="form-select-inp">
+                            <option value="">— Choisir —</option>
+                            @foreach ($subjects as $subject)
+                                <option value="{{ $subject->id }}">{{ $subject->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Trimestre / Période</label>
+                        <select wire:model.live="planPeriod" class="form-select-inp">
+                            <option value="">— Choisir —</option>
+                            @foreach (array_keys($gradingPeriods) as $p)
+                                <option value="{{ $p }}">{{ $p }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if ($planLevelId && $planSubjectId && $planPeriod)
+            <div class="card">
+                <div class="card-header"><span class="card-title">Évaluations prévues</span></div>
+                <div class="card-body">
+                    @forelse ($planItems as $item)
+                        <div class="type-row">
+                            <div class="type-name" style="text-transform:none;">{{ $item->label }}</div>
+                            <div class="type-weight-wrap">
+                                <span class="weight-pct">/ {{ $item->max_score }}</span>
+                            </div>
+                            <button wire:click="removePlanItem({{ $item->id }})" class="btn-sm btn-del">
+                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    @empty
+                        <p style="font-size:.875rem;color:var(--ink);opacity:.45;text-align:center;padding:1rem 0;">
+                            Aucune évaluation prévue pour cette sélection. Tant que la liste est vide, les enseignants concernés peuvent encore créer librement leurs évaluations.
+                        </p>
+                    @endforelse
+
+                    <div style="display:flex;gap:.65rem;align-items:flex-end;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--line);">
+                        <div class="form-field" style="flex:1;margin:0;">
+                            <label class="form-label">Nouvelle évaluation</label>
+                            <input wire:model="newPlanLabel" type="text" class="form-input" placeholder="Ex: Devoir 1, Contrôle, Examen...">
+                        </div>
+                        <div class="form-field" style="width:110px;margin:0;">
+                            <label class="form-label">Note max</label>
+                            <input wire:model="newPlanMaxScore" type="number" min="1" max="100" class="form-input">
+                        </div>
+                        <button wire:click="addPlanItem" class="btn-sm btn-add" style="height:38px;">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            Ajouter
+                        </button>
+                    </div>
+                    @error('newPlanLabel') <div class="form-error">{{ $message }}</div> @enderror
+                    @error('newPlanMaxScore') <div class="form-error">{{ $message }}</div> @enderror
+                </div>
+            </div>
+        @endif
 
     @endif
 </div>

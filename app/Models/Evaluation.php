@@ -10,7 +10,7 @@ class Evaluation extends Model
     use HasFactory;
 
     protected $fillable = [
-        'school_class_id', 'subject_id', 'type', 'period', 'date', 'max_score',
+        'school_class_id', 'subject_id', 'evaluation_plan_id', 'type', 'period', 'date', 'max_score',
     ];
 
     protected $casts = [
@@ -25,6 +25,11 @@ class Evaluation extends Model
     public function subject()
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    public function plan()
+    {
+        return $this->belongsTo(EvaluationPlan::class, 'evaluation_plan_id');
     }
 
     public function grades()

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Evaluation;
+use App\Models\EvaluationPlan;
 use App\Models\Grade;
 use App\Models\SchoolClass;
 use App\Models\Subject;
@@ -28,12 +29,16 @@ new class extends Component
     #[Url]
     public string $period    = '';
 
-    // Formulaire évaluation
+    // Formulaire évaluation (repli libre, utilisé seulement si aucun plan n'est défini)
     public bool   $showEvalForm  = false;
     public string $evalType      = 'devoir';
     public string $evalDate      = '';
     public int    $evalMaxScore  = 20;
     public string $evalId        = ''; // évaluation sélectionnée
+
+    // Activation d'une évaluation prévue par le plan du directeur
+    public string $planItemId    = '';
+    public string $planEvalDate  = '';
 
     // Grille de notes [student_school_year_id => score]
     public array $scores = [];
@@ -61,6 +66,7 @@ new class extends Component
         $this->subjectId = '';
         $this->evalId    = '';
         $this->scores    = [];
+        $this->resetPlanSelection();
     }
 
     public function updatedClassId(): void
@@ -68,12 +74,14 @@ new class extends Component
         $this->subjectId = '';
         $this->evalId    = '';
         $this->scores    = [];
+        $this->resetPlanSelection();
     }
 
     public function updatedSubjectId(): void
     {
         $this->evalId = '';
         $this->scores = [];
+        $this->resetPlanSelection();
         $this->loadExistingScores();
     }
 
@@ -87,6 +95,13 @@ new class extends Component
     {
         $this->evalId = '';
         $this->scores = [];
+        $this->resetPlanSelection();
+    }
+
+    private function resetPlanSelection(): void
+    {
+        $this->planItemId   = '';
+        $this->planEvalDate = '';
     }
 
     private function loadExistingScores(): void
@@ -170,6 +185,16 @@ new class extends Component
             ->exists();
         abort_unless($subjectOk, 403);
 
+        // Si le directeur a fixé un plan d'évaluations pour ce niveau/matière/période,
+        // la création libre est interdite (même via un appel forgé) : il faut passer
+        // par activatePlanItem().
+        $levelId = SchoolClass::find($this->classId)?->level_id;
+        $planExists = $levelId && EvaluationPlan::where('level_id', $levelId)
+            ->where('subject_id', $this->subjectId)
+            ->where('period', $this->period)
+            ->exists();
+        abort_if($planExists, 403);
+
         $eval = Evaluation::create([
             'school_class_id' => $this->classId,
             'subject_id'      => $this->subjectId,
@@ -182,6 +207,73 @@ new class extends Component
         $this->evalId       = (string) $eval->id;
         $this->showEvalForm = false;
         $this->scores       = [];
+    }
+
+    /**
+     * Active (instancie) pour la classe/matière courante une évaluation
+     * prévue par le plan du directeur (niveau + matière + période).
+     */
+    public function activatePlanItem(): void
+    {
+        abort_unless(auth()->user()->can('grades.enter'), 403);
+        abort_unless($this->isGradingOpen(), 403);
+
+        $this->validate([
+            'planItemId'   => 'required|exists:evaluation_plans,id',
+            'planEvalDate' => 'required|date',
+            'classId'      => 'required|exists:school_classes,id',
+            'subjectId'    => 'required|exists:subjects,id',
+        ]);
+
+        $year = AcademicYearService::current();
+
+        // Mêmes contrôles de périmètre que createEvaluation().
+        $myClassIds = AccessService::myClassIds();
+        $classOk = SchoolClass::where('id', $this->classId)
+            ->where('school_id', auth()->user()->school_id)
+            ->where('academic_year_id', $year?->id)
+            ->when($myClassIds !== null, fn ($q) => $q->whereIn('id', $myClassIds))
+            ->exists();
+        abort_unless($classOk, 403);
+
+        $mySubjectIds = AccessService::mySubjectIds();
+        $subjectOk = \App\Models\ClassSubjectTeacher::where('school_class_id', $this->classId)
+            ->where('subject_id', $this->subjectId)
+            ->when($mySubjectIds !== null, function ($q) {
+                $q->where('staff_id', auth()->user()->staff?->id);
+            })
+            ->exists();
+        abort_unless($subjectOk, 403);
+
+        $class = SchoolClass::find($this->classId);
+        $plan  = EvaluationPlan::where('id', $this->planItemId)
+            ->where('level_id', $class?->level_id)
+            ->where('subject_id', $this->subjectId)
+            ->where('period', $this->period)
+            ->first();
+        abort_unless($plan, 403);
+
+        // Anti double-activation (ex: double clic).
+        $eval = Evaluation::where('school_class_id', $this->classId)
+            ->where('evaluation_plan_id', $plan->id)
+            ->first();
+
+        if (! $eval) {
+            $eval = Evaluation::create([
+                'school_class_id'    => $this->classId,
+                'subject_id'         => $this->subjectId,
+                'evaluation_plan_id' => $plan->id,
+                'type'               => $plan->label,
+                'period'             => $this->period,
+                'date'               => $this->planEvalDate,
+                'max_score'          => $plan->max_score,
+            ]);
+        }
+
+        $this->evalId       = (string) $eval->id;
+        $this->showEvalForm = false;
+        $this->scores       = [];
+        $this->resetPlanSelection();
     }
 
     private function isGradingOpen(): bool
@@ -526,6 +618,26 @@ new class extends Component
                 ->get();
         }
 
+        // Plan d'évaluations fixé par le directeur pour le niveau de la classe +
+        // la matière + la période sélectionnés. S'il existe, la création libre
+        // d'évaluation est désactivée au profit d'une sélection dans ce plan.
+        $planItems = collect();
+        if ($this->classId && $this->subjectId && $this->period) {
+            $levelId = SchoolClass::find($this->classId)?->level_id;
+            if ($levelId) {
+                $planItems = EvaluationPlan::where('level_id', $levelId)
+                    ->where('subject_id', $this->subjectId)
+                    ->where('period', $this->period)
+                    ->orderBy('order')
+                    ->get();
+            }
+        }
+        $hasPlan = $planItems->isNotEmpty();
+        $usedPlanIds = $evaluations->pluck('evaluation_plan_id')->filter()->all();
+        $availablePlanItems = $hasPlan
+            ? $planItems->whereNotIn('id', $usedPlanIds)->values()
+            : collect();
+
         // Évaluation courante — ignorée si hors du périmètre de l'utilisateur
         $currentEval = $this->evalId
             ? Evaluation::find($this->evalId)
@@ -554,7 +666,8 @@ new class extends Component
 
         return compact(
             'year', 'classes', 'subjects', 'evaluations',
-            'currentEval', 'students', 'filledCount', 'avgScore', 'periods', 'config', 'evalTypes', 'gradingPeriodOpen'
+            'currentEval', 'students', 'filledCount', 'avgScore', 'periods', 'config', 'evalTypes', 'gradingPeriodOpen',
+            'hasPlan', 'availablePlanItems'
         );
     }
 }; ?>
@@ -763,10 +876,10 @@ new class extends Component
                 <div class="card">
                     <div class="card-header">
                         <span class="card-title">Évaluation — {{ $period }}</span>
-                        @if ($gradingPeriodOpen)
+                        @if ($gradingPeriodOpen && (! $hasPlan || $availablePlanItems->isNotEmpty()))
                             <button wire:click="$toggle('showEvalForm')" class="btn-secondary">
                                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                                Nouvelle évaluation
+                                {{ $hasPlan ? 'Ajouter une évaluation du plan' : 'Nouvelle évaluation' }}
                             </button>
                         @endif
                     </div>
@@ -781,29 +894,61 @@ new class extends Component
                         {{-- Formulaire nouvelle évaluation --}}
                         @if ($showEvalForm && $gradingPeriodOpen)
                             <div class="eval-form">
-                                <div class="eval-form-grid">
-                                    <div class="form-field">
-                                        <label class="form-label">Type</label>
-                                        <select wire:model="evalType" class="form-input">
-                                            <option value="devoir">Devoir</option>
-                                            <option value="controle">Contrôle</option>
-                                            <option value="examen">Examen</option>
-                                            <option value="interrogation">Interrogation</option>
-                                        </select>
+                                @if ($hasPlan)
+                                    {{-- Le directeur a fixé un plan d'évaluations pour ce niveau/matière/trimestre :
+                                         on sélectionne dedans, on ne crée plus librement. --}}
+                                    @if ($availablePlanItems->isEmpty())
+                                        <p style="font-size:.8125rem;color:var(--ink);opacity:.6;">
+                                            Toutes les évaluations prévues par le directeur pour ce niveau, cette matière et ce trimestre ont déjà été créées pour cette classe.
+                                        </p>
+                                    @else
+                                        <div class="eval-form-grid">
+                                            <div class="form-field">
+                                                <label class="form-label">Évaluation prévue</label>
+                                                <select wire:model="planItemId" class="form-input">
+                                                    <option value="">— Choisir —</option>
+                                                    @foreach ($availablePlanItems as $item)
+                                                        <option value="{{ $item->id }}">{{ $item->label }} (/ {{ $item->max_score }})</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="form-field">
+                                                <label class="form-label">Date</label>
+                                                <input wire:model="planEvalDate" type="date" class="form-input">
+                                            </div>
+                                        </div>
+                                        <div class="form-actions">
+                                            <button wire:click="$set('showEvalForm',false)" class="btn-sm-cancel">Annuler</button>
+                                            <button wire:click="activatePlanItem" class="btn-sm-save">Activer</button>
+                                        </div>
+                                        @error('planItemId') <span style="color:var(--accent-red);font-size:.8125rem;">{{ $message }}</span> @enderror
+                                        @error('planEvalDate') <span style="color:var(--accent-red);font-size:.8125rem;">{{ $message }}</span> @enderror
+                                    @endif
+                                @else
+                                    <div class="eval-form-grid">
+                                        <div class="form-field">
+                                            <label class="form-label">Type</label>
+                                            <select wire:model="evalType" class="form-input">
+                                                <option value="devoir">Devoir</option>
+                                                <option value="controle">Contrôle</option>
+                                                <option value="examen">Examen</option>
+                                                <option value="interrogation">Interrogation</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-field">
+                                            <label class="form-label">Date</label>
+                                            <input wire:model="evalDate" type="date" class="form-input">
+                                        </div>
+                                        <div class="form-field">
+                                            <label class="form-label">Note max</label>
+                                            <input wire:model="evalMaxScore" type="number" min="1" max="100" class="form-input">
+                                        </div>
                                     </div>
-                                    <div class="form-field">
-                                        <label class="form-label">Date</label>
-                                        <input wire:model="evalDate" type="date" class="form-input">
+                                    <div class="form-actions">
+                                        <button wire:click="$set('showEvalForm',false)" class="btn-sm-cancel">Annuler</button>
+                                        <button wire:click="createEvaluation" class="btn-sm-save">Créer</button>
                                     </div>
-                                    <div class="form-field">
-                                        <label class="form-label">Note max</label>
-                                        <input wire:model="evalMaxScore" type="number" min="1" max="100" class="form-input">
-                                    </div>
-                                </div>
-                                <div class="form-actions">
-                                    <button wire:click="$set('showEvalForm',false)" class="btn-sm-cancel">Annuler</button>
-                                    <button wire:click="createEvaluation" class="btn-sm-save">Créer</button>
-                                </div>
+                                @endif
                             </div>
                         @endif
 

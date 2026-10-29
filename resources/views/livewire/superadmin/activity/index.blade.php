@@ -95,7 +95,7 @@ new #[Layout('layouts.superadmin')] class extends Component
                                 <div style="font-weight:600;">{{ $log->name ?? '—' }}</div>
                                 <div style="font-size:.75rem;opacity:.55;">{{ $log->email }}</div>
                             </td>
-                            <td>{{ $log->school?->name ?? '—' }}</td>
+                            <td>{{ $log->school?->name ?? 'SuperAdmin' }}</td>
                             <td>
                                 <span class="st {{ $log->guard === 'superadmin' ? 'st-trial' : 'st-voided' }}">
                                     {{ $log->guard === 'superadmin' ? 'Superadmin' : 'École' }}
@@ -116,5 +116,7 @@ new #[Layout('layouts.superadmin')] class extends Component
         </div>
     </div>
 
-    <div class="mt-4">{{ $this->logs->links() }}</div>
+    <div class="mt-4">
+        {{ $this->logs->links() }}
+    </div>
 </div>
