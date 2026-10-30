@@ -20,6 +20,7 @@ class RoleTemplateService
             'admin' => [
                 'absences.manage', 'absences.view',
                 'academic_years.manage', 'academic_years.view',
+                'accounting.manage', 'accounting.view',
                 'announcements.manage', 'announcements.view',
                 'bulletins.generate', 'bulletins.view',
                 'calander.view',
@@ -40,6 +41,7 @@ class RoleTemplateService
             'directeur' => [
                 'absences.manage', 'absences.view',
                 'academic_years.manage', 'academic_years.view',
+                'accounting.manage', 'accounting.view',
                 'announcements.manage', 'announcements.view',
                 'bulletins.generate', 'bulletins.view',
                 'classes.manage', 'classes.view',
@@ -55,6 +57,7 @@ class RoleTemplateService
 
             'comptable' => [
                 'absences.manage', 'absences.view',
+                'accounting.manage', 'accounting.view',
                 'announcements.view',
                 'bulletins.view',
                 'calander.view',

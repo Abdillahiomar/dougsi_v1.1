@@ -130,6 +130,8 @@ class PaymentService
                 $invoice->save();
             }
 
+            \App\Services\AccountingBridgeService::recordStudentPayment($receipt);
+
             return $receipt->fresh(['lines.invoice', 'student', 'methods']);
         });
     }
@@ -229,6 +231,8 @@ class PaymentService
                 'voided_by'   => $userId,
                 'void_reason' => $reason,
             ]);
+
+            \App\Services\AccountingBridgeService::reverseStudentPayment($receipt);
         });
     }
 

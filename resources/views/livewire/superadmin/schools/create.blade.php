@@ -47,6 +47,9 @@ new #[Layout('layouts.superadmin')] class extends Component
             // 2. Créer les 6 rôles standards de cette école
             \App\Services\RoleTemplateService::createForSchool($school->id);
 
+            // 2bis. Pré-remplir le plan comptable SYSCOHADA + journaux standards
+            \App\Services\AccountingSetupService::seedForSchool($school->id);
+
             // 3. Créer le premier admin
             $admin = User::create([
                 'name'      => $data['admin_name'],

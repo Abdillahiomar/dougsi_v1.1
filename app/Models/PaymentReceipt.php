@@ -27,6 +27,7 @@ class PaymentReceipt extends Model
         'school_id', 'academic_year_id', 'student_id', 'cash_session_id',
         'receipt_number', 'amount', 'method', 'reference', 'paid_at',
         'received_by', 'note', 'voided_at', 'voided_by', 'void_reason',
+        'journal_entry_id',
     ];
 
     protected $casts = [
@@ -42,6 +43,7 @@ class PaymentReceipt extends Model
     public function voidedBy() { return $this->belongsTo(User::class, 'voided_by'); }
     public function lines() { return $this->hasMany(StudentPayment::class, 'payment_receipt_id'); }
     public function methods(){return $this->hasMany(ReceiptMethod::class, 'payment_receipt_id');}
+    public function journalEntry() { return $this->belongsTo(JournalEntry::class); }
 
     public function isVoided(): bool { return $this->voided_at !== null; }
 

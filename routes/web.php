@@ -66,6 +66,8 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
     Volt::route('/activity', 'superadmin.activity.index')->name('activity.index');
 
     Volt::route('/security', 'superadmin.security.index')->name('security.index');
+
+    Volt::route('/permissions', 'superadmin.permissions.index')->name('permissions.index');
     });
     
 });
@@ -203,6 +205,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Volt::route('/eleve/{student}/grand-livre', 'finance.student-ledger')->name('student-ledger')->middleware('can:finance.view');
         Volt::route('/factures', 'finance.invoices.index')->name('invoices');
     });;
+
+    Route::middleware(['auth', 'verified', 'can:accounting.view'])->prefix('comptabilite')->name('accounting.')->group(function () {
+        Volt::route('/', 'accounting.index')->name('index');
+    });
 
     
 
